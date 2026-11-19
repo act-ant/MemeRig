@@ -40,13 +40,13 @@ describe("CONFIG_DIRS", () => {
 });
 
 describe("ALL_MANAGED_DIRS", () => {
-  it("starts with .trellis", () => {
-    expect(ALL_MANAGED_DIRS[0]).toBe(".trellis");
+  it("starts with .memerig", () => {
+    expect(ALL_MANAGED_DIRS[0]).toBe(".memerig");
   });
 
-  it("contains .trellis plus all managed dirs", () => {
+  it("contains .memerig plus all managed dirs", () => {
     expect(ALL_MANAGED_DIRS).toEqual([
-      ".trellis",
+      ".memerig",
       ...new Set(PLATFORM_MANAGED_DIRS),
     ]);
   });
@@ -71,13 +71,13 @@ describe("isManagedPath", () => {
     expect(isManagedPath(".codex/agents/check.toml")).toBe(true);
     expect(isManagedPath(".agent/workflows/start.md")).toBe(true);
     expect(isManagedPath(".kiro/skills/start/SKILL.md")).toBe(true);
-    expect(isManagedPath(".devin/workflows/trellis-start.md")).toBe(true);
+    expect(isManagedPath(".devin/workflows/memerig-start.md")).toBe(true);
     expect(isManagedPath(".github/prompts/start.prompt.md")).toBe(true);
     expect(isManagedPath(".github/copilot/hooks/session-start.py")).toBe(true);
-    expect(isManagedPath(".github/hooks/trellis.json")).toBe(true);
-    expect(isManagedPath(".pi/extensions/trellis/index.ts")).toBe(true);
-    expect(isManagedPath(".pi/prompts/trellis-continue.md")).toBe(true);
-    expect(isManagedPath(".dsh/skills/trellis-start/SKILL.md")).toBe(true);
+    expect(isManagedPath(".github/hooks/memerig.json")).toBe(true);
+    expect(isManagedPath(".pi/extensions/memerig/index.ts")).toBe(true);
+    expect(isManagedPath(".pi/prompts/memerig-continue.md")).toBe(true);
+    expect(isManagedPath(".dsh/skills/start/SKILL.md")).toBe(true);
   });
 
   // Positive: exact match (startsWith(d + "/") = false, === d = true)
@@ -93,19 +93,19 @@ describe("isManagedPath", () => {
     expect(isManagedPath(".github/prompts")).toBe(true);
     expect(isManagedPath(".github/hooks")).toBe(true);
     expect(isManagedPath(".dsh")).toBe(true);
-    expect(isManagedPath(".trellis")).toBe(true);
+    expect(isManagedPath(".memerig")).toBe(true);
   });
 
-  // Positive: .trellis hardcoded paths
-  it("matches .trellis sub-paths", () => {
-    expect(isManagedPath(".trellis/spec")).toBe(true);
-    expect(isManagedPath(".trellis/tasks/some-task")).toBe(true);
+  // Positive: .memerig hardcoded paths
+  it("matches .memerig sub-paths", () => {
+    expect(isManagedPath(".memerig/spec")).toBe(true);
+    expect(isManagedPath(".memerig/tasks/some-task")).toBe(true);
   });
 
   // Boundary: prefix-similar but NOT a sub-path (no / separator after name)
   it("rejects prefix-similar non-sub-paths", () => {
     expect(isManagedPath(".claude-backup")).toBe(false);
-    expect(isManagedPath(".trellis-old")).toBe(false);
+    expect(isManagedPath(".memerig-old")).toBe(false);
     expect(isManagedPath(".cursorignore")).toBe(false);
     expect(isManagedPath(".opencode-v2")).toBe(false);
     expect(isManagedPath(".agents/skills-backup")).toBe(false);
@@ -127,7 +127,7 @@ describe("isManagedPath", () => {
   // Boundary: path traversal
   it("rejects path traversal", () => {
     expect(isManagedPath("../.claude")).toBe(false);
-    expect(isManagedPath("../.trellis/spec")).toBe(false);
+    expect(isManagedPath("../.memerig/spec")).toBe(false);
   });
 
   // Boundary: unrelated directories
@@ -141,18 +141,18 @@ describe("isManagedPath", () => {
   // Windows path separator (bug fix verification)
   it("matches Windows-style backslash paths", () => {
     expect(isManagedPath(".claude\\commands\\foo.md")).toBe(true);
-    expect(isManagedPath(".trellis\\spec\\backend")).toBe(true);
+    expect(isManagedPath(".memerig\\spec\\backend")).toBe(true);
     expect(isManagedPath(".agents\\skills\\start\\SKILL.md")).toBe(true);
     expect(isManagedPath(".codex\\agents\\check.toml")).toBe(true);
     expect(isManagedPath(".agent\\workflows\\start.md")).toBe(true);
     expect(isManagedPath(".kiro\\skills\\start\\SKILL.md")).toBe(true);
-    expect(isManagedPath(".devin\\workflows\\trellis-start.md")).toBe(true);
+    expect(isManagedPath(".devin\\workflows\\memerig-start.md")).toBe(true);
     expect(isManagedPath(".github\\prompts\\start.prompt.md")).toBe(true);
     expect(isManagedPath(".github\\copilot\\hooks\\session-start.py")).toBe(
       true,
     );
-    expect(isManagedPath(".github\\hooks\\trellis.json")).toBe(true);
-    expect(isManagedPath(".pi\\extensions\\trellis\\index.ts")).toBe(true);
+    expect(isManagedPath(".github\\hooks\\memerig.json")).toBe(true);
+    expect(isManagedPath(".pi\\extensions\\memerig\\index.ts")).toBe(true);
   });
 
   // Mixed separators
@@ -172,8 +172,8 @@ describe("isManagedRootDir", () => {
     }
   });
 
-  it("matches .trellis", () => {
-    expect(isManagedRootDir(".trellis")).toBe(true);
+  it("matches .memerig", () => {
+    expect(isManagedRootDir(".memerig")).toBe(true);
   });
 
   it("matches shared agent skills layer", () => {
@@ -190,7 +190,7 @@ describe("isManagedRootDir", () => {
 
   it("rejects sub-paths (not a root dir)", () => {
     expect(isManagedRootDir(".claude/commands")).toBe(false);
-    expect(isManagedRootDir(".trellis/spec")).toBe(false);
+    expect(isManagedRootDir(".memerig/spec")).toBe(false);
   });
 
   it("rejects unrelated directories", () => {
@@ -317,7 +317,7 @@ describe("collectPlatformTemplates", () => {
     kilo: ".kilocode/skills",
     kiro: ".kiro/skills",
     // Gemini CLI 0.40+ reads `.agents/skills/` as a workspace alias.
-    // Trellis writes there (shared with Codex) so a single skill set serves
+    // MemeRig writes there (shared with Codex) so a single skill set serves
     // both platforms — eliminates duplicate-skill warnings (issue #224).
     gemini: ".agents/skills",
     antigravity: ".agent/skills",
@@ -326,7 +326,7 @@ describe("collectPlatformTemplates", () => {
     codebuddy: ".codebuddy/skills",
     copilot: ".github/skills",
     droid: ".factory/skills",
-    // Pi discovers `.agents/skills/` natively; Trellis writes there (shared
+    // Pi discovers `.agents/skills/` natively; MemeRig writes there (shared
     // with Codex/Gemini) instead of a private `.pi/skills/` copy (#447).
     pi: ".agents/skills",
     zcode: ".zcode/skills",
@@ -376,18 +376,18 @@ describe("collectPlatformTemplates", () => {
     for (const [id, skillRoot] of Object.entries(SKILL_ROOTS)) {
       const result = collectPlatformTemplates(id as AITool);
       expect(result, `${id} should have template tracking`).toBeInstanceOf(Map);
-      expect(result?.has(`${skillRoot}/trellis-meta/SKILL.md`)).toBe(true);
+      expect(result?.has(`${skillRoot}/meta/SKILL.md`)).toBe(true);
       expect(
         result?.has(
-          `${skillRoot}/trellis-meta/references/local-architecture/overview.md`,
+          `${skillRoot}/meta/references/local-architecture/overview.md`,
         ),
       ).toBe(true);
-      expect(result?.has(`${skillRoot}/trellis-spec-bootstrap/SKILL.md`)).toBe(
+      expect(result?.has(`${skillRoot}/spec-bootstrap/SKILL.md`)).toBe(
         true,
       );
       expect(
         result?.has(
-          `${skillRoot}/trellis-spec-bootstrap/references/spec-writing.md`,
+          `${skillRoot}/spec-bootstrap/references/spec-writing.md`,
         ),
       ).toBe(true);
     }
@@ -417,16 +417,16 @@ describe("collectPlatformTemplates", () => {
     expect(result?.has(".github/prompts/continue.prompt.md")).toBe(true);
     expect(result?.has(COPILOT_INSTRUCTIONS_PATH)).toBe(true);
     expect(result?.has(".github/copilot/hooks.json")).toBe(true);
-    expect(result?.has(".github/hooks/trellis.json")).toBe(true);
+    expect(result?.has(".github/hooks/memerig.json")).toBe(true);
   });
 
   it("pi collectTemplates includes prompts, agents, extension, and settings", () => {
     const result = collectPlatformTemplates("pi");
     expect(result).toBeInstanceOf(Map);
-    expect(result?.has(".pi/prompts/trellis-start.md")).toBe(true);
-    expect(result?.has(".pi/prompts/trellis-finish-work.md")).toBe(true);
-    expect(result?.has(".pi/agents/trellis-implement.md")).toBe(true);
-    expect(result?.has(".pi/extensions/trellis/index.ts")).toBe(true);
+    expect(result?.has(".pi/prompts/memerig-start.md")).toBe(true);
+    expect(result?.has(".pi/prompts/memerig-finish-work.md")).toBe(true);
+    expect(result?.has(".pi/agents/memerig-implement.md")).toBe(true);
+    expect(result?.has(".pi/extensions/memerig/index.ts")).toBe(true);
     expect(result?.has(".pi/settings.json")).toBe(true);
   });
 
@@ -438,19 +438,19 @@ describe("collectPlatformTemplates", () => {
         key.startsWith(".agents/skills/"),
       ),
     ).toBe(false);
-    expect(result?.has(".agents/skills/trellis-check/SKILL.md")).toBe(false);
-    expect(result?.has(".agents/skills/trellis-start/SKILL.md")).toBe(false);
-    expect(result?.has(".zcode/skills/trellis-start/SKILL.md")).toBe(false);
-    expect(result?.has(".zcode/skills/trellis-continue/SKILL.md")).toBe(false);
-    expect(result?.has(".zcode/skills/trellis-finish-work/SKILL.md")).toBe(
+    expect(result?.has(".agents/skills/check/SKILL.md")).toBe(false);
+    expect(result?.has(".agents/skills/start/SKILL.md")).toBe(false);
+    expect(result?.has(".zcode/skills/start/SKILL.md")).toBe(false);
+    expect(result?.has(".zcode/skills/continue/SKILL.md")).toBe(false);
+    expect(result?.has(".zcode/skills/finish-work/SKILL.md")).toBe(
       false,
     );
-    expect(result?.has(".zcode/skills/trellis-before-dev/SKILL.md")).toBe(true);
-    expect(result?.has(".zcode/skills/trellis-check/SKILL.md")).toBe(true);
-    expect(result?.has(".zcode/commands/trellis/start.md")).toBe(false);
-    expect(result?.has(".zcode/agents/trellis-implement.md")).toBe(true);
-    expect(result?.has(".zcode/agents/trellis-check.md")).toBe(true);
-    expect(result?.has(".zcode/agents/trellis-research.md")).toBe(true);
+    expect(result?.has(".zcode/skills/before-dev/SKILL.md")).toBe(true);
+    expect(result?.has(".zcode/skills/check/SKILL.md")).toBe(true);
+    expect(result?.has(".zcode/commands/memerig/start.md")).toBe(false);
+    expect(result?.has(".zcode/agents/memerig-implement.md")).toBe(true);
+    expect(result?.has(".zcode/agents/memerig-check.md")).toBe(true);
+    expect(result?.has(".zcode/agents/memerig-research.md")).toBe(true);
   });
 
   it("grok collectTemplates includes flat commands and .grok-owned skills", () => {
@@ -461,44 +461,44 @@ describe("collectPlatformTemplates", () => {
         key.startsWith(".agents/skills/"),
       ),
     ).toBe(false);
-    expect(result?.has(".grok/commands/trellis-start.md")).toBe(true);
-    expect(result?.has(".grok/commands/trellis-continue.md")).toBe(true);
-    expect(result?.has(".grok/commands/trellis/start.md")).toBe(false);
-    expect(result?.has(".grok/skills/trellis-check/SKILL.md")).toBe(true);
-    expect(result?.has(".grok/skills/trellis-before-dev/SKILL.md")).toBe(true);
-    expect(result?.has(".grok/agents/trellis-implement.md")).toBe(true);
-    expect(result?.has(".grok/agents/trellis-check.md")).toBe(true);
-    expect(result?.has(".grok/agents/trellis-research.md")).toBe(true);
+    expect(result?.has(".grok/commands/memerig-start.md")).toBe(true);
+    expect(result?.has(".grok/commands/memerig-continue.md")).toBe(true);
+    expect(result?.has(".grok/commands/memerig/start.md")).toBe(false);
+    expect(result?.has(".grok/skills/check/SKILL.md")).toBe(true);
+    expect(result?.has(".grok/skills/before-dev/SKILL.md")).toBe(true);
+    expect(result?.has(".grok/agents/memerig-implement.md")).toBe(true);
+    expect(result?.has(".grok/agents/memerig-check.md")).toBe(true);
+    expect(result?.has(".grok/agents/memerig-research.md")).toBe(true);
   });
 
   it("kimi collectTemplates includes shared skills and .kimi-code skills", () => {
     const result = collectPlatformTemplates("kimi");
     expect(result).toBeInstanceOf(Map);
     // Shared neutral skills
-    expect(result?.has(".agents/skills/trellis-check/SKILL.md")).toBe(true);
-    expect(result?.has(".agents/skills/trellis-before-dev/SKILL.md")).toBe(
+    expect(result?.has(".agents/skills/check/SKILL.md")).toBe(true);
+    expect(result?.has(".agents/skills/before-dev/SKILL.md")).toBe(
       true,
     );
-    expect(result?.has(".agents/skills/trellis-meta/SKILL.md")).toBe(true);
+    expect(result?.has(".agents/skills/meta/SKILL.md")).toBe(true);
     // Kimi-private entry points + agent prompts
-    expect(result?.has(".kimi-code/skills/trellis-start/SKILL.md")).toBe(true);
-    expect(result?.has(".kimi-code/skills/trellis-continue/SKILL.md")).toBe(
+    expect(result?.has(".kimi-code/skills/start/SKILL.md")).toBe(true);
+    expect(result?.has(".kimi-code/skills/continue/SKILL.md")).toBe(
       true,
     );
     expect(
-      result?.has(".kimi-code/skills/trellis-finish-work/SKILL.md"),
+      result?.has(".kimi-code/skills/finish-work/SKILL.md"),
     ).toBe(true);
     expect(
-      result?.has(".kimi-code/skills/trellis-implement/SKILL.md"),
+      result?.has(".kimi-code/skills/memerig-implement/SKILL.md"),
     ).toBe(true);
-    expect(result?.has(".kimi-code/skills/trellis-check/SKILL.md")).toBe(true);
+    expect(result?.has(".kimi-code/skills/memerig-check/SKILL.md")).toBe(true);
     expect(
-      result?.has(".kimi-code/skills/trellis-research/SKILL.md"),
+      result?.has(".kimi-code/skills/memerig-research/SKILL.md"),
     ).toBe(true);
     // Custom sub-agent definitions
-    expect(result?.has(".kimi-code/agents/trellis-implement.md")).toBe(true);
-    expect(result?.has(".kimi-code/agents/trellis-check.md")).toBe(true);
-    expect(result?.has(".kimi-code/agents/trellis-research.md")).toBe(true);
+    expect(result?.has(".kimi-code/agents/memerig-implement.md")).toBe(true);
+    expect(result?.has(".kimi-code/agents/memerig-check.md")).toBe(true);
+    expect(result?.has(".kimi-code/agents/memerig-research.md")).toBe(true);
     // No project-level hooks/settings for Kimi
     expect(
       [...(result?.keys() ?? [])].some((key) =>

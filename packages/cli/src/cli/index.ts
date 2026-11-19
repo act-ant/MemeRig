@@ -23,7 +23,7 @@ import { AI_TOOLS } from "../types/ai-tools.js";
 export { VERSION, PACKAGE_NAME };
 
 /**
- * Check if a Trellis update is available (compare project version with CLI version)
+ * Check if a MemeRig update is available (compare project version with CLI version)
  */
 function checkForUpdates(cwd: string): void {
   const versionFile = path.join(cwd, DIR_NAMES.WORKFLOW, ".version");
@@ -38,10 +38,10 @@ function checkForUpdates(cwd: string): void {
     // CLI is newer than project - update available
     console.log(
       chalk.yellow(
-        `\n⚠️  Trellis update available: ${projectVersion} → ${cliVersion}`,
+        `\n⚠️  MemeRig update available: ${projectVersion} → ${cliVersion}`,
       ),
     );
-    console.log(chalk.gray(`   Run: trellis update\n`));
+    console.log(chalk.gray(`   Run: memerig update\n`));
   } else if (comparison < 0) {
     // CLI is older than project - CLI needs updating
     console.log(
@@ -49,11 +49,11 @@ function checkForUpdates(cwd: string): void {
         `\n⚠️  Your CLI (${cliVersion}) is older than project (${projectVersion})`,
       ),
     );
-    console.log(chalk.gray(`   Run: trellis upgrade\n`));
+    console.log(chalk.gray(`   Run: memerig upgrade\n`));
   }
 }
 
-// Check for updates at CLI startup (only if .trellis exists)
+// Check for updates at CLI startup (only if .memerig exists)
 const cwd = process.cwd();
 if (fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW))) {
   checkForUpdates(cwd);
@@ -62,7 +62,7 @@ if (fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW))) {
 const program = new Command();
 
 program
-  .name("trellis")
+  .name("memerig")
   .description(
     "AI-assisted development workflow framework for Cursor, Claude Code and more",
   )
@@ -70,7 +70,7 @@ program
 
 program
   .command("init")
-  .description("Initialize trellis in the current project")
+  .description("Initialize memerig in the current project")
   .option("--cursor", "Include Cursor commands")
   .option("--claude", "Include Claude Code commands")
   .option("--opencode", "Include OpenCode commands")
@@ -96,7 +96,7 @@ program
   .option("--snow", "Include Snow CLI skills and commands")
   .option(
     "--with-statusline",
-    "Install the Trellis statusLine for Claude Code (off by default)",
+    "Install the MemeRig statusLine for Claude Code (off by default)",
   )
   .option("-y, --yes", "Skip prompts and use defaults")
   .option(
@@ -122,7 +122,7 @@ program
   )
   .option(
     "--workflow <id>",
-    "Workflow template id for .trellis/workflow.md (default: native; e.g., tdd, channel-driven-subagent-dispatch)",
+    "Workflow template id for .memerig/workflow.md (default: native; e.g., tdd, channel-driven-subagent-dispatch)",
   )
   .option(
     "--workflow-source <source>",
@@ -146,7 +146,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (process.env.DEBUG || process.env.MEMERIG_DEBUG) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -155,7 +155,7 @@ program
 
 program
   .command("update")
-  .description("Update trellis configuration and commands to latest version")
+  .description("Update memerig configuration and commands to latest version")
   .option("--dry-run", "Preview changes without applying them")
   .option("-f, --force", "Overwrite all changed files without asking")
   .option("-s, --skip-all", "Skip all changed files without asking")
@@ -177,7 +177,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (process.env.DEBUG || process.env.MEMERIG_DEBUG) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -186,7 +186,7 @@ program
 
 program
   .command("upgrade")
-  .description("Upgrade the global Trellis CLI package")
+  .description("Upgrade the global MemeRig CLI package")
   .option(
     "--tag <tag>",
     "npm dist-tag or version to install (default follows current channel: latest, beta, or rc)",
@@ -203,7 +203,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (process.env.DEBUG || process.env.MEMERIG_DEBUG) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -213,7 +213,7 @@ program
 program
   .command("uninstall")
   .description(
-    "Remove all trellis files (managed platform files + .trellis/) from this project",
+    "Remove all memerig files (managed platform files + .memerig/) from this project",
   )
   .option("-y, --yes", "Skip confirmation prompt")
   .option("--dry-run", "List what would be removed without changing anything")
@@ -228,7 +228,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (process.env.DEBUG || process.env.MEMERIG_DEBUG) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -238,7 +238,7 @@ program
 program
   .command("ablate")
   .description(
-    "Temporarily remove all project Trellis surfaces with an external recovery transaction",
+    "Temporarily remove all project MemeRig surfaces with an external recovery transaction",
   )
   .option("-y, --yes", "Skip confirmation prompt")
   .option("--dry-run", "Preview full ablation without changing files or state")
@@ -253,7 +253,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (process.env.DEBUG || process.env.MEMERIG_DEBUG) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -262,7 +262,7 @@ program
 
 program
   .command("restore")
-  .description("Restore the exact project state saved by `trellis ablate`")
+  .description("Restore the exact project state saved by `memerig ablate`")
   .option("-y, --yes", "Skip confirmation prompt")
   .option("--dry-run", "Preview restoration and check conflicts")
   .action(async (options: Record<string, unknown>) => {
@@ -276,7 +276,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (process.env.DEBUG || process.env.MEMERIG_DEBUG) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -286,7 +286,7 @@ program
 program
   .command("mem")
   .description(
-    "Search/recall AI conversation history across Claude Code, Codex, OpenCode, Pi (run 'trellis mem help' for subcommands and flags)",
+    "Search/recall AI conversation history across Claude Code, Codex, OpenCode, Pi (run 'memerig mem help' for subcommands and flags)",
   )
   .allowUnknownOption(true)
   .helpOption(false)
@@ -302,7 +302,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (process.env.DEBUG || process.env.MEMERIG_DEBUG) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -312,7 +312,7 @@ program
 program
   .command("workflow")
   .description(
-    "List or switch the project's .trellis/workflow.md template (native, tdd, channel-driven-subagent-dispatch, or marketplace)",
+    "List or switch the project's .memerig/workflow.md template (native, tdd, channel-driven-subagent-dispatch, or marketplace)",
   )
   .option(
     "-t, --template <id>",
@@ -326,7 +326,7 @@ program
   .option("-f, --force", "Overwrite a modified workflow.md without asking")
   .option(
     "-n, --create-new",
-    "Write .trellis/workflow.md.new instead of replacing the active workflow",
+    "Write .memerig/workflow.md.new instead of replacing the active workflow",
   )
   .action(async (options: Record<string, unknown>) => {
     try {
@@ -346,7 +346,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (process.env.DEBUG || process.env.MEMERIG_DEBUG) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -387,7 +387,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (process.env.DEBUG || process.env.MEMERIG_DEBUG) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);

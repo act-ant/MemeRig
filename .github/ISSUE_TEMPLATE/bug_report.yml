@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug in Trellis CLI
+description: Report a bug in MemeRig CLI
 labels: ["bug", "pkg:cli"]
 body:
   - type: textarea
@@ -19,8 +19,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Trellis Version
-      description: Output of `trellis --version`
+      label: MemeRig Version
+      description: Output of `memerig --version`
     validations:
       required: true
   - type: input

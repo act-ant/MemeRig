@@ -1,13 +1,13 @@
 {
-  "name": "@mindfoldhq/trellis",
+  "name": "memerig",
   "version": "0.6.17",
-  "description": "AI capabilities grow like ivy — Trellis provides the structure to guide them along a disciplined path",
+  "description": "MemeRig: an agent harness for game and agent development — specs, tasks, and memory persisted in your repo. Forked from Trellis.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "trellis": "./bin/trellis.js",
-    "tl": "./bin/trellis.js"
+    "memerig": "./bin/memerig.js",
+    "mrig": "./bin/memerig.js"
   },
   "publishConfig": {
     "access": "public"
@@ -42,17 +42,18 @@
     "workflow",
     "cursor",
     "claude",
-    "iflow",
     "cli",
     "developer-tools",
     "agent",
     "memory",
-    "trellis"
+    "memerig",
+    "harness",
+    "game-development"
   ],
-  "author": "Mindfold LLC",
+  "author": "blackplume",
   "license": "AGPL-3.0-only",
   "dependencies": {
-    "@mindfoldhq/trellis-core": "workspace:*",
+    "memerig-core": "workspace:*",
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "figlet": "^1.9.4",
@@ -85,6 +86,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/mindfold-ai/trellis.git"
+    "url": "https://github.com/blackplume233/MemeRig.git"
+  },
+  "homepage": "https://github.com/blackplume233/MemeRig#readme",
+  "bugs": {
+    "url": "https://github.com/blackplume233/MemeRig/issues"
   }
 }

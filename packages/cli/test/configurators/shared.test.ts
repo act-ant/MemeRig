@@ -16,7 +16,7 @@ import type { TemplateContext } from "../../src/types/ai-tools.js";
 // ---------------------------------------------------------------------------
 
 const claudeCtx: TemplateContext = {
-  cmdRefPrefix: "/trellis:",
+  cmdRefPrefix: "/memerig:",
   executorAI: "Bash scripts or Task calls",
   userActionLabel: "Slash commands",
   agentCapable: true,
@@ -34,7 +34,7 @@ const codexCtx: TemplateContext = {
 };
 
 const cursorCtx: TemplateContext = {
-  cmdRefPrefix: "/trellis-",
+  cmdRefPrefix: "/memerig-",
   executorAI: "Bash scripts or file reads",
   userActionLabel: "Slash commands",
   agentCapable: false,
@@ -122,13 +122,13 @@ describe("replacePythonCommandLiterals", () => {
       "#!/usr/bin/env python3",
       "# comment about python3",
       'exec python3 "$0" "$@"',
-      "python3 ./.trellis/scripts/task.py",
+      "python3 ./.memerig/scripts/task.py",
     ].join("\n");
     const expected = [
       "#!/usr/bin/env python3",
       "# comment about python",
       'exec python "$0" "$@"',
-      "python ./.trellis/scripts/task.py",
+      "python ./.memerig/scripts/task.py",
     ].join("\n");
     expect(replacePythonCommandLiterals(input)).toBe(expected);
   });
@@ -175,45 +175,46 @@ describe("resolvePlaceholders", () => {
   // -----------------------------------------------------------------------
 
   describe("{{CMD_REF:name}}", () => {
-    it("resolves with /trellis: prefix (Claude)", () => {
+    it("keeps the /memerig: namespace on session commands (Claude)", () => {
+      const result = resolvePlaceholders(
+        "Use {{CMD_REF:finish-work}} when done",
+        claudeCtx,
+      );
+      expect(result).toBe("Use /memerig:finish-work when done");
+    });
+
+    it("drops the brand namespace from skill references (Claude)", () => {
       const result = resolvePlaceholders(
         "See {{CMD_REF:brainstorm}} for details",
         claudeCtx,
       );
-      expect(result).toBe("See /trellis:brainstorm for details");
+      expect(result).toBe("See /brainstorm for details");
     });
 
-    it("resolves with $ prefix (Codex)", () => {
-      const result = resolvePlaceholders(
-        "Run {{CMD_REF:check}} after coding",
-        codexCtx,
+    it("keeps the /memerig- prefix on session commands and drops it on skills (Cursor)", () => {
+      expect(
+        resolvePlaceholders("Use {{CMD_REF:finish-work}} when done", cursorCtx),
+      ).toBe("Use /memerig-finish-work when done");
+      expect(resolvePlaceholders("Run {{CMD_REF:update-spec}}", cursorCtx)).toBe(
+        "Run /update-spec",
       );
-      expect(result).toBe("Run $check after coding");
     });
 
-    it("resolves with /trellis- prefix (Cursor)", () => {
-      const result = resolvePlaceholders(
-        "Use {{CMD_REF:finish-work}} when done",
-        cursorCtx,
-      );
-      expect(result).toBe("Use /trellis-finish-work when done");
+    it("leaves brand-free skill-invoke prefixes untouched (Codex)", () => {
+      expect(
+        resolvePlaceholders("Run {{CMD_REF:check}} after coding", codexCtx),
+      ).toBe("Run $check after coding");
+      expect(
+        resolvePlaceholders("{{CMD_REF:check-cross-layer}}", codexCtx),
+      ).toBe("$check-cross-layer");
     });
 
     it("handles multiple CMD_REF in one template", () => {
       const input =
         "{{CMD_REF:start}} then {{CMD_REF:brainstorm}} then {{CMD_REF:check}}";
       expect(resolvePlaceholders(input, claudeCtx)).toBe(
-        "/trellis:start then /trellis:brainstorm then /trellis:check",
+        "/memerig:start then /brainstorm then /check",
       );
-    });
-
-    it("handles hyphenated command names", () => {
-      expect(resolvePlaceholders("{{CMD_REF:finish-work}}", claudeCtx)).toBe(
-        "/trellis:finish-work",
-      );
-      expect(
-        resolvePlaceholders("{{CMD_REF:check-cross-layer}}", codexCtx),
-      ).toBe("$check-cross-layer");
     });
   });
 
@@ -242,12 +243,12 @@ describe("resolvePlaceholders", () => {
 
     it("resolves {{PYTHON_CMD}} alongside context placeholders", () => {
       const result = resolvePlaceholders(
-        "{{PYTHON_CMD}} ./.trellis/scripts/task.py and {{CMD_REF:start}}",
+        "{{PYTHON_CMD}} ./.memerig/scripts/task.py and {{CMD_REF:start}}",
         claudeCtx,
       );
       const py = process.platform === "win32" ? "python" : "python3";
       expect(result).toBe(
-        `${py} ./.trellis/scripts/task.py and /trellis:start`,
+        `${py} ./.memerig/scripts/task.py and /memerig:start`,
       );
     });
   });
@@ -406,10 +407,10 @@ describe("resolvePlaceholders", () => {
 
     it("works alongside {{PYTHON_CMD}} in a realistic init-context invocation", () => {
       const input =
-        '{{PYTHON_CMD}} ./.trellis/scripts/task.py init-context "$TASK_DIR" <type> --platform {{CLI_FLAG}}';
+        '{{PYTHON_CMD}} ./.memerig/scripts/task.py init-context "$TASK_DIR" <type> --platform {{CLI_FLAG}}';
       const py = process.platform === "win32" ? "python" : "python3";
       expect(resolvePlaceholders(input, codexCtx)).toBe(
-        `${py} ./.trellis/scripts/task.py init-context "$TASK_DIR" <type> --platform codex`,
+        `${py} ./.memerig/scripts/task.py init-context "$TASK_DIR" <type> --platform codex`,
       );
     });
   });
@@ -437,13 +438,13 @@ describe("resolvePlaceholders", () => {
 // ---------------------------------------------------------------------------
 
 describe("resolvePlaceholdersNeutral", () => {
-  it("renders {{CMD_REF:name}} as `name` (Trellis command) — platform-neutral", () => {
+  it("renders {{CMD_REF:name}} as `name` (MemeRig command) — platform-neutral", () => {
     expect(
       resolvePlaceholdersNeutral("See {{CMD_REF:brainstorm}}", claudeCtx),
-    ).toBe("See `brainstorm` (Trellis command)");
+    ).toBe("See `brainstorm` (MemeRig command)");
     expect(
       resolvePlaceholdersNeutral("See {{CMD_REF:brainstorm}}", codexCtx),
-    ).toBe("See `brainstorm` (Trellis command)");
+    ).toBe("See `brainstorm` (MemeRig command)");
   });
 
   it("produces byte-identical CMD_REF output across platforms", () => {
@@ -531,7 +532,7 @@ describe("resolveSkillsNeutral / resolveAllAsSkillsNeutral", () => {
   it("resolveSkillsNeutral renders CMD_REF without platform-specific prefix", () => {
     // The neutral output must not contain platform-prefixed tokens for any
     // command that CMD_REF references in the shared skills (Codex `$name`,
-    // Claude `/trellis:name`, Cursor `/trellis-name`).
+    // Claude `/memerig:name`, Cursor `/memerig-name`).
     const neutral = resolveSkillsNeutral(AI_TOOLS.codex.templateContext);
     const cmdRefNames = [
       "start",
@@ -550,11 +551,11 @@ describe("resolveSkillsNeutral / resolveAllAsSkillsNeutral", () => {
         expect(
           skill.content,
           `${skill.name} leaks Claude prefix for ${name}`,
-        ).not.toContain(`/trellis:${name}`);
+        ).not.toContain(`/memerig:${name}`);
         expect(
           skill.content,
           `${skill.name} leaks Cursor prefix for ${name}`,
-        ).not.toContain(`/trellis-${name}`);
+        ).not.toContain(`/memerig-${name}`);
       }
     }
   });
@@ -597,9 +598,9 @@ describe("wrapWithOmpFrontmatter", () => {
     expect(result).toContain("Wrap up the current session.");
   });
 
-  it("strips trellis- prefix before looking up description", () => {
+  it("strips memerig- prefix before looking up description", () => {
     const content = "# Continue Current Task\n\nBody text.";
-    const result = wrapWithOmpFrontmatter("trellis-continue", content);
+    const result = wrapWithOmpFrontmatter("continue", content);
     expect(result).toMatch(/^---\ndescription: /);
     expect(result).toContain("Body text.");
   });

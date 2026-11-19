@@ -58,12 +58,6 @@ function hasGitDiff() {
   }
 }
 
-function docsGuard(type) {
-  if (type === "beta" || type === "rc" || type === "promote") {
-    run(`node scripts/check-docs-changelog.js --type ${type}`);
-  }
-}
-
 const PRERELEASE_TYPES = new Set(["beta", "rc"]);
 
 function currentBranch() {
@@ -134,15 +128,14 @@ function main() {
   console.log(`releasing ${type} from branch "${branch}"`);
 
   run("node scripts/check-manifest-continuity.js");
-  docsGuard(type);
-  run("pnpm --filter @mindfoldhq/trellis-core test");
+  run("pnpm --filter memerig-core test");
   run("pnpm test");
 
-  // Exclude .trellis/ from the pre-release sweep: dirty task/workspace files
+  // Exclude .memerig/ from the pre-release sweep: dirty task/workspace files
   // (parallel in-progress work, runtime artifacts) must never be swept into
-  // "chore: pre-release updates" (#303). Staging .trellis/ only ever goes
+  // "chore: pre-release updates" (#303). Staging .memerig/ only ever goes
   // through safe_commit.py's precise allowlist, never a blanket `git add -A`.
-  run("git add -A -- ':!docs-site' ':!marketplace' ':!.trellis'");
+  run("git add -A -- ':!.memerig'");
   if (hasGitDiff()) {
     run("git commit -m 'chore: pre-release updates'");
   }

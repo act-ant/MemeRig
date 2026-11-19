@@ -1,10 +1,10 @@
 /**
- * Scrubbers for structured config files during `trellis uninstall`.
+ * Scrubbers for structured config files during `memerig uninstall`.
  *
  * Each scrubber takes the file content (and any context it needs) and returns
  * `{ content, fullyEmpty }`:
  * - `content` is the post-scrub text to write back if the file should remain.
- * - `fullyEmpty` is true when, after stripping every trellis-managed value,
+ * - `fullyEmpty` is true when, after stripping every memerig-managed value,
  *   nothing meaningful is left. The caller deletes the file in that case.
  *
  * Manifest path matching (for hooks.json scrubbers) uses substring containment
@@ -22,7 +22,7 @@ export interface ScrubResult {
 /**
  * Test whether a hook command string references any of the given manifest paths.
  *
- * Trellis-emitted hook commands always have the shape
+ * MemeRig-emitted hook commands always have the shape
  *   `<python-cmd> <manifest-path>`
  * so the trailing whitespace-delimited token is the script path. We compare
  * that last token (with surrounding quotes stripped) against the manifest
@@ -68,20 +68,20 @@ function getEntryCommand(entry: unknown): string | null {
   return null;
 }
 
-const CLAUDE_TRELLIS_STATUSLINE = ".claude/hooks/statusline.py";
+const CLAUDE_MEMERIG_STATUSLINE = ".claude/hooks/statusline.py";
 
-function isTrellisClaudeStatusLine(
+function isMemerigClaudeStatusLine(
   value: unknown,
   deletedPaths: readonly string[],
 ): boolean {
-  if (!deletedPaths.includes(CLAUDE_TRELLIS_STATUSLINE)) return false;
+  if (!deletedPaths.includes(CLAUDE_MEMERIG_STATUSLINE)) return false;
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     return false;
   }
   const command = getEntryCommand(value);
   return (
     command !== null &&
-    commandMatchesDeletedPath(command, [CLAUDE_TRELLIS_STATUSLINE])
+    commandMatchesDeletedPath(command, [CLAUDE_MEMERIG_STATUSLINE])
   );
 }
 
@@ -93,7 +93,7 @@ function isTrellisClaudeStatusLine(
  *
  * Strips every entry whose command references a path in `deletedPaths`,
  * then bottom-up cleans empty containers (matcher block, event array, hooks
- * object). The exact opt-in Trellis Claude statusLine command is also removed;
+ * object). The exact opt-in MemeRig Claude statusLine command is also removed;
  * other keys outside `hooks` (e.g. `env`, `model`, `permissions`, `version`)
  * are preserved.
  */
@@ -115,7 +115,7 @@ export function scrubHooksJson(
   }
 
   const root = parsed as Record<string, unknown>;
-  if (isTrellisClaudeStatusLine(root.statusLine, deletedPaths)) {
+  if (isMemerigClaudeStatusLine(root.statusLine, deletedPaths)) {
     delete root.statusLine;
   }
   const hooks = root.hooks;
@@ -144,7 +144,7 @@ export function scrubHooksJson(
       if (mode === "flat") {
         const cmd = getEntryCommand(entry);
         if (cmd !== null && commandMatchesDeletedPath(cmd, deletedPaths)) {
-          continue; // drop trellis entry
+          continue; // drop memerig entry
         }
         filteredEvent.push(entry);
       } else {
@@ -242,25 +242,25 @@ export function scrubOpencodePackageJson(content: string): ScrubResult {
 }
 
 /**
- * Trellis-specific values written by the Pi configurator.
+ * MemeRig-specific values written by the Pi configurator.
  *
  * The `extensions`/`skills`/`prompts` arrays are paths relative to `.pi/`. We
  * remove the exact entries that the Pi configurator emits.
  */
-const PI_TRELLIS_EXTENSION = "./extensions/trellis/index.ts";
-const PI_TRELLIS_SKILLS = "./skills";
-const PI_TRELLIS_PROMPTS = "./prompts";
+const PI_MEMERIG_EXTENSION = "./extensions/memerig/index.ts";
+const PI_MEMERIG_SKILLS = "./skills";
+const PI_MEMERIG_PROMPTS = "./prompts";
 const PI_SUBAGENTS_PACKAGE = "npm:pi-subagents";
 
-function isTrellisPiEntry(value: unknown, target: string): boolean {
+function isMemerigPiEntry(value: unknown, target: string): boolean {
   return typeof value === "string" && value === target;
 }
 
 /**
  * Scrub `.pi/settings.json`:
- * - drop `enableSkillCommands` (trellis-flagged)
- * - remove trellis entries from `extensions`/`skills`/`prompts` arrays
- * - remove trellis-managed `packages["npm:pi-subagents"]` isolation override
+ * - drop `enableSkillCommands` (memerig-flagged)
+ * - remove memerig entries from `extensions`/`skills`/`prompts` arrays
+ * - remove memerig-managed `packages["npm:pi-subagents"]` isolation override
  * - drop arrays that become empty
  */
 export function scrubPiSettings(content: string): ScrubResult {
@@ -281,14 +281,14 @@ export function scrubPiSettings(content: string): ScrubResult {
   }
 
   const arrayCleanups: [string, string][] = [
-    ["extensions", PI_TRELLIS_EXTENSION],
-    ["skills", PI_TRELLIS_SKILLS],
-    ["prompts", PI_TRELLIS_PROMPTS],
+    ["extensions", PI_MEMERIG_EXTENSION],
+    ["skills", PI_MEMERIG_SKILLS],
+    ["prompts", PI_MEMERIG_PROMPTS],
   ];
   for (const [key, target] of arrayCleanups) {
     const arr = root[key];
     if (!Array.isArray(arr)) continue;
-    const filtered = arr.filter((v) => !isTrellisPiEntry(v, target));
+    const filtered = arr.filter((v) => !isMemerigPiEntry(v, target));
     if (filtered.length === 0) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete root[key];
@@ -328,7 +328,7 @@ export function scrubPiSettings(content: string): ScrubResult {
 /**
  * Scrub `.codex/config.toml`.
  *
- * The current Trellis-emitted file has three owned chunks:
+ * The current MemeRig-emitted file has three owned chunks:
  * 1. The line `project_doc_fallback_filenames = ["AGENTS.md"]`.
  * 2. Comment lines derived from the current shipped Codex config template,
  *    plus an allowlist of legacy template comments.
@@ -336,25 +336,25 @@ export function scrubPiSettings(content: string): ScrubResult {
  *
  * Strategy: line-based removal. We strip:
  *  - the `project_doc_fallback_filenames = ...` line
- *  - any line that is *only* a known Trellis template comment
- *  - Trellis's exact `max_depth = 1`, retaining `[agents]` when user keys remain
+ *  - any line that is *only* a known MemeRig template comment
+ *  - MemeRig's exact `max_depth = 1`, retaining `[agents]` when user keys remain
  *  - blank lines that surrounded those removals
  *
- * If the user added their own non-trellis lines, they are preserved as-is.
+ * If the user added their own non-memerig lines, they are preserved as-is.
  * "Fully empty" = post-scrub content has no non-whitespace characters.
  */
 export function scrubCodexConfigToml(content: string): ScrubResult {
   const legacyCommentMarkers = [
-    "Project-scoped Codex defaults for Trellis workflows.",
+    "Project-scoped Codex defaults for MemeRig workflows.",
     "Codex loads this after ~/.codex/config.toml when you work in this project.",
     "Keep AGENTS.md as the primary project instruction file.",
-    "NOTE: Trellis's SessionStart + UserPromptSubmit hooks require opt-in.",
+    "NOTE: MemeRig's SessionStart + UserPromptSubmit hooks require opt-in.",
     "Add the following to your USER-level config at ~/.codex/config.toml",
     "(not this project file — features.* must be enabled globally):",
     "[features]",
     "hooks = true",
     "codex_hooks = true",
-    "Without this flag, hooks.json is ignored and Trellis context won't",
+    "Without this flag, hooks.json is ignored and MemeRig context won't",
     "be injected into Codex sessions.",
   ];
 
@@ -364,32 +364,32 @@ export function scrubCodexConfigToml(content: string): ScrubResult {
     .filter((line) => line.startsWith("#"))
     .map((line) => line.replace(/^#+\s?/, "").trim())
     .filter((line) => line.length > 0);
-  const trellisCommentMarkers = new Set([
+  const memerigCommentMarkers = new Set([
     ...legacyCommentMarkers,
     ...currentTemplateCommentMarkers,
   ]);
 
-  // A comment line is "trellis-known" if its content (after `#` and spaces)
+  // A comment line is "memerig-known" if its content (after `#` and spaces)
   // matches one of the known marker strings exactly OR is an empty `#` line.
-  function isTrellisCommentLine(line: string): boolean {
+  function isMemerigCommentLine(line: string): boolean {
     const trimmed = line.trim();
     if (!trimmed.startsWith("#")) return false;
     const inner = trimmed.replace(/^#+\s?/, "").trim();
-    if (inner.length === 0) return true; // bare `#` line inside trellis block
-    return trellisCommentMarkers.has(inner);
+    if (inner.length === 0) return true; // bare `#` line inside memerig block
+    return memerigCommentMarkers.has(inner);
   }
 
-  function isTrellisAssignment(line: string): boolean {
+  function isMemerigAssignment(line: string): boolean {
     return /^\s*project_doc_fallback_filenames\s*=/.test(line);
   }
 
   const filteredLines = content
     .split(/\r?\n/)
     .filter(
-      (line) => !isTrellisAssignment(line) && !isTrellisCommentLine(line),
+      (line) => !isMemerigAssignment(line) && !isMemerigCommentLine(line),
     );
 
-  // Trellis currently owns `[agents].max_depth = 1`. Remove the assignment,
+  // MemeRig currently owns `[agents].max_depth = 1`. Remove the assignment,
   // but retain the table header if user-owned keys remain in that table.
   const withoutAgentDepth: string[] = [];
   for (let index = 0; index < filteredLines.length; index += 1) {

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import {
-  getTrellisTemplatePath,
+  getMemerigTemplatePath,
   getClaudeTemplatePath,
   getOpenCodeTemplatePath,
   getPiTemplatePath,
   getPiSourcePath,
-  getTrellisSourcePath,
-  readTrellisFile,
+  getMemerigSourcePath,
+  readMemerigFile,
   readTemplate,
   readScript,
   readMarkdown,
@@ -18,8 +18,8 @@ import {
 // =============================================================================
 
 describe("template path functions", () => {
-  it("getTrellisTemplatePath returns existing directory", () => {
-    const p = getTrellisTemplatePath();
+  it("getMemerigTemplatePath returns existing directory", () => {
+    const p = getMemerigTemplatePath();
     expect(fs.existsSync(p)).toBe(true);
     expect(fs.statSync(p).isDirectory()).toBe(true);
   });
@@ -48,8 +48,8 @@ describe("template path functions", () => {
 // =============================================================================
 
 describe("deprecated source path aliases", () => {
-  it("getTrellisSourcePath equals getTrellisTemplatePath", () => {
-    expect(getTrellisSourcePath()).toBe(getTrellisTemplatePath());
+  it("getMemerigSourcePath equals getMemerigTemplatePath", () => {
+    expect(getMemerigSourcePath()).toBe(getMemerigTemplatePath());
   });
 
   it("getPiSourcePath equals getPiTemplatePath", () => {
@@ -58,25 +58,25 @@ describe("deprecated source path aliases", () => {
 });
 
 // =============================================================================
-// readTrellisFile — reads files from trellis template directory
+// readMemerigFile — reads files from memerig template directory
 // =============================================================================
 
-describe("readTrellisFile", () => {
-  it("reads workflow.md from trellis templates", () => {
-    const content = readTrellisFile("workflow.md");
+describe("readMemerigFile", () => {
+  it("reads workflow.md from memerig templates", () => {
+    const content = readMemerigFile("workflow.md");
     expect(typeof content).toBe("string");
     expect(content.length).toBeGreaterThan(0);
     expect(content).toContain("#");
   });
 
   it("reads a script file", () => {
-    const content = readTrellisFile("scripts/task.py");
+    const content = readMemerigFile("scripts/task.py");
     expect(typeof content).toBe("string");
     expect(content.length).toBeGreaterThan(0);
   });
 
   it("throws for nonexistent file", () => {
-    expect(() => readTrellisFile("nonexistent.txt")).toThrow();
+    expect(() => readMemerigFile("nonexistent.txt")).toThrow();
   });
 });
 

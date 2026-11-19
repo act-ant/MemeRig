@@ -13,7 +13,7 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "^(?:trellis-implement|trellis-check|trellis-research)$",
+        "matcher": "^(?:memerig-implement|memerig-check|memerig-research)$",
         "hooks": [
           {
             "type": "command",

@@ -9,16 +9,16 @@
  *
  * `pruneOrphanManifestKeys` removes any manifest entry that no current
  * platform configurator owns. The two entry points that consume it are
- * `trellis update` (before migration classification) and `trellis uninstall`
+ * `memerig update` (before migration classification) and `memerig uninstall`
  * (before plan building). Together they ensure existing poisoned manifests
  * self-correct on the next routine command.
  *
  * Rules:
- *   - `.trellis/*` entries are ALWAYS kept. `trellis uninstall` removes
- *     `.trellis/` wholesale via `fs.rmSync(..., { recursive: true })`, so
+ *   - `.memerig/*` entries are ALWAYS kept. `memerig uninstall` removes
+ *     `.memerig/` wholesale via `fs.rmSync(..., { recursive: true })`, so
  *     manifest accuracy there doesn't affect uninstall data-loss. `update`
  *     also relies on these entries to detect user-modified workflow files.
- *   - Root-level `AGENTS.md` is kept only when it still looks Trellis-managed
+ *   - Root-level `AGENTS.md` is kept only when it still looks MemeRig-managed
  *     (contains the managed block markers) or is missing on disk. This
  *     self-heals old poisoned manifests for user-owned AGENTS.md files that
  *     predated init and were skipped.
@@ -28,7 +28,7 @@
  *     source/target.
  *   - Everything else: if the path is not in the union of
  *     `collectPlatformTemplates()` for currently-configured platforms, it is
- *     pruned. This matches "files trellis actually wrote during init/update".
+ *     pruned. This matches "files memerig actually wrote during init/update".
  */
 
 import fs from "node:fs";
@@ -39,7 +39,7 @@ import { FILE_NAMES } from "../constants/paths.js";
 import { getAllMigrations } from "../migrations/index.js";
 import { saveHashes } from "./template-hash.js";
 import { toPosix } from "./posix.js";
-import { TRELLIS_BLOCK_END, TRELLIS_BLOCK_START } from "./managed-paths.js";
+import { MEMERIG_BLOCK_END, MEMERIG_BLOCK_START } from "./managed-paths.js";
 import type { AITool } from "../types/ai-tools.js";
 import type { TemplateHashes } from "../types/migration.js";
 
@@ -51,9 +51,9 @@ export interface PruneResult {
 }
 
 /**
- * Compute the union of "what trellis writes" across:
+ * Compute the union of "what memerig writes" across:
  *   - every configured platform's collectTemplates() output
- *   - root-level AGENTS.md when it still carries Trellis managed-block markers
+ *   - root-level AGENTS.md when it still carries MemeRig managed-block markers
  *   - every migration manifest's from/to path (preserve so legitimate
  *     pending migrations can find their source/target)
  */
@@ -92,8 +92,8 @@ function shouldKeepAgentsMd(cwd: string): boolean {
   try {
     const content = fs.readFileSync(fullPath, "utf-8");
     return (
-      content.includes(TRELLIS_BLOCK_START) &&
-      content.includes(TRELLIS_BLOCK_END)
+      content.includes(MEMERIG_BLOCK_START) &&
+      content.includes(MEMERIG_BLOCK_END)
     );
   } catch {
     return true;
@@ -133,10 +133,10 @@ export function pruneOrphanManifestKeys(
 
   for (const [rawKey, value] of Object.entries(hashes)) {
     const key = toPosix(rawKey);
-    // Always preserve .trellis/ entries — they're for the workflow tree
+    // Always preserve .memerig/ entries — they're for the workflow tree
     // which uninstall removes wholesale and which update needs for
     // modified-file detection.
-    if (key.startsWith(".trellis/") || key === ".trellis") {
+    if (key.startsWith(".memerig/") || key === ".memerig") {
       kept[key] = value;
       continue;
     }

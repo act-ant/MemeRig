@@ -1,5 +1,5 @@
 /**
- * Load a Trellis agent definition from `.trellis/agents/<name>.md`.
+ * Load a MemeRig agent definition from `.memerig/agents/<name>.md`.
  *
  * Format: YAML frontmatter (between `---` fences) + markdown body.
  *   The body becomes the system prompt injected into the worker.
@@ -15,7 +15,7 @@
  *   You are a senior system architect ...
  *
  * Unknown frontmatter fields are preserved as metadata but ignored by
- * channel runtime (they may be consumed by other Trellis layers).
+ * channel runtime (they may be consumed by other MemeRig layers).
  */
 
 import fs from "node:fs";
@@ -49,7 +49,7 @@ export function findAgentFile(
       `Agent name '${name}' is not allowed (must match ${SAFE_AGENT_NAME.source})`,
     );
   }
-  const agentsRoot = path.resolve(cwd, ".trellis", "agents");
+  const agentsRoot = path.resolve(cwd, ".memerig", "agents");
   const candidates = [
     path.join(agentsRoot, `${name}.md`),
     path.join(agentsRoot, name, "AGENT.md"),
@@ -57,7 +57,7 @@ export function findAgentFile(
   for (const p of candidates) {
     // Defense in depth: confirm the resolved path stays under agentsRoot,
     // or one of the trusted roots (see context-trust.ts) — accommodates
-    // `.trellis/agents` reached through a trusted `.trellis` symlink.
+    // `.memerig/agents` reached through a trusted `.memerig` symlink.
     const real = fs.existsSync(p) ? fs.realpathSync(p) : p;
     const inAgentsRoot =
       real === agentsRoot || real.startsWith(agentsRoot + path.sep);
@@ -81,8 +81,8 @@ export function loadAgent(
   if (!file) {
     throw new Error(
       `Agent '${name}' not found. Looked in:\n  ${[
-        path.join(cwd, ".trellis", "agents", `${name}.md`),
-        path.join(cwd, ".trellis", "agents", name, "AGENT.md"),
+        path.join(cwd, ".memerig", "agents", `${name}.md`),
+        path.join(cwd, ".memerig", "agents", name, "AGENT.md"),
       ].join("\n  ")}`,
     );
   }

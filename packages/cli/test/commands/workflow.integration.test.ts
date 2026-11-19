@@ -1,12 +1,12 @@
 /**
- * Integration tests for `trellis workflow` and the init/update hash boundary
+ * Integration tests for `memerig workflow` and the init/update hash boundary
  * for non-native workflow selection.
  *
  * Coverage:
- * - `trellis workflow --template native`: writes bundled content, keeps hash.
- * - `trellis workflow --template tdd`: writes marketplace content, removes hash.
- * - `trellis init --workflow tdd`: marketplace content is written, hash removed.
- * - `trellis update` after switch to tdd does NOT silently restore native.
+ * - `memerig workflow --template native`: writes bundled content, keeps hash.
+ * - `memerig workflow --template tdd`: writes marketplace content, removes hash.
+ * - `memerig init --workflow tdd`: marketplace content is written, hash removed.
+ * - `memerig update` after switch to tdd does NOT silently restore native.
  * - Non-interactive modified workflow.md fails without --force / --create-new.
  * - `--create-new` writes `.new` and leaves workflow.md + hash untouched.
  */
@@ -17,7 +17,7 @@ import os from "node:os";
 import path from "node:path";
 
 vi.mock("figlet", () => ({
-  default: { textSync: vi.fn(() => "TRELLIS") },
+  default: { textSync: vi.fn(() => "MEMERIG") },
 }));
 
 vi.mock("inquirer", () => ({
@@ -36,7 +36,7 @@ import { update } from "../../src/commands/update.js";
 import { runWorkflowCommand, WorkflowCommandError } from "../../src/commands/workflow.js";
 import { PATHS } from "../../src/constants/paths.js";
 import { loadHashes } from "../../src/utils/template-hash.js";
-import { workflowMdTemplate } from "../../src/templates/trellis/index.js";
+import { workflowMdTemplate } from "../../src/templates/memerig/index.js";
 import { replacePythonCommandLiterals } from "../../src/configurators/shared.js";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -83,11 +83,11 @@ function stubMarketplaceFetch(): void {
   );
 }
 
-describe("trellis workflow integration", () => {
+describe("memerig workflow integration", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-workflow-int-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "memerig-workflow-int-"));
     vi.spyOn(process, "cwd").mockReturnValue(tmpDir);
     vi.spyOn(console, "log").mockImplementation(noop);
     vi.spyOn(console, "error").mockImplementation(noop);
@@ -172,7 +172,7 @@ describe("trellis workflow integration", () => {
     ).rejects.toThrow(/workflow template/i);
   });
 
-  it("trellis workflow --template native refreshes hash after switching from tdd", async () => {
+  it("memerig workflow --template native refreshes hash after switching from tdd", async () => {
     stubMarketplaceFetch();
     await init({ yes: true, workflow: "tdd" } as Record<string, unknown>);
     expect(
@@ -192,7 +192,7 @@ describe("trellis workflow integration", () => {
     expect(loadHashes(tmpDir)[PATHS.WORKFLOW_GUIDE_FILE]).toBeTruthy();
   });
 
-  it("trellis workflow --template tdd writes marketplace content and removes the hash", async () => {
+  it("memerig workflow --template tdd writes marketplace content and removes the hash", async () => {
     stubMarketplaceFetch();
     await init({ yes: true });
     expect(loadHashes(tmpDir)[PATHS.WORKFLOW_GUIDE_FILE]).toBeTruthy();
@@ -281,7 +281,7 @@ describe("trellis workflow integration", () => {
     expect(loadHashes(tmpDir)[PATHS.WORKFLOW_GUIDE_FILE]).toBe(originalHash);
   });
 
-  it("trellis update after switching to tdd does not silently restore native workflow", async () => {
+  it("memerig update after switching to tdd does not silently restore native workflow", async () => {
     stubMarketplaceFetch();
     await init({ yes: true });
     await runWorkflowCommand({ template: "tdd" });

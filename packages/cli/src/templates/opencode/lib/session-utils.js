@@ -3,16 +3,16 @@ import { existsSync, readFileSync, readdirSync, statSync } from "fs"
 import { join } from "path"
 import { execFileSync } from "child_process"
 import { platform } from "os"
-import { debugLog } from "./trellis-context.js"
+import { debugLog } from "./memerig-context.js"
 
 const PYTHON_CMD = platform() === "win32" ? "python" : "python3"
 
 const FIRST_REPLY_NOTICE = `<first-reply-notice>
-On the first visible assistant reply in this session, briefly acknowledge that Trellis SessionStart context loaded.
+On the first visible assistant reply in this session, briefly acknowledge that MemeRig SessionStart context loaded.
 Choose the acknowledgment language in this order:
 1. Use the language of the user's current request (the user message that triggered this reply).
 2. If that request has no clear natural language, use an explicitly established project communication language.
-3. If neither provides a language, output the language-neutral fallback exactly: \`Trellis SessionStart ✓\`.
+3. If neither provides a language, output the language-neutral fallback exactly: \`MemeRig SessionStart ✓\`.
 Continue directly with the user's request after the acknowledgment.
 The acknowledgment must not alter the language used for the remainder of the response.
 This notice is one-shot: do not repeat it after the first visible assistant reply in this session.
@@ -45,8 +45,8 @@ function getTaskStatus(ctx, platformInput = null) {
   if (!taskRef) {
     return (
       "Status: NO ACTIVE TASK\n" +
-      "Next-Action: Classify the current turn before creating any Trellis task. " +
-      "Simple conversation / small task asks only whether this turn should create a Trellis task. " +
+      "Next-Action: Classify the current turn before creating any MemeRig task. " +
+      "Simple conversation / small task asks only whether this turn should create a MemeRig task. " +
       "Complex task asks whether task creation and planning are allowed."
     )
   }
@@ -54,7 +54,7 @@ function getTaskStatus(ctx, platformInput = null) {
   const taskDir = ctx.resolveTaskDir(taskRef)
 
   if (active.stale || !taskDir || !existsSync(taskDir)) {
-    return `Status: STALE POINTER\nTask: ${taskRef}\nNext-Action: Task directory not found. Run: python3 ./.trellis/scripts/task.py finish`
+    return `Status: STALE POINTER\nTask: ${taskRef}\nNext-Action: Task directory not found. Run: python3 ./.memerig/scripts/task.py finish`
   }
 
   let taskData = {}
@@ -71,7 +71,7 @@ function getTaskStatus(ctx, platformInput = null) {
   const taskStatus = taskData.status || "unknown"
 
   if (taskStatus === "completed") {
-    return `Status: COMPLETED\nTask: ${taskTitle}\nNext-Action: Run /trellis:finish-work. If the working tree is dirty, return to Phase 3.4 first.`
+    return `Status: COMPLETED\nTask: ${taskTitle}\nNext-Action: Run /memerig:finish-work. If the working tree is dirty, return to Phase 3.4 first.`
   }
 
   const hasPrd = existsSync(join(taskDir, "prd.md"))
@@ -88,7 +88,7 @@ function getTaskStatus(ctx, platformInput = null) {
     (!existsSync(checkJsonl) || hasCuratedJsonlEntry(checkJsonl))
 
   if (taskStatus === "planning" && !hasPrd) {
-    return `Status: PLANNING\nTask: ${taskTitle}\nPresent: ${presentLine}\nNext-Action: Load trellis-brainstorm and write prd.md. Stay in planning.`
+    return `Status: PLANNING\nTask: ${taskTitle}\nPresent: ${presentLine}\nNext-Action: Load brainstorm and write prd.md. Stay in planning.`
   }
 
   if (taskStatus === "planning") {
@@ -117,8 +117,8 @@ function getTaskStatus(ctx, platformInput = null) {
   )
 }
 
-function loadTrellisConfig(directory, contextKey = null) {
-  const scriptPath = join(directory, ".trellis", "scripts", "get_context.py")
+function loadMemerigConfig(directory, contextKey = null) {
+  const scriptPath = join(directory, ".memerig", "scripts", "get_context.py")
   if (!existsSync(scriptPath)) {
     return { isMonorepo: false, packages: {}, specScope: null, activeTaskPackage: null, defaultPackage: null }
   }
@@ -130,7 +130,7 @@ function loadTrellisConfig(directory, contextKey = null) {
       stdio: ["pipe", "pipe", "pipe"],
       env: {
         ...process.env,
-        ...(contextKey ? { TRELLIS_CONTEXT_ID: contextKey } : {}),
+        ...(contextKey ? { MEMERIG_CONTEXT_ID: contextKey } : {}),
       },
     })
     const data = JSON.parse(output)
@@ -149,7 +149,7 @@ function loadTrellisConfig(directory, contextKey = null) {
       defaultPackage: data.defaultPackage || null,
     }
   } catch (e) {
-    debugLog("session", "loadTrellisConfig error:", e.message)
+    debugLog("session", "loadMemerigConfig error:", e.message)
     return { isMonorepo: false, packages: {}, specScope: null, activeTaskPackage: null, defaultPackage: null }
   }
 }
@@ -159,7 +159,7 @@ function checkLegacySpec(directory, config) {
     return null
   }
 
-  const specDir = join(directory, ".trellis", "spec")
+  const specDir = join(directory, ".memerig", "spec")
   if (!existsSync(specDir)) return null
 
   let hasLegacy = false
@@ -222,12 +222,12 @@ function resolveSpecScope(config) {
 }
 
 function collectSpecIndexPaths(directory, allowedPkgs) {
-  const specDir = join(directory, ".trellis", "spec")
+  const specDir = join(directory, ".memerig", "spec")
   const paths = []
 
   const guidesIndex = join(specDir, "guides", "index.md")
   if (existsSync(guidesIndex)) {
-    paths.push(".trellis/spec/guides/index.md")
+    paths.push(".memerig/spec/guides/index.md")
   }
 
   if (!existsSync(specDir)) return paths
@@ -245,7 +245,7 @@ function collectSpecIndexPaths(directory, allowedPkgs) {
     for (const sub of subs) {
       const indexFile = join(specDir, sub, "index.md")
       if (existsSync(indexFile)) {
-        paths.push(`.trellis/spec/${sub}/index.md`)
+        paths.push(`.memerig/spec/${sub}/index.md`)
       } else {
         if (allowedPkgs !== null && !allowedPkgs.has(sub)) continue
         try {
@@ -259,7 +259,7 @@ function collectSpecIndexPaths(directory, allowedPkgs) {
           for (const layer of nested) {
             const nestedIndex = join(specDir, sub, layer, "index.md")
             if (existsSync(nestedIndex)) {
-              paths.push(`.trellis/spec/${sub}/${layer}/index.md`)
+              paths.push(`.memerig/spec/${sub}/${layer}/index.md`)
             }
           }
         } catch {
@@ -276,7 +276,7 @@ function collectSpecIndexPaths(directory, allowedPkgs) {
 
 function readDeveloper(directory) {
   try {
-    const content = readFileSync(join(directory, ".trellis", ".developer"), "utf-8")
+    const content = readFileSync(join(directory, ".memerig", ".developer"), "utf-8")
     for (const line of content.split(/\r?\n/)) {
       if (line.startsWith("name=")) return line.slice("name=".length).trim()
     }
@@ -327,19 +327,19 @@ function buildCompactCurrentState(ctx, platformInput, specIndexPaths) {
     lines.push("Current task: none.")
   }
 
-  const tasksDir = join(directory, ".trellis", "tasks")
+  const tasksDir = join(directory, ".memerig", "tasks")
   if (existsSync(tasksDir)) {
     try {
       const activeTasks = readdirSync(tasksDir, { withFileTypes: true })
         .filter(entry => entry.isDirectory() && entry.name !== "archive" && existsSync(join(tasksDir, entry.name, "task.json")))
-      lines.push(`Active tasks: ${activeTasks.length} total. Use \`python3 ./.trellis/scripts/task.py list --mine\` only if needed.`)
+      lines.push(`Active tasks: ${activeTasks.length} total. Use \`python3 ./.memerig/scripts/task.py list --mine\` only if needed.`)
     } catch {
       // Ignore task list errors
     }
   }
 
   const developer = readDeveloper(directory)
-  const workspaceDir = join(directory, ".trellis", "workspace", developer)
+  const workspaceDir = join(directory, ".memerig", "workspace", developer)
   if (developer !== "(not initialized)" && existsSync(workspaceDir)) {
     try {
       const journals = readdirSync(workspaceDir)
@@ -349,7 +349,7 @@ function buildCompactCurrentState(ctx, platformInput, specIndexPaths) {
       if (journal) {
         const journalPath = join(workspaceDir, journal)
         const lineCount = readFileSync(journalPath, "utf-8").split(/\r?\n/).length
-        lines.push(`Journal: .trellis/workspace/${developer}/${journal}, ${lineCount} / 2000 lines.`)
+        lines.push(`Journal: .memerig/workspace/${developer}/${journal}, ${lineCount} / 2000 lines.`)
       }
     } catch {
       // Ignore journal errors
@@ -369,14 +369,14 @@ export function buildSessionContext(ctx, platformInput = null) {
     ? ctx.getContextKey(platformInput)
     : null
 
-  const config = loadTrellisConfig(directory, contextKey)
+  const config = loadMemerigConfig(directory, contextKey)
   const allowedPkgs = resolveSpecScope(config)
   const paths = collectSpecIndexPaths(directory, allowedPkgs)
 
   const parts = []
 
   parts.push(`<session-context>
-Trellis compact SessionStart context. Use it to orient the session; load details on demand.
+MemeRig compact SessionStart context. Use it to orient the session; load details on demand.
 </session-context>`)
   parts.push(FIRST_REPLY_NOTICE)
 
@@ -389,12 +389,12 @@ Trellis compact SessionStart context. Use it to orient the session; load details
   parts.push(buildCompactCurrentState(ctx, platformInput, paths))
   parts.push("</current-state>")
 
-  const workflowContent = ctx.readProjectFile(".trellis/workflow.md")
+  const workflowContent = ctx.readProjectFile(".memerig/workflow.md")
   if (workflowContent) {
     const allLines = workflowContent.split("\n")
     const overviewLines = [
       "# Development Workflow - Session Summary",
-      "Full guide: .trellis/workflow.md. Step detail: `python3 ./.trellis/scripts/get_context.py --mode phase --step <X.Y>`.",
+      "Full guide: .memerig/workflow.md. Step detail: `python3 ./.memerig/scripts/get_context.py --mode phase --step <X.Y>`.",
       "",
     ]
 
@@ -420,9 +420,9 @@ Trellis compact SessionStart context. Use it to orient the session; load details
       overviewLines.push(strippedStateBlocks.trimEnd())
     }
 
-    parts.push("<trellis-workflow>")
+    parts.push("<memerig-workflow>")
     parts.push(overviewLines.join("\n").trimEnd())
-    parts.push("</trellis-workflow>")
+    parts.push("</memerig-workflow>")
   }
 
   parts.push("<guidelines>")
@@ -442,7 +442,7 @@ Trellis compact SessionStart context. Use it to orient the session; load details
 
   parts.push(
     "Discover more via: " +
-    "`python3 ./.trellis/scripts/get_context.py --mode packages`"
+    "`python3 ./.memerig/scripts/get_context.py --mode packages`"
   )
   parts.push("</guidelines>")
 
@@ -456,17 +456,17 @@ Context loaded. Follow <task-status>. Load workflow/spec/task details only when 
   return parts.join("\n\n")
 }
 
-function getTrellisMetadata(metadata) {
+function getMemerigMetadata(metadata) {
   if (!metadata || typeof metadata !== "object") {
     return {}
   }
 
-  const trellis = metadata.trellis
-  if (!trellis || typeof trellis !== "object") {
+  const memerig = metadata.memerig
+  if (!memerig || typeof memerig !== "object") {
     return {}
   }
 
-  return trellis
+  return memerig
 }
 
 function markPartAsSessionStart(part) {
@@ -475,8 +475,8 @@ function markPartAsSessionStart(part) {
     : {}
   part.metadata = {
     ...metadata,
-    trellis: {
-      ...getTrellisMetadata(metadata),
+    memerig: {
+      ...getMemerigMetadata(metadata),
       sessionStart: true,
     },
   }
@@ -487,10 +487,10 @@ function hasSessionStartMarker(part) {
     return false
   }
 
-  return getTrellisMetadata(part.metadata).sessionStart === true
+  return getMemerigMetadata(part.metadata).sessionStart === true
 }
 
-export function hasInjectedTrellisContext(messages) {
+export function hasInjectedMemerigContext(messages) {
   if (!Array.isArray(messages)) {
     return false
   }
@@ -511,7 +511,7 @@ export async function hasPersistedInjectedContext(client, directory, sessionID) 
       query: { directory },
       throwOnError: true,
     })
-    return hasInjectedTrellisContext(response.data || [])
+    return hasInjectedMemerigContext(response.data || [])
   } catch (error) {
     debugLog(
       "session",

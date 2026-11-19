@@ -1,16 +1,16 @@
 ---
 name: contribute
-description: "Guide for contributing to Trellis documentation and marketplace. Covers adding spec templates, marketplace skills, documentation pages, and submitting PRs across both the Trellis main repo and docs repo. Use when someone wants to add a new spec template, add a new skill to the marketplace, add or update documentation pages, or submit a PR to this project."
+description: "Guide for contributing to MemeRig documentation and marketplace. Covers adding spec templates, marketplace skills, documentation pages, and submitting PRs across both the MemeRig main repo and docs repo. Use when someone wants to add a new spec template, add a new skill to the marketplace, add or update documentation pages, or submit a PR to this project."
 ---
 
-# Contributing to Trellis
+# Contributing to MemeRig
 
 Contributions are split across two repos:
 
 | What | Repo | Purpose |
 |------|------|---------|
-| Documentation pages | [mindfold-ai/docs](https://github.com/mindfold-ai/docs) | Mintlify doc site |
-| Skills + Spec templates | [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) | `marketplace/` directory |
+| Documentation pages | [blackplume233/MemeRig](https://github.com/blackplume233/MemeRig) | Mintlify doc site |
+| Skills + Spec templates | [blackplume233/MemeRig](https://github.com/blackplume233/MemeRig) | `marketplace/` directory |
 
 ## Docs Repo Structure
 
@@ -45,7 +45,7 @@ docs/
 └── zh/showcase/           # Chinese showcase
 ```
 
-## Trellis Main Repo Marketplace Structure
+## MemeRig Main Repo Marketplace Structure
 
 ```
 marketplace/
@@ -59,7 +59,7 @@ marketplace/
 │       ├── guides/
 │       └── shared/
 └── skills/                # Skills
-    └── trellis-meta/
+    └── meta/
         ├── SKILL.md
         └── references/
 ```
@@ -89,7 +89,7 @@ The navigation uses a **language-based structure**:
               {
                 "group": "Skills",
                 "expanded": false,
-                "pages": ["skills-market/index", "skills-market/trellis-meta"]
+                "pages": ["skills-market/index", "skills-market/meta"]
               },
               {
                 "group": "Spec Templates",
@@ -120,7 +120,7 @@ The navigation uses a **language-based structure**:
 
 ## Contributing a Spec Template
 
-Spec templates live in the **Trellis main repo** at `marketplace/specs/`.
+Spec templates live in the **MemeRig main repo** at `marketplace/specs/`.
 
 ### 1. Create template directory
 
@@ -143,7 +143,7 @@ Structure varies by stack. Include directories relevant to your template.
 
 ### 2. Register in index.json
 
-Add your template to `marketplace/index.json` in the Trellis repo:
+Add your template to `marketplace/index.json` in the MemeRig repo:
 
 ```json
 {
@@ -205,7 +205,7 @@ Add your template to the table in:
 
 ## Contributing a Skill
 
-Skills live in the **Trellis main repo** at `marketplace/skills/`.
+Skills live in the **MemeRig main repo** at `marketplace/skills/`.
 
 ### 1. Create skill directory
 
@@ -219,7 +219,7 @@ See [Codex Skills documentation](https://code.Codex.com/docs/en/skills) for SKIL
 
 ### 2. Register in index.json
 
-Add your skill to `marketplace/index.json` in the Trellis repo:
+Add your skill to `marketplace/index.json` in the MemeRig repo:
 
 ```json
 {
@@ -253,7 +253,7 @@ Add your skill to the table in:
 Users install skills via:
 
 ```bash
-npx skills add mindfold-ai/Trellis/marketplace -s your-skill
+npx skills add blackplume233/MemeRig/marketplace -s your-skill
 ```
 
 ## Contributing a Showcase Project
@@ -270,7 +270,7 @@ cp zh/showcase/template.mdx zh/showcase/your-project.mdx
 - Update `sidebarTitle` with your project name
 - Add project description
 - Replace GitHub OG image URL with your repo
-- Describe how you used Trellis
+- Describe how you used MemeRig
 
 ### 3. Update navigation in docs.json
 
@@ -391,7 +391,7 @@ Inline HTML is allowed (MDX). See [Mintlify docs](https://mintlify.com/docs/comp
 
 **For documentation changes** (docs repo):
 
-1. Fork: `https://github.com/mindfold-ai/docs`
+1. Fork: `https://github.com/blackplume233/MemeRig`
 2. Clone: `git clone https://github.com/YOUR_USERNAME/docs.git`
 3. Install: `pnpm install`
 4. Branch: `git checkout -b feat/your-contribution`
@@ -400,10 +400,10 @@ Inline HTML is allowed (MDX). See [Mintlify docs](https://mintlify.com/docs/comp
 7. Commit with conventional message (e.g., `docs: add xxx template`)
 8. Push and create PR
 
-**For skills/spec templates** (Trellis repo):
+**For skills/spec templates** (MemeRig repo):
 
-1. Fork: `https://github.com/mindfold-ai/Trellis`
-2. Clone: `git clone https://github.com/YOUR_USERNAME/Trellis.git`
+1. Fork: `https://github.com/blackplume233/MemeRig`
+2. Clone: `git clone https://github.com/YOUR_USERNAME/MemeRig.git`
 3. Add your skill/template under `marketplace/`
 4. Update `marketplace/index.json`
 5. Push and create PR

@@ -1,8 +1,8 @@
 /**
- * Remote template fetcher for Trellis CLI
+ * Remote template fetcher for MemeRig CLI
  *
  * Fetches spec templates from the official marketplace:
- * https://github.com/mindfold-ai/marketplace
+ * https://github.com/blackplume233/MemeRig/tree/main/marketplace
  */
 
 import { randomUUID } from "node:crypto";
@@ -17,13 +17,13 @@ import { toPosix } from "./posix.js";
 // =============================================================================
 
 export const TEMPLATE_INDEX_URL =
-  "https://raw.githubusercontent.com/mindfold-ai/marketplace/main/index.json";
+  "https://raw.githubusercontent.com/blackplume233/MemeRig/main/marketplace/index.json";
 
-const TEMPLATE_REPO = "gh:mindfold-ai/marketplace";
+const TEMPLATE_REPO = "gh:blackplume233/MemeRig/marketplace";
 
 /** Map template type to installation path */
 const INSTALL_PATHS: Record<string, string> = {
-  spec: ".trellis/spec",
+  spec: ".memerig/spec",
   skill: ".agents/skills",
   command: ".claude/commands",
   full: ".", // Entire project root
@@ -723,7 +723,7 @@ async function cloneRegistryRef(
   registry: RegistrySource,
 ): Promise<GitCheckout> {
   const dir = await fs.promises.mkdtemp(
-    path.join(os.tmpdir(), "trellis-registry-"),
+    path.join(os.tmpdir(), "memerig-registry-"),
   );
   try {
     try {
@@ -914,7 +914,7 @@ export async function downloadWithStrategy(
     // and millisecond resolution is not enough to keep two of them apart.
     // Two runs landing in the same millisecond share a directory, and the
     // first to finish cleaning up deletes the other's download mid-read.
-    const tempDir = path.join(os.tmpdir(), `trellis-template-${randomUUID()}`);
+    const tempDir = path.join(os.tmpdir(), `memerig-template-${randomUUID()}`);
     try {
       await withTimeout(
         downloadTemplate(gigetSource, {
@@ -947,7 +947,7 @@ export async function downloadWithStrategy(
     // and millisecond resolution is not enough to keep two of them apart.
     // Two runs landing in the same millisecond share a directory, and the
     // first to finish cleaning up deletes the other's download mid-read.
-    const tempDir = path.join(os.tmpdir(), `trellis-template-${randomUUID()}`);
+    const tempDir = path.join(os.tmpdir(), `memerig-template-${randomUUID()}`);
     try {
       await withTimeout(
         downloadTemplate(gigetSource, {
@@ -1363,14 +1363,14 @@ export function collectDirectoryFiles(
 
 /**
  * Download a direct registry spec into a temporary directory and return its
- * files as update-template entries under `.trellis/spec/**`.
+ * files as update-template entries under `.memerig/spec/**`.
  */
 export async function fetchRegistrySpecTemplates(
   registry: RegistrySource,
   registryBackend?: RegistryBackend,
 ): Promise<{ success: boolean; message?: string; files: Map<string, string> }> {
   const tempRoot = await fs.promises.mkdtemp(
-    path.join(os.tmpdir(), "trellis-registry-spec-"),
+    path.join(os.tmpdir(), "memerig-registry-spec-"),
   );
   try {
     const result = await downloadRegistryDirect(
@@ -1386,8 +1386,8 @@ export async function fetchRegistrySpecTemplates(
     return {
       success: true,
       files: collectDirectoryFiles(
-        path.join(tempRoot, ".trellis", "spec"),
-        ".trellis/spec",
+        path.join(tempRoot, ".memerig", "spec"),
+        ".memerig/spec",
       ),
     };
   } finally {

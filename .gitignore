@@ -142,13 +142,13 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # Ralph Loop state file
-.trellis/.ralph-state.json
+.memerig/.ralph-state.json
 
-# Trellis local state (should not be committed)
-.trellis/.current-task
-.trellis/.runtime/
-.trellis/.developer
-.trellis/hooks.local.json
+# MemeRig local state (should not be committed)
+.memerig/.current-task
+.memerig/.runtime/
+.memerig/.developer
+.memerig/hooks.local.json
 .gitnexus/
 
 # Multi-agent temp files
@@ -169,13 +169,13 @@ __pycache__/
 
 .reference
 
-.trellis/tasks/01-23-eng-blog-research
+.memerig/tasks/01-23-eng-blog-research
 
 # External reference code
 third/
 
 # Test scripts (development only)
-.trellis/scripts/test/
+.memerig/scripts/test/
 
 doc/
 smoke_test/

@@ -1,3 +1,10 @@
+MemeRig - an agent harness for game and agent development
+Copyright (C) 2026 blackplume
+
+MemeRig is a modified version of Trellis
+(https://github.com/mindfold-ai/Trellis), forked at commit f089cb3 and
+renamed in 2026-11. The original work remains:
+
 Trellis - All-in-one AI framework & toolkit for Claude Code & Cursor
 Copyright (C) 2026 Mindfold LLC
 

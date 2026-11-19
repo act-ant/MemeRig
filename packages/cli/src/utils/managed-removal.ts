@@ -26,8 +26,8 @@ import {
 } from "./uninstall-scrubbers.js";
 import {
   cleanupEmptyDirs,
-  TRELLIS_BLOCK_END,
-  TRELLIS_BLOCK_START,
+  MEMERIG_BLOCK_END,
+  MEMERIG_BLOCK_START,
 } from "./managed-paths.js";
 
 export interface StructuredFileSpec {
@@ -55,7 +55,7 @@ export interface PlannedModification {
 export interface ManagedRemovalPlan {
   deletions: PlannedDeletion[];
   modifications: PlannedModification[];
-  removeTrellisDir: boolean;
+  removeMemerigDir: boolean;
   allPosixPaths: string[];
 }
 
@@ -98,7 +98,7 @@ function assertWithinProject(projectRoot: string, absPath: string): void {
  * Validate a manifest key before it reaches path.join/path.resolve.
  * Manifest keys are intentionally stricter than generic relative paths: empty,
  * dot, dotdot, NUL, absolute, and Windows-separator segments are not ownership
- * claims that Trellis can safely act on.
+ * claims that MemeRig can safely act on.
  */
 export function validateManagedRelativePath(posixPath: string): void {
   if (
@@ -176,7 +176,7 @@ export function buildStructuredFileSpecs(): Map<string, StructuredFileSpec> {
     ).map(
       (posixPath): StructuredFileSpec => ({
         posixPath,
-        reason: "Strip trellis hooks; preserve user fields",
+        reason: "Strip memerig hooks; preserve user fields",
         scrub: (content, deletedPaths) =>
           scrubHooksJson(content, deletedPaths, "nested"),
       }),
@@ -184,7 +184,7 @@ export function buildStructuredFileSpecs(): Map<string, StructuredFileSpec> {
     ...([".cursor/hooks.json", ".github/copilot/hooks.json"] as const).map(
       (posixPath): StructuredFileSpec => ({
         posixPath,
-        reason: "Strip trellis hooks; preserve user fields",
+        reason: "Strip memerig hooks; preserve user fields",
         scrub: (content, deletedPaths) =>
           scrubHooksJson(content, deletedPaths, "flat"),
       }),
@@ -197,17 +197,17 @@ export function buildStructuredFileSpecs(): Map<string, StructuredFileSpec> {
     {
       posixPath: ".pi/settings.json",
       reason:
-        "Strip trellis extension/skills/prompts entries; preserve user fields",
+        "Strip memerig extension/skills/prompts entries; preserve user fields",
       scrub: (content) => scrubPiSettings(content),
     },
     {
       posixPath: ".codex/config.toml",
-      reason: "Remove trellis project_doc_fallback_filenames and notes",
+      reason: "Remove memerig project_doc_fallback_filenames and notes",
       scrub: (content) => scrubCodexConfigToml(content),
     },
     {
       posixPath: COPILOT_INSTRUCTIONS_PATH,
-      reason: "Remove Trellis Copilot guidance; preserve repo instructions",
+      reason: "Remove MemeRig Copilot guidance; preserve repo instructions",
       scrub: (content) =>
         scrubManagedMarkdownBlock(
           content,
@@ -217,12 +217,12 @@ export function buildStructuredFileSpecs(): Map<string, StructuredFileSpec> {
     },
     {
       posixPath: FILE_NAMES.AGENTS,
-      reason: "Strip Trellis managed block; preserve user instructions",
+      reason: "Strip MemeRig managed block; preserve user instructions",
       scrub: (content) =>
         scrubManagedMarkdownBlock(
           content,
-          TRELLIS_BLOCK_START,
-          TRELLIS_BLOCK_END,
+          MEMERIG_BLOCK_START,
+          MEMERIG_BLOCK_END,
         ),
     },
   ];
@@ -279,7 +279,7 @@ export function buildManagedRemovalPlan(
       result.content === content
     ) {
       throw new Error(
-        `Cannot prove Trellis content was removed from structured file: ${posixPath}`,
+        `Cannot prove MemeRig content was removed from structured file: ${posixPath}`,
       );
     }
     if (result.fullyEmpty) {
@@ -297,7 +297,7 @@ export function buildManagedRemovalPlan(
   return {
     deletions,
     modifications,
-    removeTrellisDir: true,
+    removeMemerigDir: true,
     allPosixPaths,
   };
 }
@@ -331,10 +331,10 @@ export function executeManagedRemovalPlan(
   }
 
   let deletedDirs = 0;
-  if (plan.removeTrellisDir) {
-    const trellisDir = path.join(cwd, DIR_NAMES.WORKFLOW);
-    if (lstatIfPresent(trellisDir)) {
-      fs.rmSync(trellisDir, { recursive: true, force: true });
+  if (plan.removeMemerigDir) {
+    const memerigDir = path.join(cwd, DIR_NAMES.WORKFLOW);
+    if (lstatIfPresent(memerigDir)) {
+      fs.rmSync(memerigDir, { recursive: true, force: true });
       deletedDirs += 1;
     }
   }

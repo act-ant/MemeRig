@@ -68,12 +68,12 @@ def _normalize_windows_shell_path(path_str: str) -> str:
 
 
 _FIRST_REPLY_NOTICE_HEAD = """<first-reply-notice>
-On the first visible assistant reply in this session, briefly acknowledge that Trellis SessionStart context loaded."""
+On the first visible assistant reply in this session, briefly acknowledge that MemeRig SessionStart context loaded."""
 
 _FIRST_REPLY_NOTICE_TAIL = """Choose the acknowledgment language in this order:
 1. Use the language of the user's current request (the user message that triggered this reply).
 2. If that request has no clear natural language, use an explicitly established project communication language.
-3. If neither provides a language, output the language-neutral fallback exactly: `Trellis SessionStart ✓`.
+3. If neither provides a language, output the language-neutral fallback exactly: `MemeRig SessionStart ✓`.
 Continue directly with the user's request after the acknowledgment.
 The acknowledgment must not alter the language used for the remainder of the response.
 This notice is one-shot: do not repeat it after the first visible assistant reply in this session.
@@ -83,7 +83,7 @@ FIRST_REPLY_NOTICE = f"{_FIRST_REPLY_NOTICE_HEAD}\n{_FIRST_REPLY_NOTICE_TAIL}"
 
 
 def _build_first_reply_notice(update_hint: str | None) -> str:
-    """First-reply notice, carrying the Trellis update reminder when there is one.
+    """First-reply notice, carrying the MemeRig update reminder when there is one.
 
     The reminder has to reach the *user*, not just the model's context — a line
     buried in SessionStart context is exactly how the update step kept getting
@@ -97,7 +97,7 @@ def _build_first_reply_notice(update_hint: str | None) -> str:
         return FIRST_REPLY_NOTICE
     return (
         f"{_FIRST_REPLY_NOTICE_HEAD}\n"
-        f"Also relay this Trellis maintenance notice on its own line in that same reply: {update_hint}\n"
+        f"Also relay this MemeRig maintenance notice on its own line in that same reply: {update_hint}\n"
         f"{_FIRST_REPLY_NOTICE_TAIL}"
     )
 
@@ -151,12 +151,12 @@ def _has_curated_jsonl_entry(jsonl_path: Path) -> bool:
 
 
 def should_skip_injection() -> bool:
-    """Check if any platform's non-interactive flag is set, or if Trellis
-    hooks are explicitly disabled via TRELLIS_HOOKS=0 / TRELLIS_DISABLE_HOOKS=1.
+    """Check if any platform's non-interactive flag is set, or if MemeRig
+    hooks are explicitly disabled via MEMERIG_HOOKS=0 / MEMERIG_DISABLE_HOOKS=1.
     """
-    if os.environ.get("TRELLIS_HOOKS") == "0":
+    if os.environ.get("MEMERIG_HOOKS") == "0":
         return True
-    if os.environ.get("TRELLIS_DISABLE_HOOKS") == "1":
+    if os.environ.get("MEMERIG_DISABLE_HOOKS") == "1":
         return True
     non_interactive_vars = [
         "CLAUDE_NON_INTERACTIVE",
@@ -266,8 +266,8 @@ def _detect_platform(input_data: dict) -> str | None:
     return None
 
 
-def _resolve_context_key(trellis_dir: Path, input_data: dict) -> str | None:
-    scripts_dir = trellis_dir / "scripts"
+def _resolve_context_key(memerig_dir: Path, input_data: dict) -> str | None:
+    scripts_dir = memerig_dir / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     from common.active_task import resolve_context_key  # type: ignore[import-not-found]
@@ -276,7 +276,7 @@ def _resolve_context_key(trellis_dir: Path, input_data: dict) -> str | None:
 
 
 def _persist_context_key_for_bash(context_key: str | None) -> None:
-    """Expose Trellis session identity to later Claude Code Bash commands.
+    """Expose MemeRig session identity to later Claude Code Bash commands.
 
     Claude Code SessionStart hooks can append exports to CLAUDE_ENV_FILE; those
     variables are then available to Bash tools in the same conversation. Without
@@ -286,7 +286,7 @@ def _persist_context_key_for_bash(context_key: str | None) -> None:
     CLAUDE_ENV_FILE is user-owned (conda init, proxy settings, ...) and the host
     shell sources it for every command, so an unconditional append grows it
     without bound — one line per SessionStart forever. Skip the write when the
-    *last* existing TRELLIS_CONTEXT_ID export already assigns this value. Last
+    *last* existing MEMERIG_CONTEXT_ID export already assigns this value. Last
     wins in shell, so only the final assignment describes the effective state:
     "the value appears somewhere in the file" would wrongly skip after a switch
     A -> B -> A, leaving the shell on B.
@@ -296,7 +296,7 @@ def _persist_context_key_for_bash(context_key: str | None) -> None:
     env_file = os.environ.get("CLAUDE_ENV_FILE")
     if not env_file:
         return
-    export_line = f"export TRELLIS_CONTEXT_ID={shlex.quote(context_key)}"
+    export_line = f"export MEMERIG_CONTEXT_ID={shlex.quote(context_key)}"
     try:
         if _last_context_key_export(env_file) == export_line:
             return
@@ -307,7 +307,7 @@ def _persist_context_key_for_bash(context_key: str | None) -> None:
 
 
 def _last_context_key_export(env_file: str) -> str | None:
-    """Return the last `export TRELLIS_CONTEXT_ID=` line in env_file, if any.
+    """Return the last `export MEMERIG_CONTEXT_ID=` line in env_file, if any.
 
     A missing file means "no previous export" (the caller then creates it).
     `errors="replace"` matters: a user env file with non-UTF-8 bytes would
@@ -319,44 +319,44 @@ def _last_context_key_export(env_file: str) -> str | None:
         with open(env_file, "r", encoding="utf-8", errors="replace") as handle:
             for raw_line in handle:
                 stripped = raw_line.strip()
-                if stripped.startswith("export TRELLIS_CONTEXT_ID="):
+                if stripped.startswith("export MEMERIG_CONTEXT_ID="):
                     last_export = stripped
     except FileNotFoundError:
         return None
     return last_export
 
 
-def _resolve_update_hint(trellis_dir: Path, context_key: str | None) -> str | None:
-    """Ask common.session_context whether a Trellis update is available.
+def _resolve_update_hint(memerig_dir: Path, context_key: str | None) -> str | None:
+    """Ask common.session_context whether a MemeRig update is available.
 
     Throttling lives there: the first SessionStart of a session writes a marker
-    under `.trellis/.runtime/`, and later ones (clear, compact) return without
-    spawning `trellis --version`. The resolved `context_key` is passed through so
+    under `.memerig/.runtime/`, and later ones (clear, compact) return without
+    spawning `memerig --version`. The resolved `context_key` is passed through so
     the marker is scoped to the same session identity the rest of the hook uses,
     rather than session_context's environment-only fallback.
 
     Best-effort: a missing scripts dir, an import error, or anything raised while
     probing versions leaves the rest of the payload untouched.
     """
-    scripts_dir = trellis_dir / "scripts"
+    scripts_dir = memerig_dir / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     try:
         from common.session_context import get_update_hint  # type: ignore[import-not-found]
 
-        return get_update_hint(trellis_dir.parent, context_key)
+        return get_update_hint(memerig_dir.parent, context_key)
     except Exception:
         return None  # Optional reminder; keep session-start non-fatal.
 
 
-def _resolve_active_task(trellis_dir: Path, input_data: dict):
-    scripts_dir = trellis_dir / "scripts"
+def _resolve_active_task(memerig_dir: Path, input_data: dict):
+    scripts_dir = memerig_dir / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     from common.active_task import resolve_active_task  # type: ignore[import-not-found]
 
     return resolve_active_task(
-        trellis_dir.parent,
+        memerig_dir.parent,
         input_data,
         platform=_detect_platform(input_data),
     )
@@ -369,12 +369,12 @@ def run_script(script_path: Path, context_key: str | None = None) -> str:
             env = os.environ.copy()
             env["PYTHONIOENCODING"] = "utf-8"
             if context_key:
-                env["TRELLIS_CONTEXT_ID"] = context_key
+                env["MEMERIG_CONTEXT_ID"] = context_key
             cmd = [sys.executable, "-W", "ignore", str(script_path)]
         else:
             env = os.environ.copy()
             if context_key:
-                env["TRELLIS_CONTEXT_ID"] = context_key
+                env["MEMERIG_CONTEXT_ID"] = context_key
             cmd = [str(script_path)]
 
         result = subprocess.run(
@@ -406,39 +406,39 @@ def _normalize_task_ref(task_ref: str) -> str:
         normalized = normalized[2:]
 
     if normalized.startswith("tasks/"):
-        return f".trellis/{normalized}"
+        return f".memerig/{normalized}"
 
     return normalized
 
 
-def _resolve_task_dir(trellis_dir: Path, task_ref: str) -> Path:
+def _resolve_task_dir(memerig_dir: Path, task_ref: str) -> Path:
     normalized = _normalize_task_ref(task_ref)
     path_obj = Path(normalized)
     if path_obj.is_absolute():
         return path_obj
-    if normalized.startswith(".trellis/"):
-        return trellis_dir.parent / path_obj
-    return trellis_dir / "tasks" / path_obj
+    if normalized.startswith(".memerig/"):
+        return memerig_dir.parent / path_obj
+    return memerig_dir / "tasks" / path_obj
 
 
-def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
+def _get_task_status(memerig_dir: Path, input_data: dict) -> str:
     """Return compact active-task status, artifact presence, and next action."""
-    active = _resolve_active_task(trellis_dir, input_data)
+    active = _resolve_active_task(memerig_dir, input_data)
 
     if not active.task_path:
         return (
             "Status: NO ACTIVE TASK\n"
-            "Next-Action: Classify the current turn before creating any Trellis task. "
-            "Simple conversation / small task asks only whether this turn should create a Trellis task. "
+            "Next-Action: Classify the current turn before creating any MemeRig task. "
+            "Simple conversation / small task asks only whether this turn should create a MemeRig task. "
             "Complex task asks whether task creation and planning are allowed."
         )
 
     task_ref = active.task_path
-    task_dir = _resolve_task_dir(trellis_dir, task_ref)
+    task_dir = _resolve_task_dir(memerig_dir, task_ref)
     if active.stale or not task_dir.is_dir():
         return (
             f"Status: STALE POINTER\nTask: {task_ref}\n"
-            f"Next-Action: Run `python3 ./.trellis/scripts/task.py finish` to clear the stale pointer, "
+            f"Next-Action: Run `python3 ./.memerig/scripts/task.py finish` to clear the stale pointer, "
             "then ask the user what to work on next."
         )
 
@@ -462,7 +462,7 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
         return (
             f"Status: COMPLETED\nTask: {task_title}\n"
             f"Present: {present_line}\n"
-            "Next-Action: Run `/trellis:finish-work`. If the working tree is dirty, return to Phase 3.4 first."
+            "Next-Action: Run `/memerig:finish-work`. If the working tree is dirty, return to Phase 3.4 first."
         )
 
     has_prd = (task_dir / "prd.md").is_file()
@@ -479,7 +479,7 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
         return (
             f"Status: PLANNING\nTask: {task_title}\n"
             f"Present: {present_line}\n"
-            "Next-Action: Load `trellis-brainstorm` and write `prd.md`. Stay in planning."
+            "Next-Action: Load `brainstorm` and write `prd.md`. Stay in planning."
         )
 
     if task_status == "planning":
@@ -514,13 +514,13 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
     )
 
 
-def _load_trellis_config(trellis_dir: Path, input_data: dict) -> tuple:
-    """Load Trellis config for session-start decisions.
+def _load_memerig_config(memerig_dir: Path, input_data: dict) -> tuple:
+    """Load MemeRig config for session-start decisions.
 
     Returns:
         (is_mono, packages_dict, spec_scope, task_pkg, default_pkg)
     """
-    scripts_dir = trellis_dir / "scripts"
+    scripts_dir = memerig_dir / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
 
@@ -528,7 +528,7 @@ def _load_trellis_config(trellis_dir: Path, input_data: dict) -> tuple:
         from common.config import get_default_package, get_packages, get_spec_scope, is_monorepo  # type: ignore[import-not-found]
         from common.paths import get_current_task  # type: ignore[import-not-found]
 
-        repo_root = trellis_dir.parent
+        repo_root = memerig_dir.parent
         is_mono = is_monorepo(repo_root)
         packages = get_packages(repo_root) or {}
         scope = get_spec_scope(repo_root)
@@ -558,7 +558,7 @@ def _load_trellis_config(trellis_dir: Path, input_data: dict) -> tuple:
         return False, {}, None, None, None
 
 
-def _check_legacy_spec(trellis_dir: Path, is_mono: bool, packages: dict) -> str | None:
+def _check_legacy_spec(memerig_dir: Path, is_mono: bool, packages: dict) -> str | None:
     """Check for legacy spec directory structure in monorepo.
 
     Returns warning message if legacy structure detected, None otherwise.
@@ -566,7 +566,7 @@ def _check_legacy_spec(trellis_dir: Path, is_mono: bool, packages: dict) -> str 
     if not is_mono or not packages:
         return None
 
-    spec_dir = trellis_dir / "spec"
+    spec_dir = memerig_dir / "spec"
     if not spec_dir.is_dir():
         return None
 
@@ -663,13 +663,13 @@ def _resolve_spec_scope(
     return None  # Unknown scope type: full scan
 
 
-def _collect_spec_index_paths(trellis_dir: Path, allowed_pkgs: set | None) -> list[str]:
+def _collect_spec_index_paths(memerig_dir: Path, allowed_pkgs: set | None) -> list[str]:
     paths: list[str] = []
-    guides_index = trellis_dir / "spec" / "guides" / "index.md"
+    guides_index = memerig_dir / "spec" / "guides" / "index.md"
     if guides_index.is_file():
-        paths.append(".trellis/spec/guides/index.md")
+        paths.append(".memerig/spec/guides/index.md")
 
-    spec_dir = trellis_dir / "spec"
+    spec_dir = memerig_dir / "spec"
     if not spec_dir.is_dir():
         return paths
 
@@ -679,7 +679,7 @@ def _collect_spec_index_paths(trellis_dir: Path, allowed_pkgs: set | None) -> li
 
         index_file = sub / "index.md"
         if index_file.is_file():
-            paths.append(f".trellis/spec/{sub.name}/index.md")
+            paths.append(f".memerig/spec/{sub.name}/index.md")
             continue
 
         if allowed_pkgs is not None and sub.name not in allowed_pkgs:
@@ -689,17 +689,17 @@ def _collect_spec_index_paths(trellis_dir: Path, allowed_pkgs: set | None) -> li
                 continue
             nested_index = nested / "index.md"
             if nested_index.is_file():
-                paths.append(f".trellis/spec/{sub.name}/{nested.name}/index.md")
+                paths.append(f".memerig/spec/{sub.name}/{nested.name}/index.md")
 
     return paths
 
 
 def _build_compact_current_state(
-    trellis_dir: Path,
+    memerig_dir: Path,
     input_data: dict,
     spec_index_paths: list[str],
 ) -> str:
-    repo_root = trellis_dir.parent
+    repo_root = memerig_dir.parent
     lines: list[str] = []
 
     try:
@@ -716,9 +716,9 @@ def _build_compact_current_state(
     lines.append(f"Developer: {developer or '(not initialized)'}")
     lines.append(_format_git_state(repo_root))
 
-    active = _resolve_active_task(trellis_dir, input_data)
+    active = _resolve_active_task(memerig_dir, input_data)
     if active.task_path:
-        task_dir = _resolve_task_dir(trellis_dir, active.task_path)
+        task_dir = _resolve_task_dir(memerig_dir, active.task_path)
         status = "unknown"
         task_json = task_dir / "task.json"
         if task_json.is_file():
@@ -736,7 +736,7 @@ def _build_compact_current_state(
         try:
             task_count = sum(1 for _ in iter_active_tasks(get_tasks_dir(repo_root)))
             lines.append(
-                f"Active tasks: {task_count} total. Use `python3 ./.trellis/scripts/task.py list --mine` only if needed."
+                f"Active tasks: {task_count} total. Use `python3 ./.memerig/scripts/task.py list --mine` only if needed."
             )
         except Exception:
             pass  # Optional task summary; keep compact state available.
@@ -808,7 +808,7 @@ def _build_workflow_overview(workflow_path: Path) -> str:
 
     out_lines = [
         "# Development Workflow - Session Summary",
-        "Full guide: .trellis/workflow.md. Step detail: `python3 ./.trellis/scripts/get_context.py --mode phase --step <X.Y>`.",
+        "Full guide: .memerig/workflow.md. Step detail: `python3 ./.memerig/scripts/get_context.py --mode phase --step <X.Y>`.",
         "",
     ]
 
@@ -852,41 +852,41 @@ def main():
     if project_dir is None:
         project_dir = Path(_normalize_windows_shell_path(hook_input.get("cwd", "."))).resolve()
 
-    trellis_dir = project_dir / ".trellis"
-    context_key = _resolve_context_key(trellis_dir, hook_input)
+    memerig_dir = project_dir / ".memerig"
+    context_key = _resolve_context_key(memerig_dir, hook_input)
     _persist_context_key_for_bash(context_key)
 
     # Load config for scope filtering and legacy detection
-    is_mono, packages, scope_config, task_pkg, default_pkg = _load_trellis_config(
-        trellis_dir,
+    is_mono, packages, scope_config, task_pkg, default_pkg = _load_memerig_config(
+        memerig_dir,
         hook_input,
     )
     allowed_pkgs = _resolve_spec_scope(is_mono, packages, scope_config, task_pkg, default_pkg)
 
     output = StringIO()
 
-    spec_index_paths = _collect_spec_index_paths(trellis_dir, allowed_pkgs)
+    spec_index_paths = _collect_spec_index_paths(memerig_dir, allowed_pkgs)
 
     output.write("""<session-context>
-Trellis compact SessionStart context. Use it to orient the session; load details on demand.
+MemeRig compact SessionStart context. Use it to orient the session; load details on demand.
 </session-context>
 
 """)
-    output.write(_build_first_reply_notice(_resolve_update_hint(trellis_dir, context_key)))
+    output.write(_build_first_reply_notice(_resolve_update_hint(memerig_dir, context_key)))
     output.write("\n\n")
 
     # Legacy migration warning
-    legacy_warning = _check_legacy_spec(trellis_dir, is_mono, packages)
+    legacy_warning = _check_legacy_spec(memerig_dir, is_mono, packages)
     if legacy_warning:
         output.write(f"<migration-warning>\n{legacy_warning}\n</migration-warning>\n\n")
 
     output.write("<current-state>\n")
-    output.write(_build_compact_current_state(trellis_dir, hook_input, spec_index_paths))
+    output.write(_build_compact_current_state(memerig_dir, hook_input, spec_index_paths))
     output.write("\n</current-state>\n\n")
 
-    output.write("<trellis-workflow>\n")
-    output.write(_build_workflow_overview(trellis_dir / "workflow.md"))
-    output.write("\n</trellis-workflow>\n\n")
+    output.write("<memerig-workflow>\n")
+    output.write(_build_workflow_overview(memerig_dir / "workflow.md"))
+    output.write("\n</memerig-workflow>\n\n")
 
     output.write("<guidelines>\n")
     output.write(
@@ -903,12 +903,12 @@ Trellis compact SessionStart context. Use it to orient the session; load details
 
     output.write(
         "Discover more via: "
-        "`python3 ./.trellis/scripts/get_context.py --mode packages`\n"
+        "`python3 ./.memerig/scripts/get_context.py --mode packages`\n"
     )
     output.write("</guidelines>\n\n")
 
     # Check task status and inject structured tag
-    task_status = _get_task_status(trellis_dir, hook_input)
+    task_status = _get_task_status(memerig_dir, hook_input)
     output.write(f"<task-status>\n{task_status}\n</task-status>\n\n")
 
     output.write("""<ready>
@@ -917,7 +917,7 @@ Context loaded. Follow <task-status>. Load workflow/spec/task details only when 
 
     context_text = output.getvalue()
 
-    # Kiro (CLI trellis agent agentSpawn) adds a hook's stdout directly to the
+    # Kiro (CLI memerig agent agentSpawn) adds a hook's stdout directly to the
     # conversation context — no JSON envelope. Emit the bare overview text.
     # Conditionally isolated: all other platforms keep the JSON path below.
     if _detect_platform(hook_input) == "kiro":

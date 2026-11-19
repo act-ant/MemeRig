@@ -44,7 +44,7 @@ import {
   configYamlTemplate,
   gitignoreTemplate,
   workflowMdTemplate,
-} from "../templates/trellis/index.js";
+} from "../templates/memerig/index.js";
 import { agentsMdContent } from "../templates/markdown/index.js";
 import {
   COPILOT_INSTRUCTIONS_BLOCK_END,
@@ -58,7 +58,10 @@ import {
   getConfiguredPlatforms,
   collectPlatformTemplates,
 } from "../configurators/index.js";
-import { replacePythonCommandLiterals } from "../configurators/shared.js";
+import {
+  replacePythonCommandLiterals,
+  setResolvedPythonCommand,
+} from "../configurators/shared.js";
 import { preserveCodexAgentModelKeys } from "../configurators/codex.js";
 import { printZcodeSetupHint } from "../configurators/zcode.js";
 import { ensureGitattributes } from "../configurators/workflow.js";
@@ -75,14 +78,14 @@ import {
 import { loadSpecRegistryConfig } from "../utils/registry-config.js";
 import {
   cleanupEmptyDirs,
-  TRELLIS_BLOCK_END,
-  TRELLIS_BLOCK_START,
+  MEMERIG_BLOCK_END,
+  MEMERIG_BLOCK_START,
 } from "../utils/managed-paths.js";
 
 export {
   cleanupEmptyDirs,
-  TRELLIS_BLOCK_END,
-  TRELLIS_BLOCK_START,
+  MEMERIG_BLOCK_END,
+  MEMERIG_BLOCK_START,
 } from "../utils/managed-paths.js";
 
 export interface UpdateOptions {
@@ -115,7 +118,7 @@ type ConflictAction = "overwrite" | "skip" | "create-new";
 const CLAUDE_SETTINGS_PATH = ".claude/settings.json";
 const LEGACY_UNTRACKED_AGENTS_MD_BLOCK_HASHES = new Set<string>([
   // v0.5.0-beta.17 and earlier wrote AGENTS.md but did not hash-track it.
-  // This hash is the pristine Trellis-managed block before the Subagents
+  // This hash is the pristine MemeRig-managed block before the Subagents
   // section was added, so old untouched projects can be updated without a
   // false "modified by you" conflict.
   "c1f511b1cfc1902f2147da159f09cc51f380b0c9e341cdb3ac5dea5233f3e307",
@@ -149,8 +152,8 @@ function getManagedBlock(
   return content.slice(start, end + endMarker.length);
 }
 
-function getTrellisManagedBlock(content: string): string | null {
-  return getManagedBlock(content, TRELLIS_BLOCK_START, TRELLIS_BLOCK_END);
+function getMemerigManagedBlock(content: string): string | null {
+  return getManagedBlock(content, MEMERIG_BLOCK_START, MEMERIG_BLOCK_END);
 }
 
 function replaceManagedBlock(
@@ -240,8 +243,8 @@ function buildAgentsMdTemplate(cwd: string): string {
     cwd,
     FILE_NAMES.AGENTS,
     agentsMdContent,
-    TRELLIS_BLOCK_START,
-    TRELLIS_BLOCK_END,
+    MEMERIG_BLOCK_START,
+    MEMERIG_BLOCK_END,
   );
 }
 
@@ -263,7 +266,7 @@ function isKnownUntrackedTemplate(
     return false;
   }
 
-  const managedBlock = getTrellisManagedBlock(existingContent);
+  const managedBlock = getMemerigManagedBlock(existingContent);
   if (!managedBlock) {
     return false;
   }
@@ -473,7 +476,7 @@ function executeSafeFileDeletes(
 }
 
 /**
- * Load update.skip paths from .trellis/config.yaml
+ * Load update.skip paths from .memerig/config.yaml
  *
  * Parses simple YAML structure:
  *   update:
@@ -657,11 +660,11 @@ export function applyConfigSectionsAdded(
 /**
  * Detect if legacy Codex upgrade is needed.
  *
- * Old Trellis versions used `.agents/skills/` as codex's configDir.
+ * Old MemeRig versions used `.agents/skills/` as codex's configDir.
  * New versions use `.codex/` for Codex-specific config and `.agents/skills/`
  * as a shared layer.
  *
- * Detection: Trellis-tracked hashes contain `.agents/skills/` entries
+ * Detection: MemeRig-tracked hashes contain `.agents/skills/` entries
  * but `.codex/` does not exist. This avoids misclassifying repos that
  * have `.agents/skills/` from other tools (Kimi CLI, Amp, etc.).
  *
@@ -680,8 +683,8 @@ function needsCodexUpgrade(cwd: string): boolean {
   // the marker paths in its templates.
   const hashes = loadHashes(cwd);
   const legacyMarkers = [
-    ".agents/skills/trellis-continue/SKILL.md",
-    ".agents/skills/trellis-finish-work/SKILL.md",
+    ".agents/skills/continue/SKILL.md",
+    ".agents/skills/finish-work/SKILL.md",
   ];
   const hasLegacyMarker = legacyMarkers.some(
     (key) => hashes[key] !== undefined,
@@ -750,7 +753,7 @@ function preserveExistingRegistryConfig(cwd: string, template: string): string {
     "#-------------------------------------------------------------------------------\n" +
     "# Registry\n" +
     "#-------------------------------------------------------------------------------\n\n" +
-    "# Source used to install .trellis/spec. trellis update refreshes this\n" +
+    "# Source used to install .memerig/spec. memerig update refreshes this\n" +
     "# hash-tracked spec template while preserving local edits through the\n" +
     "# normal update conflict flow.\n" +
     "registry:\n" +
@@ -772,7 +775,7 @@ async function collectRegistrySpecTemplates(
   } catch (error) {
     console.log(
       chalk.yellow(
-        `Warning: invalid registry.spec.source in .trellis/config.yaml: ${
+        `Warning: invalid registry.spec.source in .memerig/config.yaml: ${
           error instanceof Error ? error.message : String(error)
         }`,
       ),
@@ -805,7 +808,7 @@ async function collectRegistrySpecTemplates(
       return new Map();
     }
     const tempRoot = await fs.promises.mkdtemp(
-      path.join(os.tmpdir(), "trellis-registry-template-"),
+      path.join(os.tmpdir(), "memerig-registry-template-"),
     );
     try {
       const result = await downloadTemplateById(
@@ -880,7 +883,7 @@ async function collectTemplateFiles(
   }
 
   // Channel runtime agent definitions (single source of truth: getAllAgents()).
-  // Backfilled by `trellis update` if missing so users who installed before the
+  // Backfilled by `memerig update` if missing so users who installed before the
   // bundled agents existed pick them up. Edited files take the standard
   // modified-file prompt path.
   for (const [agentFile, content] of getAllAgents()) {
@@ -1050,7 +1053,7 @@ function analyzeChanges(
  * Nothing else repairs these. `analyzeChanges` classifies such a file
  * `unchanged`, and the write-back draws only from `newFiles`,
  * `autoUpdateFiles` and overwritten `changedFiles` — so a poisoned or absent
- * entry beside a pristine file survives every subsequent `trellis update`,
+ * entry beside a pristine file survives every subsequent `memerig update`,
  * however many times it is run. Identical template content across versions is
  * not what saves such an entry from going stale; it is precisely what freezes
  * it, because the file never leaves the `unchanged` bucket.
@@ -1062,7 +1065,7 @@ function analyzeChanges(
  * `changedFiles`, and is never seen by this function.
  *
  * That also leaves the mixed-ownership paths — `AGENTS.md`,
- * `.github/copilot-instructions.md`, `.trellis/config.yaml` — free to differ
+ * `.github/copilot-instructions.md`, `.memerig/config.yaml` — free to differ
  * from their recorded hash, which for them is the correct state: once the
  * repository has appended its own content they are no longer `unchanged`.
  */
@@ -1079,7 +1082,7 @@ function collectUnchangedFileHashRepairs(
     if (recorded === undefined) {
       // A missing entry is only an omission for a path the receipt is meant
       // to carry. `EXCLUDE_FROM_HASH` holds paths deliberately left out —
-      // `.trellis/.gitignore` among them — and adding those here would put
+      // `.memerig/.gitignore` among them — and adding those here would put
       // this path in disagreement with `initializeHashes` about what the
       // receipt tracks at all.
       if (!shouldExcludeFromHash(key)) {
@@ -1540,9 +1543,9 @@ function isFileSafeToReplace(
  */
 /**
  * Whether the manifest records any file under `dirRelativePath` — i.e. whether
- * Trellis actually created this directory. Used to gate rename-dir migrations:
- * a directory Trellis never wrote (e.g. a user's own `.windsurf/` editor
- * config that merely shares a path with a retired Trellis platform dir) must
+ * MemeRig actually created this directory. Used to gate rename-dir migrations:
+ * a directory MemeRig never wrote (e.g. a user's own `.windsurf/` editor
+ * config that merely shares a path with a retired MemeRig platform dir) must
  * not be auto-moved.
  */
 export function dirHasManifestEntries(
@@ -1580,13 +1583,21 @@ export function classifyMigrations(
       continue;
     }
     // For non-rename types, also block writing TO protected paths
-    // rename/rename-dir are allowed to target protected paths (e.g., 0.2.0 renames into .trellis/workspace)
+    // rename/rename-dir are allowed to target protected paths (e.g., 0.2.0 renames into .memerig/workspace)
     if (
       item.to &&
       isProtectedPath(item.to) &&
       item.type !== "rename" &&
       item.type !== "rename-dir"
     ) {
+      result.skip.push(item);
+      continue;
+    }
+    // Historical manifests rewritten for MemeRig can collapse a prefix
+    // rename into from === to (e.g. `.kiro/skills/check/SKILL.md`). Moving a
+    // file onto itself is a no-op, and the "both exist" branch below would
+    // otherwise treat the file as its own conflicting target.
+    if ((item.type === "rename" || item.type === "rename-dir") && item.to === item.from) {
       result.skip.push(item);
       continue;
     }
@@ -1634,13 +1645,13 @@ export function classifyMigrations(
           result.conflict.push(item);
         }
       } else if (dirHasManifestEntries(item.from, hashes)) {
-        // Trellis created this directory (the manifest tracks files under it),
+        // MemeRig created this directory (the manifest tracks files under it),
         // so the rename is ours to make.
         result.auto.push(item);
       } else {
         // Target absent and the source has no manifest record: this is very
         // likely a user-owned directory that merely shares a path with a
-        // retired Trellis platform dir (e.g. a real `.windsurf/` editor
+        // retired MemeRig platform dir (e.g. a real `.windsurf/` editor
         // config). Skipping avoids silently moving the user's data out from
         // under their editor — even under --force, since skip never executes.
         result.skip.push(item);
@@ -1719,7 +1730,7 @@ function printMigrationSummary(classified: ClassifiedMigrations): void {
 
   if (classified.skip.length > 0) {
     console.log(
-      chalk.gray("  ○ Skipping (not found, protected, or not Trellis-owned):"),
+      chalk.gray("  ○ Skipping (not found, protected, or not MemeRig-owned):"),
     );
     for (const item of classified.skip.slice(0, 3)) {
       console.log(chalk.gray(`    ${item.from}`));
@@ -1779,7 +1790,7 @@ async function promptMigrationAction(
           .join("\n"),
       )
     : chalk.gray(
-        `  Why prompted: file content doesn't match the Trellis template hash\n` +
+        `  Why prompted: file content doesn't match the MemeRig template hash\n` +
           `  for this path — usually local customization. If unsure, pick [b].`,
       );
 
@@ -1976,7 +1987,7 @@ export async function executeMigrations(
 
     // For `backup-rename`, leave an inline .backup copy of the user's modified
     // original next to the new location (for rename) or in place (for delete).
-    // This is in addition to the full project snapshot at .trellis/.backup-*/;
+    // This is in addition to the full project snapshot at .memerig/.backup-*/;
     // the inline copy is more discoverable when the user wants to diff or merge
     // their customizations against the new template.
     if (item.type === "rename" && item.to) {
@@ -2007,7 +2018,7 @@ export async function executeMigrations(
 
       if (action === "backup-rename") {
         // Keep a .backup copy in place before deletion so the user can recover
-        // inline without digging through .trellis/.backup-*/.
+        // inline without digging through .memerig/.backup-*/.
         fs.copyFileSync(filePath, filePath + ".backup");
       }
 
@@ -2058,7 +2069,7 @@ function printMigrationResult(result: MigrationResult): void {
  * developer workspace directory.
  *
  * Never overwrites an existing `journal-N.md`: a newer session may already
- * have created it, and `.trellis/workspace/` is excluded from the update
+ * have created it, and `.memerig/workspace/` is excluded from the update
  * backup (see `BACKUP_EXCLUDE_PATTERNS`), so clobbering it would be
  * unrecoverable data loss. Conflicting `traces-N.md` files are left in place
  * and reported instead.
@@ -2096,18 +2107,24 @@ export function renameTracesToJournal(workspaceDir: string): {
 export async function update(options: UpdateOptions): Promise<void> {
   const cwd = process.cwd();
 
-  // Check if Trellis is initialized
+  // Check if MemeRig is initialized
   if (!fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW))) {
-    console.log(chalk.red("Error: Trellis not initialized in this directory."));
-    console.log(chalk.gray("Run 'trellis init' first."));
+    console.log(chalk.red("Error: MemeRig not initialized in this directory."));
+    console.log(chalk.gray("Run 'memerig init' first."));
     return;
   }
 
-  console.log(chalk.cyan("\nTrellis Update"));
+  console.log(chalk.cyan("\nMemeRig Update"));
   console.log(chalk.cyan("══════════════\n"));
 
   // Set up proxy before any network calls (npm version check)
   setupProxy();
+
+  // Same explicit override init honors, so a project rendered with a given
+  // Python command (e.g. this repo's dogfood copies, pinned to `python3`)
+  // re-renders byte-identically instead of drifting to the host default.
+  const pythonOverride = process.env.MEMERIG_PYTHON_CMD?.trim();
+  if (pythonOverride) setResolvedPythonCommand(pythonOverride);
 
   // Get versions
   const projectVersion = getInstalledVersion(cwd);
@@ -2137,7 +2154,7 @@ export async function update(options: UpdateOptions): Promise<void> {
         `⚠️  Your CLI (${cliVersion}) is behind npm (${latestNpmVersion}).`,
       ),
     );
-    console.log(chalk.yellow(`   Run: trellis upgrade\n`));
+    console.log(chalk.yellow(`   Run: memerig upgrade\n`));
   }
 
   // Check for downgrade situation
@@ -2151,9 +2168,9 @@ export async function update(options: UpdateOptions): Promise<void> {
 
     if (!options.allowDowngrade) {
       console.log(chalk.gray("Solutions:"));
-      console.log(chalk.gray(`  1. Update your CLI: trellis upgrade`));
+      console.log(chalk.gray(`  1. Update your CLI: memerig upgrade`));
       console.log(
-        chalk.gray(`  2. Force downgrade: trellis update --allow-downgrade\n`),
+        chalk.gray(`  2. Force downgrade: memerig update --allow-downgrade\n`),
       );
       return;
     }
@@ -2177,7 +2194,7 @@ export async function update(options: UpdateOptions): Promise<void> {
   if (isUnknownVersion) {
     console.log(
       chalk.yellow(
-        "⚠️  No version file found. Skipping migrations — run trellis init to fix.",
+        "⚠️  No version file found. Skipping migrations — run memerig init to fix.",
       ),
     );
     console.log(chalk.gray("   Template updates will still be applied."));
@@ -2186,7 +2203,7 @@ export async function update(options: UpdateOptions): Promise<void> {
     );
   }
 
-  // Detect legacy Codex (has .agents/skills/ tracked by Trellis but no .codex/)
+  // Detect legacy Codex (has .agents/skills/ tracked by MemeRig but no .codex/)
   // NOTE: this MUST happen before pruneOrphanManifestKeys below, since the
   // detector reads the raw manifest looking for .agents/skills/ markers that
   // the prune step would otherwise consider orphans (codex hasn't been added
@@ -2202,7 +2219,7 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Self-heal poisoned manifests: prune entries that no current platform
   // configurator owns. This silently removes user-owned paths that early
-  // buggy versions of `trellis init` over-hashed (e.g. .codex/sessions/*).
+  // buggy versions of `memerig init` over-hashed (e.g. .codex/sessions/*).
   // Include codex in known-platforms when codexUpgradeNeeded so legacy Codex
   // markers under .agents/skills/ survive into the upgrade flow.
   {
@@ -2343,7 +2360,7 @@ export async function update(options: UpdateOptions): Promise<void> {
             ),
         );
         console.log("");
-        console.log(chalk.yellow(`  Run: trellis update --migrate`));
+        console.log(chalk.yellow(`  Run: memerig update --migrate`));
         console.log("");
         console.log(
           chalk.gray(
@@ -2520,7 +2537,7 @@ export async function update(options: UpdateOptions): Promise<void> {
           );
           console.log(
             chalk.gray(
-              "  Hash-verified: only files matching known Trellis templates are deleted. Your local customizations (hash mismatch) are still preserved.",
+              "  Hash-verified: only files matching known MemeRig templates are deleted. Your local customizations (hash mismatch) are still preserved.",
             ),
           );
         }
@@ -2578,7 +2595,7 @@ export async function update(options: UpdateOptions): Promise<void> {
 
     // Hardcoded: Rename traces-*.md to journal-*.md in workspace directories
     // Why hardcoded: The migration system only supports fixed path renames, not pattern-based.
-    // traces-*.md files are in .trellis/workspace/{developer}/ with variable developer names
+    // traces-*.md files are in .memerig/workspace/{developer}/ with variable developer names
     // and variable file numbers (traces-1.md, traces-2.md, etc.), so we can't enumerate them
     // in the migration manifest. This is a one-time migration for the 0.2.0 naming redesign.
     const workspaceDir = path.join(cwd, PATHS.WORKSPACE);
@@ -2821,7 +2838,7 @@ export async function update(options: UpdateOptions): Promise<void> {
           status: "planning",
           scope: "migration",
           priority: "P1",
-          creator: "trellis-update",
+          creator: "memerig-update",
           assignee: currentDeveloper,
           createdAt: todayStr,
         });
@@ -2836,7 +2853,7 @@ export async function update(options: UpdateOptions): Promise<void> {
         prdContent += `**From Version**: ${projectVersion}\n`;
         prdContent += `**To Version**: ${cliVersion}\n`;
         prdContent += `**Assignee**: ${currentDeveloper}\n\n`;
-        prdContent += `## Status\n\n- [ ] Review migration guide\n- [ ] Update custom files\n- [ ] Run \`trellis update --migrate\`\n- [ ] Test workflows\n\n`;
+        prdContent += `## Status\n\n- [ ] Review migration guide\n- [ ] Update custom files\n- [ ] Run \`memerig update --migrate\`\n- [ ] Test workflows\n\n`;
 
         for (const {
           version,

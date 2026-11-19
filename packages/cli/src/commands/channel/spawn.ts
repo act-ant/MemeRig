@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { InboxPolicy } from "@mindfoldhq/trellis-core/channel";
+import type { InboxPolicy } from "memerig-core/channel";
 
 import { loadAgent } from "./agent-loader.js";
 import type { CodexSandboxMode } from "./adapters/codex.js";
@@ -41,11 +41,11 @@ export interface SpawnOptions {
   warnBeforeMs?: number;
   /** Files (or globs) to include in the worker's system prompt. */
   files?: string[];
-  /** Trellis jsonl manifests to expand into the system prompt. */
+  /** MemeRig jsonl manifests to expand into the system prompt. */
   jsonls?: string[];
   scope?: string;
   /** Identity recorded as the `spawned` event author. Defaults to
-   *  the calling worker (`TRELLIS_CHANNEL_AS` env) or "main". */
+   *  the calling worker (`MEMERIG_CHANNEL_AS` env) or "main". */
   by?: string;
   /** Worker inbox delivery policy (default `explicitOnly`). */
   inboxPolicy?: InboxPolicy;
@@ -114,7 +114,7 @@ function resolveSpawn(channelName: string, opts: SpawnOptions): ResolvedSpawn {
 }
 
 /**
- * Compose the worker's system prompt: Trellis channel protocol prefix
+ * Compose the worker's system prompt: MemeRig channel protocol prefix
  * (placeholder) + agent body (if any).
  *
  * NOTE: protocol prefix lives in the system prompt — NOT in any user
@@ -128,7 +128,7 @@ function buildSystemPrompt(
   context: string,
 ): string {
   const protocol = [
-    "[TRELLIS CHANNEL PROTOCOL — placeholder]",
+    "[MEMERIG CHANNEL PROTOCOL — placeholder]",
     `You are agent "${safeIdentifier(workerName)}" participating in the channel "${safeIdentifier(channelName)}".`,
     "Other agents (humans and AIs) may also be in this channel.",
     "Messages addressed to you arrive as ordinary user turns.",
@@ -251,9 +251,9 @@ async function spawnLocked(
 
   const spawnedBy =
     opts.by ??
-    (typeof process.env.TRELLIS_CHANNEL_AS === "string" &&
-    process.env.TRELLIS_CHANNEL_AS.length > 0
-      ? process.env.TRELLIS_CHANNEL_AS
+    (typeof process.env.MEMERIG_CHANNEL_AS === "string" &&
+    process.env.MEMERIG_CHANNEL_AS.length > 0
+      ? process.env.MEMERIG_CHANNEL_AS
       : "main");
 
   const configPath = writeSupervisorConfig(
@@ -316,7 +316,7 @@ async function spawnLocked(
       // regardless of where the supervisor's process.cwd() ends up.
       env: {
         ...process.env,
-        TRELLIS_CHANNEL_PROJECT: project,
+        MEMERIG_CHANNEL_PROJECT: project,
       },
     },
   );

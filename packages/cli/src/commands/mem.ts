@@ -1,5 +1,5 @@
 /**
- * mem.ts — CLI wrapper over `@mindfoldhq/trellis-core/mem`.
+ * mem.ts — CLI wrapper over `memerig-core/mem`.
  *
  * The reusable retrieval / context-extraction logic lives in core; this file
  * owns only CLI concerns: argument parsing, terminal rendering, warning
@@ -12,7 +12,7 @@
  *   extract <session-id>          dump cleaned dialogue (use --grep KW to filter turns)
  *   projects                      list active project cwds (AI-routing entry point)
  *
- * Run `trellis mem help` for the full flag reference.
+ * Run `memerig mem help` for the full flag reference.
  */
 
 import * as os from "node:os";
@@ -26,14 +26,14 @@ import {
   MemSessionNotFoundError,
   readMemContext,
   searchMemSessions,
-} from "@mindfoldhq/trellis-core/mem";
+} from "memerig-core/mem";
 import type {
   MemFilter,
   MemPhase,
   MemSessionInfo,
   MemSourceFilter,
   MemSourceKind,
-} from "@mindfoldhq/trellis-core/mem";
+} from "memerig-core/mem";
 
 // ---------- argv ----------
 
@@ -447,7 +447,7 @@ function cmdExtract(argv: Argv): void {
 }
 
 function cmdHelp(): void {
-  console.log(`trellis mem — list/search Claude/Codex/Devin/Grok/OpenCode/Pi/ZCode sessions
+  console.log(`memerig mem — list/search Claude/Codex/Devin/Grok/OpenCode/Pi/ZCode sessions
 
 commands:
   list                          list sessions (default if no command)
@@ -466,7 +466,7 @@ flags:
   --cwd <path>                           override the project cwd
   --limit N                              cap output (default 50)
   --grep KW                              extract / context: filter turns by keyword (multi-token AND)
-  --phase brainstorm|implement|all       extract: slice by Trellis brainstorm windows
+  --phase brainstorm|implement|all       extract: slice by MemeRig brainstorm windows
                                          (default all; brainstorm = [task.py create, task.py start);
                                          Claude/Codex/Devin/Grok/Pi/ZCode supported; OpenCode warns + returns all)
   --turns N                              context: number of hit turns to return (default 3)
@@ -477,11 +477,11 @@ flags:
   --help, -h                             show this help
 
 examples:
-  trellis mem list
-  trellis mem list --global --platform claude --since 2026-04-01
-  trellis mem search "session insight" --global
-  trellis mem extract 5842592d --grep memory
-  trellis mem extract 5842592d --phase brainstorm
+  memerig mem list
+  memerig mem list --global --platform claude --since 2026-04-01
+  memerig mem search "session insight" --global
+  memerig mem extract 5842592d --grep memory
+  memerig mem extract 5842592d --phase brainstorm
 `);
 }
 

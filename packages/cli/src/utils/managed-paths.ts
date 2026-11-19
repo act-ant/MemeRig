@@ -3,8 +3,8 @@ import path from "node:path";
 
 import { isManagedPath, isManagedRootDir } from "../configurators/index.js";
 
-export const TRELLIS_BLOCK_START = "<!-- TRELLIS:START -->";
-export const TRELLIS_BLOCK_END = "<!-- TRELLIS:END -->";
+export const MEMERIG_BLOCK_START = "<!-- MEMERIG:START -->";
+export const MEMERIG_BLOCK_END = "<!-- MEMERIG:END -->";
 
 /** Remove empty managed parents without deleting a managed root directory. */
 export function cleanupEmptyDirs(cwd: string, dirPath: string): void {

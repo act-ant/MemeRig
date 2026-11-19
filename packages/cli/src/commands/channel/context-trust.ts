@@ -2,11 +2,11 @@
  * Trusted-root resolution for the context-loading containment checks
  * (`context-loader.ts` `jailedRealpath`, `agent-loader.ts` `findAgentFile`).
  *
- * Users who persist `.trellis/tasks` / `.trellis/workspace` as symlinks to
+ * Users who persist `.memerig/tasks` / `.memerig/workspace` as symlinks to
  * an external directory get legitimate context files rejected by the
  * cwd-only jail. This module resolves an additional set of trusted realpath
- * roots — from `.trellis/config.yaml` `channel.trusted_context_dirs`, plus a
- * narrow auto-trust of `.trellis/tasks` / `.trellis/workspace` when either is
+ * roots — from `.memerig/config.yaml` `channel.trusted_context_dirs`, plus a
+ * narrow auto-trust of `.memerig/tasks` / `.memerig/workspace` when either is
  * itself a top-level symlink — so those roots can be accepted alongside cwd
  * without weakening the containment check to lexical matching (see
  * spec/cli/backend/filesystem-safety.md §2).
@@ -17,7 +17,7 @@ import path from "node:path";
 
 import { DIR_NAMES } from "../../constants/paths.js";
 
-/** Top-level `.trellis/*` entries eligible for symlink auto-trust. */
+/** Top-level `.memerig/*` entries eligible for symlink auto-trust. */
 const AUTO_TRUST_ENTRIES = ["tasks", "workspace"] as const;
 
 interface ChannelTrustConfig {
@@ -27,8 +27,8 @@ interface ChannelTrustConfig {
 
 /**
  * Parse the `channel.trusted_context_dirs` (list) and
- * `channel.auto_trust_trellis_symlinks` (bool) keys out of
- * `.trellis/config.yaml`. Mirrors the lightweight line-scanner used by
+ * `channel.auto_trust_memerig_symlinks` (bool) keys out of
+ * `.memerig/config.yaml`. Mirrors the lightweight line-scanner used by
  * `loadWorkerGuardConfig` in guard.ts — no YAML dependency.
  */
 export function parseChannelTrustSection(content: string): ChannelTrustConfig {
@@ -78,7 +78,7 @@ export function parseChannelTrustSection(content: string): ChannelTrustConfig {
     }
 
     const boolMatch = trimmed.match(
-      /^ {2}auto_trust_trellis_symlinks:\s*(.+)$/,
+      /^ {2}auto_trust_memerig_symlinks:\s*(.+)$/,
     );
     if (boolMatch) {
       const val = stripTrustValue(boolMatch[1]).toLowerCase();
@@ -86,7 +86,7 @@ export function parseChannelTrustSection(content: string): ChannelTrustConfig {
       else if (val === "true") autoTrustSymlinks = true;
       else {
         process.stderr.write(
-          `[channel] channel.auto_trust_trellis_symlinks: invalid value '${val}', ignoring\n`,
+          `[channel] channel.auto_trust_memerig_symlinks: invalid value '${val}', ignoring\n`,
         );
       }
       continue;

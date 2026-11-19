@@ -48,7 +48,7 @@ interface RegisteredPiTool {
 
 interface PiExtensionInternals {
   normalizeAgent: (agent: string | undefined) => string;
-  isTrellisAgent: (root: string, agent: string) => boolean;
+  isMemerigAgent: (root: string, agent: string) => boolean;
   parseAgentFM: (content: string) => AgentConfig;
   buildPiArgs: (config: PiRunConfig) => string[];
   splitModelThinking: (
@@ -64,9 +64,9 @@ interface PiExtensionInternals {
   contextModelRef: (ctx?: {
     model?: { provider?: string; id?: string };
   }) => string | undefined;
-  cmdHasTrellisCtx: (cmd: string) => boolean;
+  cmdHasMemerigCtx: (cmd: string) => boolean;
   shellQuote: (v: string) => string;
-  trellisExtension: (pi: {
+  memerigExtension: (pi: {
     registerTool?: (tool: unknown) => void;
     registerShortcut?: (key: string, opts: unknown) => void;
     getThinkingLevel?: () => string;
@@ -116,7 +116,7 @@ function evaluateExtension<T>(
   const moduleObject: { exports: Record<string, unknown> } = { exports: {} };
   const sandboxProcess = Object.create(process) as NodeJS.Process;
   const sandboxEnv = { ...process.env, ...env };
-  delete sandboxEnv.TRELLIS_SUBAGENT_CHILD;
+  delete sandboxEnv.MEMERIG_SUBAGENT_CHILD;
   Object.defineProperty(sandboxProcess, "cwd", { value: () => cwd });
   Object.defineProperty(sandboxProcess, "env", { value: sandboxEnv });
   const sandbox = vm.createContext({
@@ -139,15 +139,15 @@ function loadExtensionInternals(
 
 export {
   normalizeAgent,
-  isTrellisAgent,
+  isMemerigAgent,
   parseAgentFM,
   buildPiArgs,
   splitModelThinking,
   resolveRunCfg,
   contextModelRef,
-  cmdHasTrellisCtx,
+  cmdHasMemerigCtx,
   shellQuote,
-  trellisExtension,
+  memerigExtension,
   truncateUtf8,
   readContextInjectionLimits,
   buildContext as buildContextForTest,
@@ -174,21 +174,21 @@ export { buildPiArgs, resolveRunCfg, splitModelThinking };
   );
 }
 
-function createMinimalTrellisRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "trellis-pi-355-"));
+function createMinimalMemerigRoot(): string {
+  const root = mkdtempSync(join(tmpdir(), "memerig-pi-355-"));
   mkdirSync(join(root, ".pi"), { recursive: true });
-  mkdirSync(join(root, ".trellis", "scripts"), { recursive: true });
+  mkdirSync(join(root, ".memerig", "scripts"), { recursive: true });
   writeFileSync(
-    join(root, ".trellis", "workflow.md"),
+    join(root, ".memerig", "workflow.md"),
     [
       "[workflow-state:no_task]",
-      "No active task. First classify the current turn and ask for task-creation consent before creating any Trellis task.",
+      "No active task. First classify the current turn and ask for task-creation consent before creating any MemeRig task.",
       "[/workflow-state:no_task]",
       "",
     ].join("\n"),
   );
   writeFileSync(
-    join(root, ".trellis", "scripts", "get_context.py"),
+    join(root, ".memerig", "scripts", "get_context.py"),
     [
       "#!/usr/bin/env python3",
       "import sys",
@@ -203,12 +203,12 @@ function createMinimalTrellisRoot(): string {
 }
 
 describe("pi templates", () => {
-  it("provides the three Trellis sub-agent definitions", () => {
+  it("provides the three MemeRig sub-agent definitions", () => {
     const agents = getAllAgents();
     expect(agents.map((agent) => agent.name).sort()).toEqual([
-      "trellis-check",
-      "trellis-implement",
-      "trellis-research",
+      "memerig-check",
+      "memerig-implement",
+      "memerig-research",
     ]);
 
     for (const agent of agents) {
@@ -227,7 +227,7 @@ describe("pi templates", () => {
     };
 
     expect(settings.enableSkillCommands).toBe(true);
-    expect(settings.extensions).toEqual(["./extensions/trellis/index.ts"]);
+    expect(settings.extensions).toEqual(["./extensions/memerig/index.ts"]);
     expect(settings.skills).toBeUndefined();
     expect(settings.prompts).toEqual(["./prompts"]);
     expect(settings.packages).toBeUndefined();
@@ -237,33 +237,33 @@ describe("pi templates", () => {
     const templates = collectPiTemplates();
 
     expect(
-      templates.get(".agents/skills/trellis-check/SKILL.md"),
+      templates.get(".agents/skills/check/SKILL.md"),
     ).toBeDefined();
     for (const key of templates.keys()) {
       expect(key.startsWith(".pi/skills/")).toBe(false);
     }
   });
 
-  it("collects a manual trellis-start prompt for Pi fallback bootstrap", () => {
+  it("collects a manual start prompt for Pi fallback bootstrap", () => {
     const templates = collectPiTemplates();
 
-    expect(templates.get(".pi/prompts/trellis-start.md")).toContain(
+    expect(templates.get(".pi/prompts/memerig-start.md")).toContain(
       "# Start Session",
     );
-    expect(templates.get(".pi/prompts/trellis-continue.md")).toContain(
+    expect(templates.get(".pi/prompts/memerig-continue.md")).toContain(
       "get_context.py --mode phase",
     );
-    expect(templates.get(".pi/prompts/trellis-finish-work.md")).toContain(
+    expect(templates.get(".pi/prompts/memerig-finish-work.md")).toContain(
       "finish-work",
     );
   });
 
-  it("extension registers the trellis_subagent tool with mode+thinking schema", () => {
+  it("extension registers the memerig_subagent tool with mode+thinking schema", () => {
     const extension = getExtensionTemplate();
 
     // Tool name + label avoid collision with community subagent packages.
-    expect(extension).toContain('name: "trellis_subagent"');
-    expect(extension).toContain('label: "Trellis Subagent"');
+    expect(extension).toContain('name: "memerig_subagent"');
+    expect(extension).toContain('label: "MemeRig Subagent"');
 
     // Schema must declare the three dispatch modes and the thinking enum so the LLM
     // can pick a valid mode and override thinking per call.
@@ -278,32 +278,32 @@ describe("pi templates", () => {
     expect(extension).toContain("Active task:");
   });
 
-  it("extension wires the Pi events Trellis needs for context flow", () => {
+  it("extension wires the Pi events MemeRig needs for context flow", () => {
     const extension = getExtensionTemplate();
 
     // session_start: notify-only welcome
     expect(extension).toContain('pi.on?.("session_start"');
-    // input: not used; Trellis must not rewrite submitted user text
+    // input: not used; MemeRig must not rewrite submitted user text
     expect(extension).not.toContain('pi.on?.("input"');
     // before_agent_start: preserves system prompt context and persists hidden runtime context
     expect(extension).toContain('pi.on?.("before_agent_start"');
     // context: preserves the existing context-key establishment behavior only
     expect(extension).toContain('pi.on?.("context"');
-    // tool_call: inject TRELLIS_CONTEXT_ID into bash commands
+    // tool_call: inject MEMERIG_CONTEXT_ID into bash commands
     expect(extension).toContain('pi.on?.("tool_call"');
     // tool_result: mark failed/cancelled subagent runs as errors
     expect(extension).toContain('pi.on?.("tool_result"');
   });
 
   it("keeps user input clean while persisting hidden runtime context", () => {
-    const root = createMinimalTrellisRoot();
-    const { trellisExtension } = loadExtensionInternals(root);
+    const root = createMinimalMemerigRoot();
+    const { memerigExtension } = loadExtensionInternals(root);
     const handlers = new Map<
       string,
       (event: unknown, ctx?: unknown) => unknown
     >();
 
-    trellisExtension({
+    memerigExtension({
       registerTool: vi.fn(),
       registerShortcut: vi.fn(),
       on(event, handler) {
@@ -334,7 +334,7 @@ describe("pi templates", () => {
 
     expect(first.systemPrompt).toContain("BASE");
     expect(first.systemPrompt).toContain(
-      "Trellis compact SessionStart context",
+      "MemeRig compact SessionStart context",
     );
     expect(first.systemPrompt).toContain("<first-reply-notice>");
     expect(first.systemPrompt).toContain("the user's current request");
@@ -345,7 +345,7 @@ describe("pi templates", () => {
     expect(first.systemPrompt).toContain(
       "explicitly established project communication language",
     );
-    expect(first.systemPrompt).toContain("Trellis SessionStart ✓");
+    expect(first.systemPrompt).toContain("MemeRig SessionStart ✓");
     expect(first.systemPrompt).toContain(
       "Continue directly with the user's request",
     );
@@ -358,17 +358,17 @@ describe("pi templates", () => {
       "exactly one short Chinese sentence",
     );
     expect(first.systemPrompt).not.toContain(
-      "Trellis SessionStart 已注入：workflow、当前任务状态、开发者身份、git 状态、active tasks、spec 索引已加载。",
+      "MemeRig SessionStart 已注入：workflow、当前任务状态、开发者身份、git 状态、active tasks、spec 索引已加载。",
     );
-    expect(first.systemPrompt).toContain("<trellis-workflow>");
+    expect(first.systemPrompt).toContain("<memerig-workflow>");
     expect(first.systemPrompt).toContain("Phase 1: Plan");
-    expect(first.systemPrompt).toContain("No active Trellis task found");
+    expect(first.systemPrompt).toContain("No active MemeRig task found");
     expect(first.systemPrompt).not.toContain("<workflow-state>");
     // The system prompt carries startup's session-overview snapshot.
     expect(first.systemPrompt).toContain("<session-overview>");
     expect(first.message).toEqual(
       expect.objectContaining({
-        customType: "trellis-runtime-context",
+        customType: "memerig-runtime-context",
         display: false,
       }),
     );
@@ -376,7 +376,7 @@ describe("pi templates", () => {
     expect("timestamp" in first.message).toBe(false);
     expect(first.message.content).not.toContain("BASE");
     expect(first.message.content).not.toContain(
-      "Trellis compact SessionStart context",
+      "MemeRig compact SessionStart context",
     );
     expect(first.message.content).toContain("<workflow-state>");
     expect(first.message.content).toContain("Status: no_task");
@@ -405,14 +405,14 @@ describe("pi templates", () => {
   });
 
   it("delivers task context changes as persisted messages, not systemPrompt churn", () => {
-    const root = createMinimalTrellisRoot();
-    const { trellisExtension } = loadExtensionInternals(root);
+    const root = createMinimalMemerigRoot();
+    const { memerigExtension } = loadExtensionInternals(root);
     const handlers = new Map<
       string,
       (event: unknown, ctx?: unknown) => unknown
     >();
 
-    trellisExtension({
+    memerigExtension({
       registerTool: vi.fn(),
       registerShortcut: vi.fn(),
       on(event, handler) {
@@ -440,21 +440,21 @@ describe("pi templates", () => {
       };
 
     const first = fire();
-    expect(first.systemPrompt).toContain("No active Trellis task found");
+    expect(first.systemPrompt).toContain("No active MemeRig task found");
 
     // A task is created and activated mid-session.
-    const taskDir = join(root, ".trellis", "tasks", "07-07-cache-fix");
+    const taskDir = join(root, ".memerig", "tasks", "07-07-cache-fix");
     mkdirSync(taskDir, { recursive: true });
     writeFileSync(join(taskDir, "prd.md"), "# PRD\nStable prefix matters.");
     writeFileSync(
       join(taskDir, "task.json"),
       JSON.stringify({ id: "07-07-cache-fix", status: "in_progress" }),
     );
-    mkdirSync(join(root, ".trellis", ".runtime", "sessions"), {
+    mkdirSync(join(root, ".memerig", ".runtime", "sessions"), {
       recursive: true,
     });
     writeFileSync(
-      join(root, ".trellis", ".runtime", "sessions", "pi_pi-unit-task-update.json"),
+      join(root, ".memerig", ".runtime", "sessions", "pi_pi-unit-task-update.json"),
       JSON.stringify({ current_task: "tasks/07-07-cache-fix" }),
     );
 
@@ -462,8 +462,8 @@ describe("pi templates", () => {
     // systemPrompt keeps the turn-one snapshot byte-for-byte...
     expect(second.systemPrompt).toBe(first.systemPrompt);
     // ...and the new task context arrives as a persisted hidden message.
-    expect(second.message?.customType).toBe("trellis-runtime-context");
-    expect(second.message?.content).toContain("<trellis-task-context-update>");
+    expect(second.message?.customType).toBe("memerig-runtime-context");
+    expect(second.message?.content).toContain("<memerig-task-context-update>");
     expect(second.message?.content).toContain("Stable prefix matters.");
 
     // No further changes -> nothing new to persist.
@@ -473,9 +473,9 @@ describe("pi templates", () => {
   });
 
   it("keeps a native Pi session isolated from a foreign context key (#512)", () => {
-    const root = createMinimalTrellisRoot();
-    const taskDir = join(root, ".trellis", "tasks", "foreign-task");
-    const sessionsDir = join(root, ".trellis", ".runtime", "sessions");
+    const root = createMinimalMemerigRoot();
+    const taskDir = join(root, ".memerig", "tasks", "foreign-task");
+    const sessionsDir = join(root, ".memerig", ".runtime", "sessions");
     mkdirSync(taskDir, { recursive: true });
     mkdirSync(sessionsDir, { recursive: true });
     writeFileSync(join(taskDir, "prd.md"), "FOREIGN TASK CONTENT");
@@ -489,14 +489,14 @@ describe("pi templates", () => {
     );
 
     try {
-      const { trellisExtension } = loadExtensionInternals(root, {
-        TRELLIS_CONTEXT_ID: "pi_process_foreign",
+      const { memerigExtension } = loadExtensionInternals(root, {
+        MEMERIG_CONTEXT_ID: "pi_process_foreign",
       });
       const handlers = new Map<
         string,
         (event: unknown, ctx?: unknown) => unknown
       >();
-      trellisExtension({
+      memerigExtension({
         registerTool: vi.fn(),
         registerShortcut: vi.fn(),
         on(event, handler) {
@@ -520,7 +520,7 @@ describe("pi templates", () => {
       };
       handlers.get("tool_call")?.(bashEvent, ctx);
       expect(bashEvent.input.command).toBe(
-        "export TRELLIS_CONTEXT_ID='pi_native-window-b'; printf safe",
+        "export MEMERIG_CONTEXT_ID='pi_native-window-b'; printf safe",
       );
 
       const collisionKeys = ["native/window", "native:window"].map(
@@ -529,7 +529,7 @@ describe("pi templates", () => {
             string,
             (event: unknown, ctx?: unknown) => unknown
           >();
-          loadExtensionInternals(root).trellisExtension({
+          loadExtensionInternals(root).memerigExtension({
             on(event, handler) {
               collisionHandlers.set(event, handler);
             },
@@ -542,7 +542,7 @@ describe("pi templates", () => {
             sessionManager: { getSessionId: () => sessionId },
           });
           return event.input.command.match(
-            /^export TRELLIS_CONTEXT_ID='([^']+)'/,
+            /^export MEMERIG_CONTEXT_ID='([^']+)'/,
           )?.[1];
         },
       );
@@ -564,8 +564,8 @@ describe("pi templates", () => {
         (event: unknown, ctx?: unknown) => unknown
       >();
       loadExtensionInternals(root, {
-        TRELLIS_CONTEXT_ID: "pi_process_foreign",
-      }).trellisExtension({
+        MEMERIG_CONTEXT_ID: "pi_process_foreign",
+      }).memerigExtension({
         on(event, handler) {
           fallbackHandlers.set(event, handler);
         },
@@ -581,12 +581,12 @@ describe("pi templates", () => {
       fallbackHandlers.get("tool_call")?.(firstFallback);
       fallbackHandlers.get("tool_call")?.(secondFallback);
       const fallbackKey = firstFallback.input.command.match(
-        /^export TRELLIS_CONTEXT_ID='([^']+)'/,
+        /^export MEMERIG_CONTEXT_ID='([^']+)'/,
       )?.[1];
       expect(fallbackKey).toMatch(/^pi_process_[a-f0-9]{24}$/);
       expect(fallbackKey).not.toBe("pi_process_foreign");
       expect(secondFallback.input.command).toContain(
-        `TRELLIS_CONTEXT_ID='${fallbackKey}'`,
+        `MEMERIG_CONTEXT_ID='${fallbackKey}'`,
       );
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -594,12 +594,12 @@ describe("pi templates", () => {
   });
 
   it("scopes per-session caches by resolved root when ctx.cwd changes", () => {
-    const root1 = createMinimalTrellisRoot();
-    const root2 = createMinimalTrellisRoot();
-    const sessionsDir1 = join(root1, ".trellis", ".runtime", "sessions");
-    const sessionsDir2 = join(root2, ".trellis", ".runtime", "sessions");
-    const taskDir1 = join(root1, ".trellis", "tasks", "shared-task");
-    const taskDir2 = join(root2, ".trellis", "tasks", "shared-task");
+    const root1 = createMinimalMemerigRoot();
+    const root2 = createMinimalMemerigRoot();
+    const sessionsDir1 = join(root1, ".memerig", ".runtime", "sessions");
+    const sessionsDir2 = join(root2, ".memerig", ".runtime", "sessions");
+    const taskDir1 = join(root1, ".memerig", "tasks", "shared-task");
+    const taskDir2 = join(root2, ".memerig", "tasks", "shared-task");
     mkdirSync(sessionsDir1, { recursive: true });
     mkdirSync(sessionsDir2, { recursive: true });
     mkdirSync(taskDir1, { recursive: true });
@@ -611,12 +611,12 @@ describe("pi templates", () => {
     writeFileSync(join(sessionsDir2, "pi_shared-session.json"), sessionRef);
 
     try {
-      const { trellisExtension } = loadExtensionInternals();
+      const { memerigExtension } = loadExtensionInternals();
       const handlers = new Map<
         string,
         (event: unknown, ctx?: unknown) => unknown
       >();
-      trellisExtension({
+      memerigExtension({
         registerTool: vi.fn(),
         registerShortcut: vi.fn(),
         on(event, handler) {
@@ -644,12 +644,12 @@ describe("pi templates", () => {
   });
 
   it("re-asserts the current root's task context when a session switches back", () => {
-    const root1 = createMinimalTrellisRoot();
-    const root2 = createMinimalTrellisRoot();
-    const sessionsDir1 = join(root1, ".trellis", ".runtime", "sessions");
-    const sessionsDir2 = join(root2, ".trellis", ".runtime", "sessions");
-    const taskDir1 = join(root1, ".trellis", "tasks", "shared-task");
-    const taskDir2 = join(root2, ".trellis", "tasks", "shared-task");
+    const root1 = createMinimalMemerigRoot();
+    const root2 = createMinimalMemerigRoot();
+    const sessionsDir1 = join(root1, ".memerig", ".runtime", "sessions");
+    const sessionsDir2 = join(root2, ".memerig", ".runtime", "sessions");
+    const taskDir1 = join(root1, ".memerig", "tasks", "shared-task");
+    const taskDir2 = join(root2, ".memerig", "tasks", "shared-task");
     mkdirSync(sessionsDir1, { recursive: true });
     mkdirSync(sessionsDir2, { recursive: true });
     mkdirSync(taskDir1, { recursive: true });
@@ -661,12 +661,12 @@ describe("pi templates", () => {
     writeFileSync(join(sessionsDir2, "pi_shared-session.json"), sessionRef);
 
     try {
-      const { trellisExtension } = loadExtensionInternals();
+      const { memerigExtension } = loadExtensionInternals();
       const handlers = new Map<
         string,
         (event: unknown, ctx?: unknown) => unknown
       >();
-      trellisExtension({
+      memerigExtension({
         registerTool: vi.fn(),
         registerShortcut: vi.fn(),
         on(event, handler) {
@@ -683,19 +683,19 @@ describe("pi templates", () => {
       // persisted history carries only the runtime context.
       const a1 = fire(root1);
       expect(a1.message?.content ?? "").not.toContain(
-        "<trellis-task-context-update>",
+        "<memerig-task-context-update>",
       );
 
       // A -> B: the switch re-asserts B's task context as a persisted
       // update (it supersedes the system-prompt context).
       const b = fire(root2);
-      expect(b.message?.content).toContain("<trellis-task-context-update>");
+      expect(b.message?.content).toContain("<memerig-task-context-update>");
       expect(b.message?.content).toContain("ROOT TWO PRD CONTENT");
 
       // B -> A with unchanged A on disk: A's task context must be re-emitted
       // so the most recent persisted update belongs to A, not B.
       const a2 = fire(root1);
-      expect(a2.message?.content).toContain("<trellis-task-context-update>");
+      expect(a2.message?.content).toContain("<memerig-task-context-update>");
       expect(a2.message?.content).toContain("ROOT ONE PRD CONTENT");
       expect(a2.message?.content).not.toContain("ROOT TWO PRD CONTENT");
     } finally {
@@ -707,34 +707,34 @@ describe("pi templates", () => {
   it("extension tool_result handler marks failed/cancelled subagent runs as errors", () => {
     const extension = getExtensionTemplate();
 
-    expect(extension).toContain('ev.toolName === "trellis_subagent"');
+    expect(extension).toContain('ev.toolName === "memerig_subagent"');
     expect(extension).toContain('r.status === "failed"');
     expect(extension).toContain('r.status === "cancelled"');
     expect(extension).toContain("isError: true");
   });
 
-  it("normalizeAgent prefixes bare names with trellis- and leaves prefixed names alone", () => {
+  it("normalizeAgent prefixes bare names with memerig- and leaves prefixed names alone", () => {
     const { normalizeAgent } = loadExtensionInternals();
 
-    expect(normalizeAgent("implement")).toBe("trellis-implement");
-    expect(normalizeAgent("check")).toBe("trellis-check");
-    expect(normalizeAgent("trellis-research")).toBe("trellis-research");
-    expect(normalizeAgent(undefined)).toBe("trellis-implement");
-    expect(normalizeAgent("trellis-custom")).toBe("trellis-custom");
+    expect(normalizeAgent("implement")).toBe("memerig-implement");
+    expect(normalizeAgent("check")).toBe("memerig-check");
+    expect(normalizeAgent("memerig-research")).toBe("memerig-research");
+    expect(normalizeAgent(undefined)).toBe("memerig-implement");
+    expect(normalizeAgent("memerig-custom")).toBe("memerig-custom");
   });
 
-  it("isTrellisAgent gates on a real .pi/agents/*.md definition file", () => {
-    const { isTrellisAgent } = loadExtensionInternals();
+  it("isMemerigAgent gates on a real .pi/agents/*.md definition file", () => {
+    const { isMemerigAgent } = loadExtensionInternals();
 
-    const root = mkdtempSync(join(tmpdir(), "trellis-pi-test-"));
+    const root = mkdtempSync(join(tmpdir(), "memerig-pi-test-"));
     mkdirSync(join(root, ".pi", "agents"), { recursive: true });
     writeFileSync(
-      join(root, ".pi", "agents", "trellis-implement.md"),
-      "---\nname: trellis-implement\n---\n",
+      join(root, ".pi", "agents", "memerig-implement.md"),
+      "---\nname: memerig-implement\n---\n",
     );
 
-    expect(isTrellisAgent(root, "trellis-implement")).toBe(true);
-    expect(isTrellisAgent(root, "trellis-foo")).toBe(false);
+    expect(isMemerigAgent(root, "memerig-implement")).toBe(true);
+    expect(isMemerigAgent(root, "memerig-foo")).toBe(false);
     expect(existsSync(root)).toBe(true);
   });
 
@@ -832,7 +832,7 @@ fallbackModels:
       fallbackModels: [],
     };
     const dogfoodExtension = readFileSync(
-      join(process.cwd(), "..", "..", ".pi", "extensions", "trellis", "index.ts"),
+      join(process.cwd(), "..", "..", ".pi", "extensions", "memerig", "index.ts"),
       "utf-8",
     );
 
@@ -923,16 +923,16 @@ fallbackModels:
   });
 
   it("passes the invoking Pi model to the spawned child process", async () => {
-    const hostRoot = createMinimalTrellisRoot();
-    const sessionRoot = createMinimalTrellisRoot();
+    const hostRoot = createMinimalMemerigRoot();
+    const sessionRoot = createMinimalMemerigRoot();
     const agentDir = join(sessionRoot, ".pi", "agents");
     const fakeCli = join(sessionRoot, "fake-pi.cjs");
     const capturedArgs = join(sessionRoot, "child-args.json");
     const capturedCwd = join(sessionRoot, "child-cwd.txt");
     mkdirSync(agentDir, { recursive: true });
     writeFileSync(
-      join(agentDir, "trellis-implement.md"),
-      "---\nname: trellis-implement\n---\nImplement the task.\n",
+      join(agentDir, "memerig-implement.md"),
+      "---\nname: memerig-implement\n---\nImplement the task.\n",
     );
     writeFileSync(
       fakeCli,
@@ -946,11 +946,11 @@ fallbackModels:
     );
 
     try {
-      const { trellisExtension } = loadExtensionInternals(hostRoot, {
-        TRELLIS_PI_CLI_JS: fakeCli,
+      const { memerigExtension } = loadExtensionInternals(hostRoot, {
+        MEMERIG_PI_CLI_JS: fakeCli,
       });
       let registeredTool: RegisteredPiTool | undefined;
-      trellisExtension({
+      memerigExtension({
         registerTool(tool) {
           registeredTool = tool as RegisteredPiTool;
         },
@@ -958,11 +958,11 @@ fallbackModels:
       });
       expect(registeredTool).toBeDefined();
       if (!registeredTool)
-        throw new Error("trellis_subagent was not registered");
+        throw new Error("memerig_subagent was not registered");
 
       const result = await registeredTool.execute(
         "model-inheritance-test",
-        { agent: "trellis-implement", prompt: "Implement the task" },
+        { agent: "memerig-implement", prompt: "Implement the task" },
         undefined,
         undefined,
         {
@@ -989,14 +989,14 @@ fallbackModels:
     }
   });
 
-  it("cmdHasTrellisCtx detects already-prefixed bash commands", () => {
-    const { cmdHasTrellisCtx } = loadExtensionInternals();
+  it("cmdHasMemerigCtx detects already-prefixed bash commands", () => {
+    const { cmdHasMemerigCtx } = loadExtensionInternals();
 
-    expect(cmdHasTrellisCtx("export TRELLIS_CONTEXT_ID=foo; ls")).toBe(true);
-    expect(cmdHasTrellisCtx("TRELLIS_CONTEXT_ID=foo ls")).toBe(true);
-    expect(cmdHasTrellisCtx("env TRELLIS_CONTEXT_ID=foo ls")).toBe(true);
-    expect(cmdHasTrellisCtx("ls -la")).toBe(false);
-    expect(cmdHasTrellisCtx("")).toBe(false);
+    expect(cmdHasMemerigCtx("export MEMERIG_CONTEXT_ID=foo; ls")).toBe(true);
+    expect(cmdHasMemerigCtx("MEMERIG_CONTEXT_ID=foo ls")).toBe(true);
+    expect(cmdHasMemerigCtx("env MEMERIG_CONTEXT_ID=foo ls")).toBe(true);
+    expect(cmdHasMemerigCtx("ls -la")).toBe(false);
+    expect(cmdHasMemerigCtx("")).toBe(false);
   });
 
   describe("permission-forwarding parent session (#610)", () => {
@@ -1016,7 +1016,7 @@ fallbackModels:
   }
 
   it("prefers the serving heartbeat id over a live ctx id and stale PI_SESSION_ID", () => {
-    const sessionDir = mkdtempSync(join(tmpdir(), "trellis-pi-610-serving-"));
+    const sessionDir = mkdtempSync(join(tmpdir(), "memerig-pi-610-serving-"));
     writeHeartbeat(sessionDir, "serving-session", process.pid, 200);
     writeHeartbeat(sessionDir, "older-serving", process.pid, 100, "older.json");
     writeHeartbeat(sessionDir, "other-process", process.pid + 1, 999);
@@ -1045,7 +1045,7 @@ fallbackModels:
   });
 
   it("falls back to ctx then env when no serving heartbeat exists", () => {
-    const sessionDir = mkdtempSync(join(tmpdir(), "trellis-pi-610-fallback-"));
+    const sessionDir = mkdtempSync(join(tmpdir(), "memerig-pi-610-fallback-"));
 
     try {
       const withCtx = loadExtensionInternals(process.cwd(), {
@@ -1076,9 +1076,9 @@ fallbackModels:
     });
 
     const withParent = buildChildEnv("pi_ctx", "serving-session");
-    expect(withParent.TRELLIS_SUBAGENT_CHILD).toBe("1");
+    expect(withParent.MEMERIG_SUBAGENT_CHILD).toBe("1");
     expect(withParent.PI_SUBAGENT_CHILD).toBe("1");
-    expect(withParent.TRELLIS_CONTEXT_ID).toBe("pi_ctx");
+    expect(withParent.MEMERIG_CONTEXT_ID).toBe("pi_ctx");
     expect(withParent.PI_SUBAGENT_PARENT_SESSION).toBe("serving-session");
     expect(withParent.PI_SESSION_ID).toBeUndefined();
     expect(withParent.PI_SESSIONID).toBeUndefined();
@@ -1086,20 +1086,20 @@ fallbackModels:
     const noParent = buildChildEnv(null, null);
     expect(noParent.PI_SUBAGENT_CHILD).toBe("1");
     expect(noParent.PI_SUBAGENT_PARENT_SESSION).toBeUndefined();
-    expect(noParent.TRELLIS_CONTEXT_ID).toBeUndefined();
+    expect(noParent.MEMERIG_CONTEXT_ID).toBeUndefined();
   });
 
   it("injects serving parent env into the spawned headless pi process", async () => {
-    const hostRoot = createMinimalTrellisRoot();
-    const sessionRoot = createMinimalTrellisRoot();
-    const sessionDir = mkdtempSync(join(tmpdir(), "trellis-pi-610-spawn-"));
+    const hostRoot = createMinimalMemerigRoot();
+    const sessionRoot = createMinimalMemerigRoot();
+    const sessionDir = mkdtempSync(join(tmpdir(), "memerig-pi-610-spawn-"));
     const agentDir = join(sessionRoot, ".pi", "agents");
     const fakeCli = join(sessionRoot, "fake-pi.cjs");
     const capturedEnv = join(sessionRoot, "child-env.json");
     mkdirSync(agentDir, { recursive: true });
     writeFileSync(
-      join(agentDir, "trellis-implement.md"),
-      "---\nname: trellis-implement\n---\nImplement the task.\n",
+      join(agentDir, "memerig-implement.md"),
+      "---\nname: memerig-implement\n---\nImplement the task.\n",
     );
     writeHeartbeat(sessionDir, "serving-heartbeat-id", process.pid, Date.now());
     writeFileSync(
@@ -1109,7 +1109,7 @@ fallbackModels:
         `writeFileSync(${JSON.stringify(capturedEnv)}, JSON.stringify({`,
         "  PI_SUBAGENT_CHILD: process.env.PI_SUBAGENT_CHILD,",
         "  PI_SUBAGENT_PARENT_SESSION: process.env.PI_SUBAGENT_PARENT_SESSION,",
-        "  TRELLIS_SUBAGENT_CHILD: process.env.TRELLIS_SUBAGENT_CHILD,",
+        "  MEMERIG_SUBAGENT_CHILD: process.env.MEMERIG_SUBAGENT_CHILD,",
         "  PI_SESSION_ID: process.env.PI_SESSION_ID ?? null,",
         "  PI_SESSIONID: process.env.PI_SESSIONID ?? null,",
         "}));",
@@ -1119,13 +1119,13 @@ fallbackModels:
     );
 
     try {
-      const { trellisExtension } = loadExtensionInternals(hostRoot, {
-        TRELLIS_PI_CLI_JS: fakeCli,
+      const { memerigExtension } = loadExtensionInternals(hostRoot, {
+        MEMERIG_PI_CLI_JS: fakeCli,
         PI_CODING_AGENT_SESSION_DIR: sessionDir,
         PI_SESSION_ID: "stale-parent-id",
       });
       let registeredTool: RegisteredPiTool | undefined;
-      trellisExtension({
+      memerigExtension({
         registerTool(tool) {
           registeredTool = tool as RegisteredPiTool;
         },
@@ -1133,11 +1133,11 @@ fallbackModels:
       });
       expect(registeredTool).toBeDefined();
       if (!registeredTool)
-        throw new Error("trellis_subagent was not registered");
+        throw new Error("memerig_subagent was not registered");
 
       const result = await registeredTool.execute(
         "permission-forward-test",
-        { agent: "trellis-implement", prompt: "Implement the task" },
+        { agent: "memerig-implement", prompt: "Implement the task" },
         undefined,
         undefined,
         {
@@ -1150,7 +1150,7 @@ fallbackModels:
       expect(JSON.parse(readFileSync(capturedEnv, "utf-8"))).toEqual({
         PI_SUBAGENT_CHILD: "1",
         PI_SUBAGENT_PARENT_SESSION: "serving-heartbeat-id",
-        TRELLIS_SUBAGENT_CHILD: "1",
+        MEMERIG_SUBAGENT_CHILD: "1",
         PI_SESSION_ID: null,
         PI_SESSIONID: null,
       });
@@ -1170,18 +1170,18 @@ fallbackModels:
     expect(shellQuote("with 'quote'")).toBe("'with '\\''quote'\\'''");
   });
 
-  it("extension forwards TRELLIS_CONTEXT_ID into spawned Pi child env", () => {
+  it("extension forwards MEMERIG_CONTEXT_ID into spawned Pi child env", () => {
     const extension = getExtensionTemplate();
 
-    // The child pi process must inherit TRELLIS_CONTEXT_ID so sub-agent
+    // The child pi process must inherit MEMERIG_CONTEXT_ID so sub-agent
     // task.py current resolves to the same task.
-    expect(extension).toContain("TRELLIS_CONTEXT_ID:");
+    expect(extension).toContain("MEMERIG_CONTEXT_ID:");
     expect(extension).toContain("...process.env");
   });
 
   it("forwards permission asks to the serving parent session (#610)", () => {
     const dogfoodExtension = readFileSync(
-      join(process.cwd(), "..", "..", ".pi", "extensions", "trellis", "index.ts"),
+      join(process.cwd(), "..", "..", ".pi", "extensions", "memerig", "index.ts"),
       "utf-8",
     );
 
@@ -1198,10 +1198,10 @@ fallbackModels:
   it("extension validates agent definition before spawning a child pi process", () => {
     const extension = getExtensionTemplate();
 
-    // Non-Trellis agent calls must short-circuit and point users to community
+    // Non-MemeRig agent calls must short-circuit and point users to community
     // subagent packages instead of silently spawning a child pi process with
     // a missing agent definition.
-    expect(extension).toContain("isTrellisAgent(root, agentName)");
+    expect(extension).toContain("isMemerigAgent(root, agentName)");
     expect(extension).toContain("npm:@tintinweb/pi-subagents");
     expect(extension).toContain("npm:pi-subagents");
   });
@@ -1211,30 +1211,30 @@ describe("pi extension: context injection limits (issue #441)", () => {
   const SESSION_KEY = "ctxlimit-session";
 
   function createRoot(): string {
-    const root = mkdtempSync(join(tmpdir(), "trellis-pi-ctxlimit-"));
+    const root = mkdtempSync(join(tmpdir(), "memerig-pi-ctxlimit-"));
     mkdirSync(join(root, ".pi", "agents"), { recursive: true });
     writeFileSync(
-      join(root, ".pi", "agents", "trellis-implement.md"),
-      "---\nname: trellis-implement\n---\n# Implement\n",
+      join(root, ".pi", "agents", "memerig-implement.md"),
+      "---\nname: memerig-implement\n---\n# Implement\n",
     );
     return root;
   }
 
   function activateTask(root: string, taskDirName: string): string {
-    const taskDir = join(root, ".trellis", "tasks", taskDirName);
+    const taskDir = join(root, ".memerig", "tasks", taskDirName);
     mkdirSync(taskDir, { recursive: true });
-    mkdirSync(join(root, ".trellis", ".runtime", "sessions"), {
+    mkdirSync(join(root, ".memerig", ".runtime", "sessions"), {
       recursive: true,
     });
     writeFileSync(
-      join(root, ".trellis", ".runtime", "sessions", `${SESSION_KEY}.json`),
+      join(root, ".memerig", ".runtime", "sessions", `${SESSION_KEY}.json`),
       JSON.stringify({ current_task: `tasks/${taskDirName}` }),
     );
     return taskDir;
   }
 
   function writeConfig(root: string, yaml: string): void {
-    writeFileSync(join(root, ".trellis", "config.yaml"), yaml, "utf-8");
+    writeFileSync(join(root, ".memerig", "config.yaml"), yaml, "utf-8");
   }
 
   describe("truncateUtf8", () => {
@@ -1285,7 +1285,7 @@ describe("pi extension: context injection limits (issue #441)", () => {
   describe("readContextInjectionLimits", () => {
     it("returns built-in defaults when config.yaml has no context_injection section", () => {
       const root = createRoot();
-      mkdirSync(join(root, ".trellis"), { recursive: true });
+      mkdirSync(join(root, ".memerig"), { recursive: true });
       writeConfig(root, "session_auto_commit: true\n");
       const { readContextInjectionLimits } = loadExtensionInternals();
       expect(readContextInjectionLimits(root)).toEqual({
@@ -1307,7 +1307,7 @@ describe("pi extension: context injection limits (issue #441)", () => {
 
     it("applies explicit overrides for all three keys", () => {
       const root = createRoot();
-      mkdirSync(join(root, ".trellis"), { recursive: true });
+      mkdirSync(join(root, ".memerig"), { recursive: true });
       writeConfig(
         root,
         [
@@ -1327,7 +1327,7 @@ describe("pi extension: context injection limits (issue #441)", () => {
 
     it("0 means unlimited and is preserved as-is (not replaced by default)", () => {
       const root = createRoot();
-      mkdirSync(join(root, ".trellis"), { recursive: true });
+      mkdirSync(join(root, ".memerig"), { recursive: true });
       writeConfig(
         root,
         ["context_injection:", "  max_total_bytes: 0"].join("\n"),
@@ -1338,7 +1338,7 @@ describe("pi extension: context injection limits (issue #441)", () => {
 
     it("falls back to default for a negative value", () => {
       const root = createRoot();
-      mkdirSync(join(root, ".trellis"), { recursive: true });
+      mkdirSync(join(root, ".memerig"), { recursive: true });
       writeConfig(
         root,
         ["context_injection:", "  max_file_bytes: -5"].join("\n"),
@@ -1349,7 +1349,7 @@ describe("pi extension: context injection limits (issue #441)", () => {
 
     it("falls back to default for a non-integer value", () => {
       const root = createRoot();
-      mkdirSync(join(root, ".trellis"), { recursive: true });
+      mkdirSync(join(root, ".memerig"), { recursive: true });
       writeConfig(
         root,
         ["context_injection:", "  max_artifact_bytes: not-a-number"].join(
@@ -1373,11 +1373,11 @@ describe("pi extension: context injection limits (issue #441)", () => {
       );
       writeFileSync(join(taskDir, "prd.md"), "prd body\n", "utf-8");
       const { buildContextForTest } = loadExtensionInternals();
-      const out = buildContextForTest(root, "trellis-implement", SESSION_KEY);
+      const out = buildContextForTest(root, "memerig-implement", SESSION_KEY);
       expect(out).toContain("=== small.md ===\nsmall spec content");
       expect(out).toContain("prd body");
-      expect(out).not.toContain("[Trellis: truncated");
-      expect(out).not.toContain("[Trellis: not inlined");
+      expect(out).not.toContain("[MemeRig: truncated");
+      expect(out).not.toContain("[MemeRig: not inlined");
     });
 
     it("keeps binary jsonl references as notices even when limits are unlimited", () => {
@@ -1406,13 +1406,13 @@ describe("pi extension: context injection limits (issue #441)", () => {
       );
 
       const { buildContextForTest } = loadExtensionInternals();
-      const out = buildContextForTest(root, "trellis-implement", SESSION_KEY);
+      const out = buildContextForTest(root, "memerig-implement", SESSION_KEY);
 
       expect(out).toContain(
-        "[Trellis: not inlined (binary file) — design.png (10 bytes): visual baseline]",
+        "[MemeRig: not inlined (binary file) — design.png (10 bytes): visual baseline]",
       );
       expect(out).toContain(
-        "[Trellis: not inlined (binary file) — invalid.bin (3 bytes): legacy export]",
+        "[MemeRig: not inlined (binary file) — invalid.bin (3 bytes): legacy export]",
       );
       expect(out).not.toContain("=== design.png ===");
       expect(out).not.toContain("=== invalid.bin ===");
@@ -1435,10 +1435,10 @@ describe("pi extension: context injection limits (issue #441)", () => {
       writeConfig(root, "");
 
       const { buildContextForTest } = loadExtensionInternals();
-      const out = buildContextForTest(root, "trellis-implement", SESSION_KEY);
+      const out = buildContextForTest(root, "memerig-implement", SESSION_KEY);
 
       expect(out).toContain(`=== multibyte.md ===\n${multiByteContent}`);
-      expect(out).not.toContain("[Trellis: not inlined (binary file)");
+      expect(out).not.toContain("[MemeRig: not inlined (binary file)");
     });
 
     it("classifies a file as binary when binary bytes appear only at the end", () => {
@@ -1457,10 +1457,10 @@ describe("pi extension: context injection limits (issue #441)", () => {
       writeConfig(root, "");
 
       const { buildContextForTest } = loadExtensionInternals();
-      const out = buildContextForTest(root, "trellis-implement", SESSION_KEY);
+      const out = buildContextForTest(root, "memerig-implement", SESSION_KEY);
 
       expect(out).toContain(
-        `[Trellis: not inlined (binary file) — mixed.dat (${mixed.length} bytes): mixed content]`,
+        `[MemeRig: not inlined (binary file) — mixed.dat (${mixed.length} bytes): mixed content]`,
       );
       expect(out).not.toContain("=== mixed.dat ===");
     });
@@ -1475,12 +1475,12 @@ describe("pi extension: context injection limits (issue #441)", () => {
         "utf-8",
       );
       const { buildContextForTest } = loadExtensionInternals();
-      const out = buildContextForTest(root, "trellis-implement", SESSION_KEY);
+      const out = buildContextForTest(root, "memerig-implement", SESSION_KEY);
       expect(Buffer.byteLength(out, "utf-8")).toBeLessThanOrEqual(
         128 * 1024 + 1024,
       );
       expect(out).toContain(
-        "[Trellis: truncated at 32768 bytes — read big.txt for the full content]",
+        "[MemeRig: truncated at 32768 bytes — read big.txt for the full content]",
       );
     });
 
@@ -1499,7 +1499,7 @@ describe("pi extension: context injection limits (issue #441)", () => {
         ].join("\n") + "\n",
         "utf-8",
       );
-      mkdirSync(join(root, ".trellis"), { recursive: true });
+      mkdirSync(join(root, ".memerig"), { recursive: true });
       writeConfig(
         root,
         [
@@ -1510,13 +1510,13 @@ describe("pi extension: context injection limits (issue #441)", () => {
         ].join("\n"),
       );
       const { buildContextForTest } = loadExtensionInternals();
-      const out = buildContextForTest(root, "trellis-implement", SESSION_KEY);
+      const out = buildContextForTest(root, "memerig-implement", SESSION_KEY);
       expect(out).toContain("=== f1.txt ===\n" + "1".repeat(50));
       expect(out).toContain(
-        "[Trellis: not inlined (total context limit reached) — f2.txt (50 bytes): second]",
+        "[MemeRig: not inlined (total context limit reached) — f2.txt (50 bytes): second]",
       );
       expect(out).toContain(
-        "[Trellis: not inlined (total context limit reached) — f3.txt (50 bytes): third]",
+        "[MemeRig: not inlined (total context limit reached) — f3.txt (50 bytes): third]",
       );
       expect(out).not.toContain("=== f2.txt ===");
       expect(out).not.toContain("=== f3.txt ===");
@@ -1532,7 +1532,7 @@ describe("pi extension: context injection limits (issue #441)", () => {
         JSON.stringify({ file: "big.txt", reason: "big" }) + "\n",
         "utf-8",
       );
-      mkdirSync(join(root, ".trellis"), { recursive: true });
+      mkdirSync(join(root, ".memerig"), { recursive: true });
       writeConfig(
         root,
         [
@@ -1542,16 +1542,16 @@ describe("pi extension: context injection limits (issue #441)", () => {
         ].join("\n"),
       );
       const { buildContextForTest } = loadExtensionInternals();
-      const out = buildContextForTest(root, "trellis-implement", SESSION_KEY);
+      const out = buildContextForTest(root, "memerig-implement", SESSION_KEY);
       expect(out).toContain("=== big.txt ===\n" + bigContent);
-      expect(out).not.toContain("[Trellis: not inlined");
+      expect(out).not.toContain("[MemeRig: not inlined");
     });
 
     it("artifacts (prd/design/implement.md) obey max_artifact_bytes independently of max_file_bytes", () => {
       const root = createRoot();
       const taskDir = activateTask(root, "task-artifact-cap");
       writeFileSync(join(taskDir, "prd.md"), "P".repeat(1000), "utf-8");
-      mkdirSync(join(root, ".trellis"), { recursive: true });
+      mkdirSync(join(root, ".memerig"), { recursive: true });
       writeConfig(
         root,
         [
@@ -1562,15 +1562,15 @@ describe("pi extension: context injection limits (issue #441)", () => {
         ].join("\n"),
       );
       const { buildContextForTest } = loadExtensionInternals();
-      const out = buildContextForTest(root, "trellis-implement", SESSION_KEY);
+      const out = buildContextForTest(root, "memerig-implement", SESSION_KEY);
       const relTaskDir = "tasks/task-artifact-cap".replace(
         "tasks/",
-        ".trellis/tasks/",
+        ".memerig/tasks/",
       );
       expect(out).toContain("P".repeat(20));
       expect(out).not.toContain("P".repeat(21));
       expect(out).toContain(
-        `[Trellis: truncated at 20 bytes — read ${relTaskDir}/prd.md for the full content]`,
+        `[MemeRig: truncated at 20 bytes — read ${relTaskDir}/prd.md for the full content]`,
       );
     });
   });

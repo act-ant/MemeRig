@@ -1,7 +1,7 @@
 {
-  "name": "@mindfoldhq/trellis-core",
+  "name": "memerig-core",
   "version": "0.6.17",
-  "description": "Trellis core SDK — channel and task domain primitives consumed by the Trellis CLI and downstream Node services",
+  "description": "MemeRig core SDK — channel and task domain primitives consumed by the MemeRig CLI and downstream Node services",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -52,13 +52,13 @@
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
-    "trellis",
+    "memerig",
     "channel",
     "sdk",
     "agent",
     "events"
   ],
-  "author": "Mindfold LLC",
+  "author": "blackplume",
   "license": "AGPL-3.0-only",
   "devDependencies": {
     "@eslint/js": "^9.18.0",
@@ -73,6 +73,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mindfold-ai/trellis.git"
+    "url": "https://github.com/blackplume233/MemeRig.git"
+  },
+  "homepage": "https://github.com/blackplume233/MemeRig#readme",
+  "bugs": {
+    "url": "https://github.com/blackplume233/MemeRig/issues"
   }
 }

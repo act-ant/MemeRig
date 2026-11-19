@@ -10,21 +10,21 @@ const __dirname = path.dirname(__filename);
 type TemplateCategory = "scripts" | "markdown" | "commands";
 
 /**
- * Get the path to the trellis templates directory (.trellis/ scaffolding).
+ * Get the path to the memerig templates directory (.memerig/ scaffolding).
  */
-export function getTrellisTemplatePath(): string {
-  const templatePath = path.join(__dirname, "trellis");
+export function getMemerigTemplatePath(): string {
+  const templatePath = path.join(__dirname, "memerig");
   if (fs.existsSync(templatePath)) {
     return templatePath;
   }
   throw new Error(
-    "Could not find trellis templates directory. Expected at templates/trellis/",
+    "Could not find memerig templates directory. Expected at templates/memerig/",
   );
 }
 
-/** @deprecated Use getTrellisTemplatePath() instead. */
-export function getTrellisSourcePath(): string {
-  return getTrellisTemplatePath();
+/** @deprecated Use getMemerigTemplatePath() instead. */
+export function getMemerigSourcePath(): string {
+  return getMemerigTemplatePath();
 }
 
 /**
@@ -72,11 +72,11 @@ export function getPiSourcePath(): string {
 }
 
 /**
- * Read a file from the trellis template directory.
+ * Read a file from the memerig template directory.
  */
-export function readTrellisFile(relativePath: string): string {
-  const trellisPath = getTrellisSourcePath();
-  const filePath = path.join(trellisPath, relativePath);
+export function readMemerigFile(relativePath: string): string {
+  const memerigPath = getMemerigSourcePath();
+  const filePath = path.join(memerigPath, relativePath);
   return fs.readFileSync(filePath, "utf-8");
 }
 
@@ -92,11 +92,11 @@ export function readTemplate(
 }
 
 export function readScript(relativePath: string): string {
-  return readTrellisFile(`scripts/${relativePath}`);
+  return readMemerigFile(`scripts/${relativePath}`);
 }
 
 export function readMarkdown(relativePath: string): string {
-  return readTrellisFile(relativePath);
+  return readMemerigFile(relativePath);
 }
 
 export function readCommand(filename: string): string {
@@ -104,15 +104,15 @@ export function readCommand(filename: string): string {
 }
 
 /**
- * Copy a directory from trellis templates to target, making scripts executable.
+ * Copy a directory from memerig templates to target, making scripts executable.
  */
-export async function copyTrellisDir(
+export async function copyMemerigDir(
   srcRelativePath: string,
   destPath: string,
   options?: { executable?: boolean },
 ): Promise<void> {
-  const trellisPath = getTrellisSourcePath();
-  const srcPath = path.join(trellisPath, srcRelativePath);
+  const memerigPath = getMemerigSourcePath();
+  const srcPath = path.join(memerigPath, srcRelativePath);
   await copyDirRecursive(srcPath, destPath, options);
 }
 

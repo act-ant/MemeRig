@@ -1,174 +1,84 @@
-<p align="center">
-<picture>
-<source srcset="assets/trellis.png" media="(prefers-color-scheme: dark)">
-<source srcset="assets/trellis.png" media="(prefers-color-scheme: light)">
-<img src="assets/trellis.png" alt="Trellis Logo" width="500" style="image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;">
-</picture>
-</p>
+# MemeRig
 
-<p align="center">
-<strong>开箱即用的 AI 编码工程化框架</strong><br/>
-<sub>AI 写代码很快，但它每次会话都从零开始理解项目，记不住你的规范，也记不住团队级别的需求。Trellis 会把规范、任务、记忆沉淀进仓库，让任意 Coding Agent 都按你的工程标准来实践。</sub>
-</p>
+**面向游戏开发和 Agent 开发的 Agent Harness。** MemeRig 把规范、任务和会话记忆保存在仓库里，让每个编程 Agent 在每次会话开始时遵循同一套约定，并从上一次停下的地方继续。
 
-<p align="center">
-<a href="./README.md">English</a> •
-<a href="https://docs.trytrellis.app/zh">文档</a> •
-<a href="https://docs.trytrellis.app/zh/start/install-and-first-task">快速开始</a> •
-<a href="https://docs.trytrellis.app/zh/advanced/multi-platform">支持平台</a> •
-<a href="https://docs.trytrellis.app/zh/start/real-world-scenarios">使用场景</a>
-</p>
+[English](./README.md)
 
-<p align="center">
-<a href="https://www.npmjs.com/package/@mindfoldhq/trellis"><img src="https://img.shields.io/npm/v/@mindfoldhq/trellis.svg?style=flat-square&color=2563eb" alt="npm version" /></a>
-<a href="https://www.npmjs.com/package/@mindfoldhq/trellis"><img src="https://img.shields.io/npm/dw/@mindfoldhq/trellis?style=flat-square&color=cb3837&label=downloads" alt="npm downloads" /></a>
-<a href="https://github.com/mindfold-ai/Trellis/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-16a34a.svg?style=flat-square" alt="license" /></a>
-<a href="https://github.com/mindfold-ai/Trellis/stargazers"><img src="https://img.shields.io/github/stars/mindfold-ai/Trellis?style=flat-square&color=eab308" alt="stars" /></a>
-<a href="https://docs.trytrellis.app/zh"><img src="https://img.shields.io/badge/docs-trytrellis.app-0f766e?style=flat-square" alt="docs" /></a>
-<a href="https://discord.com/invite/tWcCZ3aRHc"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
-<a href="https://github.com/mindfold-ai/Trellis/issues"><img src="https://img.shields.io/github/issues/mindfold-ai/Trellis?style=flat-square&color=e67e22" alt="open issues" /></a>
-<a href="https://github.com/mindfold-ai/Trellis/pulls"><img src="https://img.shields.io/github/issues-pr/mindfold-ai/Trellis?style=flat-square&color=9b59b6" alt="open PRs" /></a>
-<a href="https://deepwiki.com/mindfold-ai/Trellis"><img src="https://img.shields.io/badge/Ask-DeepWiki-blue?style=flat-square" alt="Ask DeepWiki" /></a>
-<a href="https://chatgpt.com/?q=Explain+the+project+mindfold-ai/Trellis+on+GitHub"><img src="https://img.shields.io/badge/Ask-ChatGPT-74aa9c?style=flat-square&logo=openai&logoColor=white" alt="Ask ChatGPT" /></a>
-</p>
+> **MemeRig 是 [Mindfold](https://github.com/mindfold-ai) 开源项目 [Trellis](https://github.com/mindfold-ai/Trellis) 的 fork。**
+> 它基于 Trellis 的 [`f089cb3`](https://github.com/mindfold-ai/Trellis/commit/f089cb3286071199e84118dee86b6d76aab032f1) 提交创建，沿用了它的架构：分层规范、任务 PRD、工作流阶段、hook 注入上下文，以及多平台生成器。这些基础归功于 Trellis 的作者。MemeRig 独立维护，与 Mindfold 没有隶属或背书关系。两个项目都使用 AGPL-3.0 许可证。
 
-<p align="center">
-<img src="assets/trellis-demo-zh.gif" alt="Trellis 工作流演示" width="100%">
-</p>
+## 相对 Trellis 的改动
 
-## 为什么用 Trellis？
+| 方面 | Trellis | MemeRig |
+| --- | --- | --- |
+| 项目目录 | `.trellis/` | `.memerig/` |
+| 命令行 | `trellis`、`tl` | `memerig`、`mrig` |
+| npm 包 | `@mindfoldhq/trellis`、`@mindfoldhq/trellis-core` | `memerig`、`memerig-core` |
+| 技能 | `trellis-brainstorm`、`trellis-check`… | `brainstorm`、`check`…（无前缀） |
+| 子 Agent | `trellis-implement`、`trellis-check`、`trellis-research` | `memerig-implement`、`memerig-check`、`memerig-research` |
+| 斜杠命令 | `/trellis:start`、`/trellis:finish-work` | `/memerig:start`、`/memerig:finish-work` |
+| 环境变量 | `TRELLIS_*` | `MEMERIG_*` |
+| 模板市场 | `mindfold-ai/marketplace` 子模块 | 内置在 [`marketplace/`](./marketplace) |
 
-| 能力 | 带来的改变 |
-| --- | --- |
-| **自动注入规范** | 将规范沉淀到 `.trellis/spec/` 之后，Trellis 会在每次会话中按当前任务自动按需注入相关上下文，无需反复说明。 |
-| **任务驱动工作流** | PRD、实现上下文、审查上下文与任务状态统一存放于 `.trellis/tasks/`，AI 开发过程保持结构化、可追溯。 |
-| **项目记忆** | `.trellis/workspace/` 中的工作日志（journal）会保留上一次会话的脉络，因此每次新会话都能基于真实上下文开始。 |
-| **团队共享标准** | Spec 随仓库一同版本化，个人总结出的规则与流程可以直接成为整个团队的基础设施。 |
-| **多平台复用** | 同一套 Trellis 结构覆盖 22 个 AI coding 平台，无需为每个工具单独搭建工作流。 |
+子 Agent 保留前缀，是因为主会话按名字派发它们，而 `check`、`implement` 这类通用名字容易和项目自己定义的 Agent 撞名。
 
-## 前置要求
+## 环境要求
 
-- **Node.js** >= 18
-- **Python** >= 3.9
+- Node.js 18.17 或更高版本
+- Python 3.9 或更高版本
 
 ## 快速开始
 
 ```bash
-# 1. 安装 Trellis
-npm install -g @mindfoldhq/trellis@latest
+# 安装命令行
+npm install -g memerig
 
-# 2. 在仓库中初始化
-trellis init -u your-name
+# 在仓库中初始化
+memerig init -u your-name
 
-# 3. 或仅初始化你实际使用的平台
-trellis init --cursor --opencode --codex -u your-name
+# 或只初始化你实际使用的平台
+memerig init --claude --codex --omp -u your-name
 ```
 
-查看 [快速开始](https://docs.trytrellis.app/zh/start/install-and-first-task) 与 [支持平台](https://docs.trytrellis.app/zh/advanced/multi-platform) 指南以了解详细配置步骤。
-
-## 如何使用
-
-使用流程非常简单：
-
-1. **用自然语言描述你的需求。**
-2. **与 AI 一起头脑风暴**，一次只回答一个问题，直到 PRD 足够清晰，然后开始实现。
-3. **交由 AI 自主推进** —— AI 会调用 `trellis-implement` 编写代码，并自动依据 Spec、lint、type-check 与测试进行校验。
-4. **当工作完成或会话上下文接近上限时，输入 `/trellis:finish-work`**。Trellis 会归档任务并更新工作日志。
+`memerig init` 会创建 `.memerig/`，并为你选择的每个 Agent 生成对应的平台文件。运行 `memerig platforms` 可以列出所有支持的宿主。
 
 ## 工作原理
 
-Trellis 内部运行一个 4 阶段循环，skill 与子代理均由系统自动调用：
+MemeRig 把每个任务分成四个阶段：
 
-1. **Plan（规划）** —— `trellis-brainstorm` 逐题梳理需求并写入 `prd.md`；涉及资料调研的部分派发给 `trellis-research` 子代理处理。阶段产出为一组精选的 Spec 与研究文件，由 `implement.jsonl` / `check.jsonl` 编排。
-2. **Implement（实现）** —— `trellis-implement` 子代理依据 PRD 编写代码，所需上下文已按 `implement.jsonl` 自动注入，不会执行 git commit。
-3. **Verify（验证）** —— `trellis-check` 子代理基于 diff 对照 Spec 逐项核查，并运行 lint、type-check 与测试，在能力范围内自动修复。
-4. **Finish（收尾）** —— 执行最终检查后，`trellis-update-spec` 将本轮新增的认知沉淀回 `.trellis/spec/`，为下一次会话积累上下文。
+1. **规划**：`brainstorm` 技能逐个问题梳理需求并写出 `prd.md`。复杂任务还会有 `design.md` 和 `implement.md`。
+2. **实现**：`memerig-implement` 子 Agent 根据 PRD 写代码，相关规范会注入到它的上下文里。
+3. **检查**：`memerig-check` 子 Agent 对照规范审查改动，并运行 lint、类型检查和测试。
+4. **收尾**：`/memerig:finish-work` 归档任务、记录会话日志，`update-spec` 技能把新经验写回 `.memerig/spec/`。
 
-## 资源
-
-| 需求 | 链接 |
+| 路径 | 内容 |
 | --- | --- |
-| 在仓库中安装 Trellis | [快速开始](https://docs.trytrellis.app/zh/start/install-and-first-task) |
-| 了解各平台之间的差异 | [支持平台](https://docs.trytrellis.app/zh/advanced/multi-platform) |
-| 查看实际使用场景 | [真实场景](https://docs.trytrellis.app/zh/start/real-world-scenarios) |
-| 从 Spec 模板起步 | [Spec 模板](https://docs.trytrellis.app/zh/templates/specs-index) |
-| 跟进版本更新 | [更新日志](https://docs.trytrellis.app/zh/changelog) |
+| `.memerig/spec/` | 编码规范，按包和层划分 |
+| `.memerig/tasks/` | 任务 PRD、设计、调研和上下文清单 |
+| `.memerig/workspace/` | 每位开发者的会话日志 |
+| `.memerig/workflow.md` | 阶段定义和每轮的工作流状态提示 |
+| `.agents/skills/` | 遵循 agentskills.io 目录约定、跨宿主共享的技能 |
 
-## 常见问题
+## 开发 MemeRig
 
-<details>
-<summary><strong>Trellis 与 <code>CLAUDE.md</code>、<code>AGENTS.md</code>、<code>.cursorrules</code> 有何区别？</strong></summary>
+MemeRig 用 MemeRig 自己开发：仓库里的 `.memerig/`、`.claude/`、`.cursor/`、`.opencode/`、`.codex/`、`.pi/`、`.agents/skills/` 由命令行根据 `packages/cli/src/templates/` 生成。
 
-这些文件本身是有用的入口，但容易在长期使用中变得冗长臃肿。Trellis 在此之上补充了：作用域明确的 Spec、按任务划分的 PRD、工作流关卡、工作区记忆，以及按平台自动生成的适配文件。
+```bash
+pnpm install
+pnpm build
+pnpm test
+```
 
-</details>
+改完模板后，用刚构建好的命令行重新生成仓库里的副本：
 
-<details>
-<summary><strong>Trellis 是否仅支持 Claude Code？</strong></summary>
+```bash
+MEMERIG_PYTHON_CMD=python3 node packages/cli/bin/memerig.js update
+```
 
-并非如此。Trellis 是项目层基础设施，可在多种 coding agent 与 IDE 中使用。
+`MEMERIG_PYTHON_CMD=python3` 保证生成的副本在所有系统上完全一致；不设置的话，Windows 会把命令渲染成 `python`，所有文件都会显示为已修改。`.memerig/config.yaml` 是唯一手工维护的文件（它声明了 `cli` 和 `core` 两个包），`update` 询问时保留你的版本。
 
-</details>
+改 hook 或工作流会影响你当前正在使用的 Agent 会话，所以先在临时项目里验证（在临时目录运行 `memerig init`），再在本仓库使用。
 
-<details>
-<summary><strong>Trellis 适合个人开发者还是团队？</strong></summary>
+## 许可证
 
-两者皆可。个人开发者主要受益于记忆机制与可复用的工作流；团队使用收益更大——标准统一、任务边界清晰、上下文可审查，且具备跨平台可移植性。
-
-</details>
-
-<details>
-<summary><strong>是否需要手动编写每一个 Spec 文件？</strong></summary>
-
-并不需要。多数团队的做法是先由 AI 基于现有代码生成初稿，再人工收紧关键规则。Trellis 的效果取决于是否将高价值规则显式化并纳入版本管理。
-
-</details>
-
-<details>
-<summary><strong>团队协作时是否会频繁产生冲突？</strong></summary>
-
-不会。个人工作区的 journal 按开发者独立维护，共享的 Spec 与任务则进入仓库，可以像其他项目产物一样进行评审与改进。
-
-</details>
-
-<details>
-<summary><strong>可以临时对比启用与关闭 Trellis 的项目表现吗？</strong></summary>
-
-可以。`trellis ablate` 会先在项目外创建并验证恢复事务，然后临时移除
-Trellis 管理的全部项目级表面。请新开一个 agent 会话进行对比；完成后运行
-`trellis restore`，即可精确恢复到消融前的状态。两个命令都支持
-`--dry-run` 预览。
-私有恢复事务会包含 `.trellis` 中 task、spec 和 workspace 的精确字节，
-其中可能有用户编写的敏感文本；事务会保留到恢复完成验证为止。
-
-它不同于永久删除的 `trellis uninstall`，也不同于只关闭 hooks 的
-`TRELLIS_HOOKS=0`。消融不会启动 agent、管理 worktree、隐藏 Git 变更，
-也不会删除全局 CLI、channel 日志或宿主会话记录。如果消融期间某个受管理
-路径被修改，恢复会拒绝全部写入，直到冲突被处理。
-
-</details>
-
-## Star 历史
-
-[![Star History Chart](https://star-history.dera.page/svg?repos=mindfold-ai/Trellis&type=Date)](https://star-history.dera.page/#mindfold-ai/Trellis&Date)
-
-## 社区与资源
-
-- [官方文档](https://docs.trytrellis.app/zh)
-- [GitHub Issues](https://github.com/mindfold-ai/Trellis/issues)
-- [Discord](https://discord.com/invite/tWcCZ3aRHc)
-- [技术博客](https://docs.trytrellis.app/zh/blog)
-
-### 联系我们
-
-<p align="center">
-<img src="assets/wx_link11.jpg" alt="微信群" width="260" />
-&nbsp;&nbsp;&nbsp;&nbsp;
-<img src="assets/feishu-group-qr.jpg" alt="飞书话题群" width="260" />
-</p>
-
-<p align="center">
-<a href="https://github.com/mindfold-ai/Trellis">官方仓库</a> •
-<a href="https://github.com/mindfold-ai/Trellis/blob/main/LICENSE">AGPL-3.0 License</a> •
-由 <a href="https://github.com/mindfold-ai">Mindfold</a> 构建
-</p>
+MemeRig 使用 [GNU Affero General Public License v3.0](./LICENSE)，与 Trellis 相同。原 Trellis 版权声明和修改说明见 [COPYRIGHT](./COPYRIGHT)。

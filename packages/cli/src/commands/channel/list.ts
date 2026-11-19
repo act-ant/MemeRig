@@ -1,5 +1,5 @@
 /**
- * `trellis channel list` — table summary of all channels in `~/.trellis/channels/`.
+ * `memerig channel list` — table summary of all channels in `~/.memerig/channels/`.
  *
  * Columns: name, created (ts), workers (alive/total), last activity, task.
  * Sorted by most recent activity first.

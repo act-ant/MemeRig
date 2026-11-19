@@ -3,19 +3,19 @@
  *
  * Grok Build (xAI) is a class-2 pull-based platform:
  * - Skills under `.grok/skills/<name>/SKILL.md`
- * - Flat slash commands under `.grok/commands/trellis-*.md`
+ * - Flat slash commands under `.grok/commands/memerig-*.md`
  * - Sub-agents under `.grok/agents/<name>.md`
  *
  * SessionStart/UserPromptSubmit do not inject additionalContext (Grok 0.2.x).
- * trellis-implement / trellis-check use pull-based context loading.
- * trellis-research is standalone (no implement/check prelude).
+ * memerig-implement / memerig-check use pull-based context loading.
+ * memerig-research is standalone (no implement/check prelude).
  */
 
 import { createTemplateReader, type AgentTemplate } from "../template-utils.js";
 
 const { listMdAgents } = createTemplateReader(import.meta.url);
 
-/** Sub-agent definitions (trellis-implement, trellis-check, trellis-research). */
+/** Sub-agent definitions (memerig-implement, memerig-check, memerig-research). */
 export function getAllAgents(): AgentTemplate[] {
   return listMdAgents();
 }

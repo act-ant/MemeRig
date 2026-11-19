@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "electron-fullstack",
+      "type": "spec",
+      "name": "Electron + React + TypeScript",
+      "description": "Full-stack Electron desktop app with React frontend and SQLite backend",
+      "path": "specs/electron-fullstack",
+      "tags": ["electron", "react", "typescript", "sqlite"]
+    },
+    {
+      "id": "nextjs-fullstack",
+      "type": "spec",
+      "name": "Next.js + oRPC + PostgreSQL",
+      "description": "Full-stack Next.js application with oRPC API layer, Drizzle ORM, and PostgreSQL",
+      "path": "specs/nextjs-fullstack",
+      "tags": ["nextjs", "react", "typescript", "orpc", "drizzle", "postgresql"]
+    },
+    {
+      "id": "cf-workers-fullstack",
+      "type": "spec",
+      "name": "Cloudflare Workers + Hono + Turso",
+      "description": "Full-stack Cloudflare Workers application with Hono framework, Drizzle ORM, and Turso database",
+      "path": "specs/cf-workers-fullstack",
+      "tags": ["cloudflare", "workers", "hono", "drizzle", "turso", "react", "typescript"]
+    },
+    {
+      "id": "meta",
+      "type": "skill",
+      "name": "MemeRig Meta Skill",
+      "description": "Meta-skill for understanding and customizing MemeRig workflows",
+      "path": "skills/meta",
+      "tags": ["memerig", "meta", "workflow", "customization"]
+    },
+    {
+      "id": "spec-bootstarp",
+      "type": "skill",
+      "name": "MemeRig Spec Bootstarp",
+      "description": "Platform-neutral workflow for bootstrapping project-specific MemeRig coding specs",
+      "path": "skills/spec-bootstarp",
+      "tags": ["memerig", "spec", "bootstrap", "codebase-analysis"]
+    },
+    {
+      "id": "frontend-fullchain-optimization",
+      "type": "skill",
+      "name": "Frontend Full-Chain Optimization",
+      "description": "Web Vitals-driven frontend performance diagnosis and optimization workflow",
+      "path": "skills/frontend-fullchain-optimization",
+      "tags": ["frontend", "performance", "web-vitals", "lighthouse", "optimization"]
+    },
+    {
+      "id": "native",
+      "type": "workflow",
+      "name": "Native MemeRig Workflow",
+      "description": "Default MemeRig Plan / Execute / Finish workflow with native sub-agent and inline platform branches",
+      "path": "workflows/native/workflow.md",
+      "tags": ["workflow", "native", "default"]
+    },
+    {
+      "id": "tdd",
+      "type": "workflow",
+      "name": "TDD Workflow",
+      "description": "MemeRig workflow variant that drives Phase 2 with one red / green / refactor behavior slice at a time",
+      "path": "workflows/tdd/workflow.md",
+      "tags": ["workflow", "tdd", "testing"]
+    },
+    {
+      "id": "channel-driven-subagent-dispatch",
+      "type": "workflow",
+      "name": "Channel-Driven Sub-Agent Dispatch",
+      "description": "MemeRig workflow variant where the main session coordinates implement/check workers through memerig channel",
+      "path": "workflows/channel-driven-subagent-dispatch/workflow.md",
+      "tags": ["workflow", "channel", "sub-agent", "dogfood"]
+    }
+  ]
+}
