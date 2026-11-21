@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import chalk from "chalk";
 import inquirer from "inquirer";
 
@@ -34,6 +35,7 @@ import {
 import { compareVersions } from "../utils/compare-versions.js";
 import { toPosix } from "../utils/posix.js";
 import { setupProxy } from "../utils/proxy.js";
+import { writeFileAtomicExclusive } from "../utils/atomic-write.js";
 import { emptyTaskJson } from "../utils/task-json.js";
 
 // Import templates for comparison
@@ -122,6 +124,8 @@ const LEGACY_UNTRACKED_AGENTS_MD_BLOCK_HASHES = new Set<string>([
   // section was added, so old untouched projects can be updated without a
   // false "modified by you" conflict.
   "c1f511b1cfc1902f2147da159f09cc51f380b0c9e341cdb3ac5dea5233f3e307",
+  // Pristine root instructions before the repository-native task guidance.
+  "353dc732aead6440b916f9821d5d26d9055ae008d7eac1293c41bcc19cf77f31",
 ]);
 
 // Paths that should never be touched (true user data)
@@ -882,20 +886,44 @@ async function collectTemplateFiles(
     files.set(`${PATHS.SCRIPTS}/${scriptPath}`, content);
   }
 
-  // Channel runtime agent definitions (single source of truth: getAllAgents()).
-  // Backfilled by `memerig update` if missing so users who installed before the
-  // bundled agents existed pick them up. Edited files take the standard
-  // modified-file prompt path.
-  for (const [agentFile, content] of getAllAgents()) {
-    files.set(`${PATHS.AGENTS}/${agentFile}`, content);
+  // Blank installs omit channel agents. Keep existing agent-enabled projects
+  // and explicit channel workflows eligible for backfill.
+  const workflowPath = path.join(cwd, PATHS.WORKFLOW_GUIDE_FILE);
+  const workflow = fs.existsSync(workflowPath)
+    ? fs.readFileSync(workflowPath, "utf-8")
+    : "";
+  if (
+    platforms.size > 0 ||
+    fs.existsSync(path.join(cwd, PATHS.WORKSPACE)) ||
+    fs.existsSync(path.join(cwd, PATHS.AGENTS)) ||
+    workflow.includes("memerig channel spawn")
+  ) {
+    for (const [agentFile, content] of getAllAgents()) {
+      files.set(`${PATHS.AGENTS}/${agentFile}`, content);
+    }
   }
 
-  // Configuration
+  // Repository-owned identity and tracking policy survive managed updates.
+  const configPath = `${DIR_NAMES.WORKFLOW}/config.yaml`;
+  const ignorePath = `${DIR_NAMES.WORKFLOW}/.gitignore`;
+  const currentConfig = fs.existsSync(path.join(cwd, configPath))
+    ? fs.readFileSync(path.join(cwd, configPath), "utf-8")
+    : "";
+  const currentIgnore = fs.existsSync(path.join(cwd, ignorePath))
+    ? fs.readFileSync(path.join(cwd, ignorePath), "utf-8")
+    : "";
   files.set(
-    `${DIR_NAMES.WORKFLOW}/config.yaml`,
-    preserveExistingRegistryConfig(cwd, configYamlTemplate),
+    configPath,
+    /^project_id\s*:|^task_owner\s*:|^tasks\s*:/m.test(currentConfig)
+      ? currentConfig
+      : preserveExistingRegistryConfig(cwd, configYamlTemplate),
   );
-  files.set(`${DIR_NAMES.WORKFLOW}/.gitignore`, gitignoreTemplate);
+  files.set(
+    ignorePath,
+    /^# MemeRig local-only tasks\r?$/m.test(currentIgnore)
+      ? currentIgnore
+      : gitignoreTemplate,
+  );
   // workflow.md is included here because it is runtime-parsed by
   // get_context.py and shared hooks. Keep it on the normal template update
   // path: if the installed file still matches the tracked hash, update the
@@ -1597,7 +1625,10 @@ export function classifyMigrations(
     // rename into from === to (e.g. `.kiro/skills/check/SKILL.md`). Moving a
     // file onto itself is a no-op, and the "both exist" branch below would
     // otherwise treat the file as its own conflicting target.
-    if ((item.type === "rename" || item.type === "rename-dir") && item.to === item.from) {
+    if (
+      (item.type === "rename" || item.type === "rename-dir") &&
+      item.to === item.from
+    ) {
       result.skip.push(item);
       continue;
     }
@@ -2431,7 +2462,7 @@ export async function update(options: UpdateOptions): Promise<void> {
   // Additive-only (see ensureGitattributes) — runs regardless of whether
   // other template files changed, so it must sit before the "nothing to do"
   // early-return below. Never touches disk in --dry-run.
-  if (!options.dryRun) {
+  if (!options.dryRun && fs.existsSync(path.join(cwd, PATHS.WORKSPACE))) {
     ensureGitattributes(cwd);
   }
 
@@ -2827,11 +2858,16 @@ export async function update(options: UpdateOptions): Promise<void> {
           }
         }
 
-        // Build task.json — canonical 24-field shape via shared factory.
+        // Build task.json — canonical 24-field shape plus additive v1 fields.
+        // The Python protocol is the lifecycle writer for existing tasks; the
+        // update flow only creates the migration task, and it creates it with
+        // an exclusive atomic write so a concurrent `task.py create/update`
+        // can never be silently overwritten.
         const taskTitle = `Migrate to v${cliVersion}`;
         const todayStr = today.toISOString().split("T")[0];
+        const nowIso = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
         const taskJson = emptyTaskJson({
-          id: taskSlug,
+          id: randomUUID(),
           name: taskSlug,
           title: taskTitle,
           description: `Breaking change migration from v${projectVersion} to v${cliVersion}`,
@@ -2840,60 +2876,74 @@ export async function update(options: UpdateOptions): Promise<void> {
           priority: "P1",
           creator: "memerig-update",
           assignee: currentDeveloper,
-          createdAt: todayStr,
+          createdAt: nowIso,
+          schemaVersion: 1,
+          updatedAt: nowIso,
         });
 
-        // Write task.json
+        // Write task.json without clobbering. If another writer created it
+        // between the directory check and this call, leave that record alone.
         const taskJsonPath = path.join(taskDir, "task.json");
-        fs.writeFileSync(taskJsonPath, JSON.stringify(taskJson, null, 2));
+        const createdTaskJson = writeFileAtomicExclusive(
+          taskJsonPath,
+          JSON.stringify(taskJson, null, 2) + "\n",
+        );
 
-        // Build PRD content
-        let prdContent = `# Migration Task: Upgrade to v${cliVersion}\n\n`;
-        prdContent += `**Created**: ${todayStr}\n`;
-        prdContent += `**From Version**: ${projectVersion}\n`;
-        prdContent += `**To Version**: ${cliVersion}\n`;
-        prdContent += `**Assignee**: ${currentDeveloper}\n\n`;
-        prdContent += `## Status\n\n- [ ] Review migration guide\n- [ ] Update custom files\n- [ ] Run \`memerig update --migrate\`\n- [ ] Test workflows\n\n`;
+        if (!createdTaskJson) {
+          console.log(
+            chalk.yellow(
+              `Migration task already exists at ${DIR_NAMES.WORKFLOW}/${DIR_NAMES.TASKS}/${taskDirName}/task.json; leaving it untouched.`,
+            ),
+          );
+        } else {
+          // Build PRD content
+          let prdContent = `# Migration Task: Upgrade to v${cliVersion}\n\n`;
+          prdContent += `**Created**: ${todayStr}\n`;
+          prdContent += `**From Version**: ${projectVersion}\n`;
+          prdContent += `**To Version**: ${cliVersion}\n`;
+          prdContent += `**Assignee**: ${currentDeveloper}\n\n`;
+          prdContent += `## Status\n\n- [ ] Review migration guide\n- [ ] Update custom files\n- [ ] Run \`memerig update --migrate\`\n- [ ] Test workflows\n\n`;
 
-        for (const {
-          version,
-          guide,
-          aiInstructions,
-        } of metadata.migrationGuides) {
-          prdContent += `---\n\n## v${version} Migration Guide\n\n`;
-          prdContent += guide;
-          prdContent += "\n\n";
-
-          if (aiInstructions) {
-            prdContent += `### AI Assistant Instructions\n\n`;
-            prdContent += `When helping with this migration:\n\n`;
-            prdContent += aiInstructions;
+          for (const {
+            version,
+            guide,
+            aiInstructions,
+          } of metadata.migrationGuides) {
+            prdContent += `---\n\n## v${version} Migration Guide\n\n`;
+            prdContent += guide;
             prdContent += "\n\n";
+
+            if (aiInstructions) {
+              prdContent += `### AI Assistant Instructions\n\n`;
+              prdContent += `When helping with this migration:\n\n`;
+              prdContent += aiInstructions;
+              prdContent += "\n\n";
+            }
           }
+
+          // Write PRD
+          const prdPath = path.join(taskDir, "prd.md");
+          fs.writeFileSync(prdPath, prdContent);
+
+          console.log("");
+          console.log(chalk.bgCyan.black.bold(" 📋 MIGRATION TASK CREATED "));
+          console.log(
+            chalk.cyan(
+              `A task has been created to help you complete the migration:`,
+            ),
+          );
+          console.log(
+            chalk.white(
+              `   ${DIR_NAMES.WORKFLOW}/${DIR_NAMES.TASKS}/${taskDirName}/`,
+            ),
+          );
+          console.log("");
+          console.log(
+            chalk.gray(
+              "Use AI to help: Ask Claude/Cursor to read the task and fix your custom files.",
+            ),
+          );
         }
-
-        // Write PRD
-        const prdPath = path.join(taskDir, "prd.md");
-        fs.writeFileSync(prdPath, prdContent);
-
-        console.log("");
-        console.log(chalk.bgCyan.black.bold(" 📋 MIGRATION TASK CREATED "));
-        console.log(
-          chalk.cyan(
-            `A task has been created to help you complete the migration:`,
-          ),
-        );
-        console.log(
-          chalk.white(
-            `   ${DIR_NAMES.WORKFLOW}/${DIR_NAMES.TASKS}/${taskDirName}/`,
-          ),
-        );
-        console.log("");
-        console.log(
-          chalk.gray(
-            "Use AI to help: Ask Claude/Cursor to read the task and fix your custom files.",
-          ),
-        );
       }
     }
   }

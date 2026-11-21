@@ -47,6 +47,7 @@ from common.active_task import (
     resolve_context_key,
     set_active_task,
 )
+from common.file_lock import file_lock
 from common.git import current_branch_name
 from common.io import (
     describe_json_read_failure,
@@ -74,6 +75,22 @@ from common.task_context import (
     cmd_list_context,
     curated_entry_count,
 )
+from common.task_protocol import (
+    TaskProtocolError,
+    TaskNotFoundError,
+    cmd_complete,
+    cmd_list_closed,
+    cmd_schema,
+    cmd_show,
+    cmd_update,
+    find_task_location,
+    lock_path_for,
+    print_protocol_error,
+    resolve_owner,
+    token_for,
+)
+from common.task_migration import cmd_migrate
+from common.task_schema import CLOSED_STATUSES, normalize_status
 
 
 # =============================================================================
@@ -82,6 +99,8 @@ from common.task_context import (
 
 def _record_start_state(
     task_json_path: Path,
+    data: dict | None,
+    reason: str | None,
     repo_root: Path,
     label: str = "",
 ) -> None:
@@ -97,7 +116,6 @@ def _record_start_state(
     file it just read, so no failure may be silent: without a message the
     absent status line looks like the task simply was not in planning.
     """
-    data, reason = read_json_checked(task_json_path)
     if data is None:
         problem, hint = describe_json_read_failure(task_json_path, reason)
         print(
@@ -109,7 +127,7 @@ def _record_start_state(
 
     applied: list[str] = []
 
-    if data.get("status") == "planning":
+    if normalize_status(data.get("status")) == "planning":
         data["status"] = "in_progress"
         applied.append(f"✓ Status: planning → in_progress{label}")
 
@@ -170,21 +188,33 @@ def _record_start_state(
 
 def cmd_start(args: argparse.Namespace) -> int:
     """Set active task."""
-    repo_root = get_repo_root()
+    try:
+        repo_root = resolve_owner()
+    except TaskProtocolError as exc:
+        print_protocol_error(exc, False)
+        return 1
     task_input = args.dir
 
     if not task_input:
         print(colored("Error: task directory or name required", Colors.RED))
         return 1
 
-    # Resolve task directory (supports task name, relative path, or absolute path)
-    full_path = resolve_task_dir(task_input, repo_root)
-
-    if full_path is None:
-        # resolve_task_dir already named the exact reason on stderr. A second,
-        # generic line on stdout would split one diagnosis across two streams
-        # and bury the specific message.
+    try:
+        location = find_task_location(repo_root, task_input)
+    except TaskNotFoundError:
+        # Preserve path/name diagnostics and the ability to inspect a corrupt
+        # task.json through the active-task context.
+        full_path = resolve_task_dir(task_input, repo_root)
+        if full_path is None:
+            return 1
+    except TaskProtocolError as exc:
+        print_protocol_error(exc, False)
         return 1
+    else:
+        if location.closed:
+            print(colored(f"Error: Task is closed: {task_input}", Colors.RED), file=sys.stderr)
+            return 1
+        full_path = location.directory
 
     if not full_path.is_dir():
         print(colored(f"Error: Task not found: {task_input}", Colors.RED))
@@ -214,10 +244,7 @@ def cmd_start(args: argparse.Namespace) -> int:
             print("  Intentionally empty? Re-run start with --allow-empty-context")
             return 1
 
-    # Convert to relative path for storage. repo_root is resolved because
-    # full_path already is (resolve_task_dir only returns paths inside the
-    # resolved root), so an unresolved repo_root would mismatch under a
-    # symlink (e.g. /tmp on macOS) and reject a perfectly normal task.
+    # Session pointers use paths relative to the task-owning project.
     try:
         task_dir = full_path.relative_to(repo_root.resolve()).as_posix()
     except ValueError:
@@ -232,11 +259,33 @@ def cmd_start(args: argparse.Namespace) -> int:
 
     task_json_path = full_path / FILE_TASK_JSON
 
-    if not resolve_context_key():
-        # Degraded mode: no session identity available.
-        # Hook didn't inject MEMERIG_CONTEXT_ID (common on Windows + Claude Code,
-        # --continue resume path, fork distribution, hooks disabled, etc.). Skip
-        # per-session pointer write; AI continues based on conversation context.
+    context_key = resolve_context_key()
+    active = None
+    try:
+        with file_lock(lock_path_for(get_tasks_dir(repo_root))):
+            # Re-read under the same lock as complete/update. A close may
+            # have landed while the task's context manifests were checked.
+            data, reason = read_json_checked(task_json_path)
+            if data is not None and normalize_status(data.get("status")) in CLOSED_STATUSES:
+                print(colored(f"Error: Task is closed: {task_input}", Colors.RED), file=sys.stderr)
+                return 1
+            if context_key:
+                active = set_active_task(task_dir, repo_root)
+                if active is None:
+                    print(colored("Error: Failed to set current task", Colors.RED), file=sys.stderr)
+                    return 1
+            if task_json_path.is_file():
+                _record_start_state(task_json_path, data, reason, repo_root, "" if context_key else " (degraded)")
+    except OSError as exc:
+        print(colored(f"Error: Could not start task: {exc}", Colors.RED), file=sys.stderr)
+        return 1
+
+    if active:
+        print(colored(f"✓ Current task set to: {task_dir}", Colors.GREEN))
+        print(f"Source: {active.source}")
+        print()
+        print(colored("The hook will now inject context from this task's jsonl files.", Colors.BLUE))
+    else:
         print(colored(
             "ℹ Session identity not available; active-task pointer not persisted "
             "this session (degraded mode). AI continues based on conversation context.",
@@ -248,33 +297,18 @@ def cmd_start(args: argparse.Namespace) -> int:
             Colors.YELLOW,
         ))
 
-        # Still flip task.json status: planning → in_progress so downstream phases proceed.
-        if task_json_path.is_file():
-            _record_start_state(task_json_path, repo_root, " (degraded)")
-            run_task_hooks("after_start", task_json_path, repo_root)
-        return 0
-
-    active = set_active_task(task_dir, repo_root)
-    if active:
-        print(colored(f"✓ Current task set to: {task_dir}", Colors.GREEN))
-        print(f"Source: {active.source}")
-
-        if task_json_path.is_file():
-            _record_start_state(task_json_path, repo_root)
-
-        print()
-        print(colored("The hook will now inject context from this task's jsonl files.", Colors.BLUE))
-
+    if active or task_json_path.is_file():
         run_task_hooks("after_start", task_json_path, repo_root)
-        return 0
-    else:
-        print(colored("Error: Failed to set current task", Colors.RED))
-        return 1
+    return 0
 
 
 def cmd_finish(args: argparse.Namespace) -> int:
     """Clear active task."""
-    repo_root = get_repo_root()
+    try:
+        repo_root = resolve_owner()
+    except TaskProtocolError as exc:
+        print_protocol_error(exc, False)
+        return 1
     active = clear_active_task(repo_root)
     current = active.task_path
 
@@ -295,7 +329,11 @@ def cmd_finish(args: argparse.Namespace) -> int:
 
 def cmd_current(args: argparse.Namespace) -> int:
     """Show active task."""
-    repo_root = get_repo_root()
+    try:
+        repo_root = resolve_owner()
+    except TaskProtocolError as exc:
+        print_protocol_error(exc, args.json)
+        return 1
     active = resolve_active_task(repo_root)
 
     if getattr(args, "json", False):
@@ -374,53 +412,82 @@ def _display_status(t, all_statuses: dict) -> str:
 def cmd_list(args: argparse.Namespace) -> int:
     """List active tasks."""
     repo_root = get_repo_root()
-    tasks_dir = get_tasks_dir(repo_root)
-    current_task = get_current_task(repo_root)
+    try:
+        owner = resolve_owner()
+    except TaskProtocolError as exc:
+        print(colored(f"Error: {exc}", Colors.RED), file=sys.stderr)
+        for key, value in exc.details.items():
+            print(f"  {key}: {value}", file=sys.stderr)
+        return 1
+    tasks_dir = get_tasks_dir(owner)
+    current_task = get_current_task(owner)
     developer = get_developer(repo_root)
     filter_mine = args.mine
-    filter_status = args.status
+    filter_status = normalize_status(args.status) or args.status
     as_json = getattr(args, "json", False)
+
+    if filter_mine and not developer:
+        if as_json:
+            print(json.dumps({"error": "No developer set", "hint": DEVELOPER_HINT}), file=sys.stderr)
+        else:
+            print(colored("Error: No developer set. Run init_developer.py first", Colors.RED), file=sys.stderr)
+            print(DEVELOPER_HINT, file=sys.stderr)
+        return 1
+
+    # Closed view includes both in-place closes and the legacy archive.
+    if getattr(args, "closed", False):
+        args.mine_assignee = developer if filter_mine else None
+        return cmd_list_closed(args)
 
     # Single pass: collect all tasks via shared iterator
     all_tasks = {t.dir_name: t for t in iter_active_tasks(tasks_dir)}
     all_statuses = {name: t.status for name, t in all_tasks.items()}
+    visible_tasks = {
+        name: task
+        for name, task in all_tasks.items()
+        if (not filter_mine or task.assignee == developer)
+        and (task.status == filter_status if filter_status else task.status not in CLOSED_STATUSES)
+    }
 
     if as_json:
-        if filter_mine and not developer:
-            print(
-                json.dumps({"error": "No developer set", "hint": DEVELOPER_HINT}),
-                file=sys.stderr,
-            )
-            return 1
-
         items = []
-        for dir_name in sorted(all_tasks.keys()):
-            t = all_tasks[dir_name]
-            if filter_mine and (t.assignee or "-") != developer:
-                continue
-            if filter_status and t.status != filter_status:
-                continue
+        for dir_name in sorted(visible_tasks):
+            t = visible_tasks[dir_name]
+            task_json = tasks_dir / dir_name / FILE_TASK_JSON
+            try:
+                version = token_for(task_json.read_bytes())
+            except OSError:
+                version = None
+            status_value = t.raw.get("status")
             items.append({
                 "dir": f"{DIR_WORKFLOW}/{DIR_TASKS}/{dir_name}",
                 "id": t.raw.get("id") or dir_name,
+                "legacy_id": t.raw.get("legacyId"),
                 "title": t.title,
                 "status": t.status,
                 "display_status": _display_status(t, all_statuses),
                 "priority": t.priority,
                 "assignee": t.assignee or None,
                 "parent": t.parent,
+                "parent_id": t.raw.get("parentId"),
                 "children": list(t.children),
                 "package": t.package,
+                "closed": t.status in CLOSED_STATUSES,
+                "archived": False,
+                "labels": t.raw.get("labels") or [],
+                "next_action": t.raw.get("nextAction"),
+                "schema_version": t.raw.get("schemaVersion"),
+                "updated_at": t.raw.get("updatedAt"),
+                "version": version,
+                "raw_status": status_value,
             })
         print(json.dumps({"tasks": items}, ensure_ascii=False))
         return 0
 
     if filter_mine:
-        if not developer:
-            print(colored("Error: No developer set. Run init_developer.py first", Colors.RED), file=sys.stderr)
-            print(DEVELOPER_HINT, file=sys.stderr)
-            return 1
         print(colored(f"My tasks (assignee: {developer}):", Colors.BLUE))
+    elif filter_status:
+        print(colored(f"Tasks with status {filter_status}:", Colors.BLUE))
     else:
         print(colored("All active tasks:", Colors.BLUE))
     print()
@@ -430,15 +497,7 @@ def cmd_list(args: argparse.Namespace) -> int:
 
     def _print_task(dir_name: str, indent: int = 0) -> None:
         nonlocal count
-        t = all_tasks[dir_name]
-
-        # Apply --mine filter
-        if filter_mine and (t.assignee or "-") != developer:
-            return
-
-        # Apply --status filter
-        if filter_status and t.status != filter_status:
-            return
+        t = visible_tasks[dir_name]
 
         relative_path = f"{DIR_WORKFLOW}/{DIR_TASKS}/{dir_name}"
         marker = ""
@@ -462,15 +521,13 @@ def cmd_list(args: argparse.Namespace) -> int:
 
         # Print children indented
         for child_name in t.children:
-            if child_name in all_tasks:
+            if child_name in visible_tasks and visible_tasks[child_name].parent == dir_name:
                 _print_task(child_name, indent + 1)
 
-    # Display only top-level tasks: those without a parent, plus orphans
-    # whose recorded parent is not (or no longer) in the active set — a
-    # dangling parent ref must still render flat instead of disappearing.
-    for dir_name in sorted(all_tasks.keys()):
-        parent = all_tasks[dir_name].parent
-        if not parent or parent not in all_tasks:
+    # A matching child remains visible even when its parent was filtered out.
+    for dir_name in sorted(visible_tasks):
+        parent = visible_tasks[dir_name].parent
+        if parent not in visible_tasks or dir_name not in visible_tasks[parent].children:
             _print_task(dir_name)
 
     if count == 0:
@@ -490,8 +547,14 @@ def cmd_list(args: argparse.Namespace) -> int:
 
 def cmd_list_archive(args: argparse.Namespace) -> int:
     """List archived tasks."""
-    repo_root = get_repo_root()
-    tasks_dir = get_tasks_dir(repo_root)
+    try:
+        owner = resolve_owner()
+    except TaskProtocolError as exc:
+        print(colored(f"Error: {exc}", Colors.RED), file=sys.stderr)
+        for key, value in exc.details.items():
+            print(f"  {key}: {value}", file=sys.stderr)
+        return 1
+    tasks_dir = get_tasks_dir(owner)
     archive_dir = tasks_dir / "archive"
     month = args.month
 
@@ -546,7 +609,24 @@ Usage:
   python3 task.py add-subtask <parent> <child>       Link child task to parent
   python3 task.py remove-subtask <parent> <child>    Unlink child from parent
   python3 task.py list [--mine] [--status <status>] [--json]  List tasks
+  python3 task.py list --closed [--json]             Closed view (in-place + legacy archive)
+  python3 task.py show <id> [--json]                 Show one task by id, legacy id, dir, or path
+  python3 task.py update <id> [options] [--expect-version <v>] [--json]
+                                                     Update fields with stale-write protection
+  python3 task.py complete <id> [--expect-version <v>] [--json]
+                                                     Close in place (idempotent; path unchanged)
+  python3 task.py migrate [--preview|--apply] [--json]
+                                                     Preview/apply task schema v1 migration
+  python3 task.py schema                             Print the task v1 JSON Schema
   python3 task.py list-archive [YYYY-MM]             List archived tasks
+
+Protocol options:
+  --expect-version <v>  Opaque version token from a previous read; rejects a
+                        write when another process changed the record first.
+  --next-action <text>  Short handoff rendered by resume-oriented readers.
+  --label <label>       Task label (repeatable); update replaces the set.
+  --extension k=JSON    Namespaced adapter metadata (e.g. com.example.board={"id":"42"}).
+  --json                Machine-readable JSON on stdout; diagnostics stay on stderr.
 
 Monorepo options:
   --package <pkg>      Package name (validated against config.yaml packages)
@@ -656,6 +736,25 @@ def main() -> int:
         help="Task metadata key=value (repeatable)",
     )
     p_create.add_argument(
+        "--label",
+        action="append",
+        help="Task label (repeatable)",
+    )
+    p_create.add_argument(
+        "--next-action",
+        help="Short handoff for the next session",
+    )
+    p_create.add_argument(
+        "--extension",
+        action="append",
+        help="namespaced.key=JSON extension pair (repeatable)",
+    )
+    p_create.add_argument(
+        "--json",
+        action="store_true",
+        help="Output a machine-readable task record (includes the version token)",
+    )
+    p_create.add_argument(
         "--no-start",
         action="store_true",
         help="Create the task without making it active in this session",
@@ -683,7 +782,7 @@ def main() -> int:
 
     # start
     p_start = subparsers.add_parser("start", help="Set active task")
-    p_start.add_argument("dir", help="Task directory")
+    p_start.add_argument("dir", help="Task UUID, legacy id, name, or path")
     p_start.add_argument(
         "--allow-empty-context",
         action="store_true",
@@ -749,6 +848,60 @@ def main() -> int:
     p_list.add_argument("--mine", "-m", action="store_true", help="My tasks only")
     p_list.add_argument("--status", "-s", help="Filter by status")
     p_list.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+    p_list.add_argument(
+        "--closed",
+        action="store_true",
+        help="Closed view: in-place completed/canceled tasks plus legacy archive/",
+    )
+
+    # show
+    p_show = subparsers.add_parser("show", help="Show one task by id or legacy selector")
+    p_show.add_argument("task", help="Task UUID, legacy id, dir name, or path")
+    p_show.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+    p_show.add_argument(
+        "--active-only",
+        action="store_true",
+        help="Do not search legacy archive/ paths",
+    )
+
+    # update
+    p_update = subparsers.add_parser("update", help="Update a task with a stale-write token")
+    p_update.add_argument("task", help="Task UUID, legacy id, dir name, or path")
+    p_update.add_argument("--title")
+    p_update.add_argument("--description")
+    p_update.add_argument("--status", help="planning|in_progress|review|completed|canceled (open/done aliases accepted)")
+    p_update.add_argument("--assignee")
+    p_update.add_argument("--priority")
+    p_update.add_argument("--package")
+    p_update.add_argument("--branch")
+    p_update.add_argument("--base-branch")
+    p_update.add_argument("--notes")
+    p_update.add_argument("--next-action", help="Short handoff for the next session")
+    p_update.add_argument("--clear-next-action", action="store_true")
+    p_update.add_argument("--label", action="append", help="Replace labels with the given values (repeatable)")
+    p_update.add_argument("--clear-labels", action="store_true")
+    p_update.add_argument("--parent", help="Parent task selector")
+    p_update.add_argument("--clear-parent", action="store_true")
+    p_update.add_argument("--meta", action="append", help="KEY=VALUE metadata pair (repeatable)")
+    p_update.add_argument("--extension", action="append", help="namespaced.key=JSON extension pair (repeatable)")
+    p_update.add_argument("--expect-version", help="Opaque version token from a previous read")
+    p_update.add_argument("--json", action="store_true")
+
+    # complete
+    p_complete = subparsers.add_parser("complete", help="Close a task in place (idempotent)")
+    p_complete.add_argument("task", help="Task UUID, legacy id, dir name, or path")
+    p_complete.add_argument("--expect-version", help="Opaque version token from a previous read")
+    p_complete.add_argument("--json", action="store_true")
+
+    # migrate
+    p_migrate = subparsers.add_parser("migrate", help="Preview or apply task schema v1 migration")
+    p_migrate.add_argument("--preview", action="store_true", help="Show the change set (default)")
+    p_migrate.add_argument("--apply", action="store_true", help="Back up, then apply the change set")
+    p_migrate.add_argument("--json", action="store_true")
+
+    # schema
+    p_schema = subparsers.add_parser("schema", help="Print the task v1 JSON Schema")
+    p_schema.add_argument("--json", action="store_true")
 
     # add-subtask
     p_addsub = subparsers.add_parser("add-subtask", help="Link child task to parent")
@@ -788,6 +941,11 @@ def main() -> int:
         "remove-subtask": cmd_remove_subtask,
         "list": cmd_list,
         "list-archive": cmd_list_archive,
+        "show": cmd_show,
+        "update": cmd_update,
+        "complete": cmd_complete,
+        "migrate": cmd_migrate,
+        "schema": cmd_schema,
     }
 
     if args.command in commands:

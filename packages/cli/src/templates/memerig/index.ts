@@ -115,6 +115,18 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/workflow_phase.py", commonWorkflowPhase);
   scripts.set("common/memerig_config.py", commonMemerigConfig);
   scripts.set("common/safe_commit.py", commonSafeCommit);
+  for (const module of [
+    "file_lock",
+    "project",
+    "task_migration",
+    "task_protocol",
+    "task_schema",
+  ]) {
+    scripts.set(
+      `common/${module}.py`,
+      readTemplate(`scripts/common/${module}.py`),
+    );
+  }
 
   // Main
   scripts.set("get_developer.py", getDeveloperScript);
@@ -122,6 +134,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("task.py", taskScript);
   scripts.set("get_context.py", getContextScript);
   scripts.set("add_session.py", addSessionScript);
+  scripts.set("project.py", readTemplate("scripts/project.py"));
 
   return scripts;
 }

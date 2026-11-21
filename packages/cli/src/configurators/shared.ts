@@ -162,9 +162,8 @@ export function resolvePlaceholders(
   // Simple substitutions. Skills carry no brand prefix, so a reference to a
   // skill renders as its bare name; only session-boundary commands
   // (start/continue/finish-work) use the platform's command prefix.
-  result = result.replace(
-    RE_CMD_REF,
-    (_match, name: string) => formatCmdRef(name, context),
+  result = result.replace(RE_CMD_REF, (_match, name: string) =>
+    formatCmdRef(name, context),
   );
   result = result.replace(RE_EXECUTOR_AI, context.executorAI);
   result = result.replace(RE_USER_ACTION_LABEL, context.userActionLabel);
@@ -266,7 +265,7 @@ const SKILL_DESCRIPTIONS: Record<string, string> = {
   continue:
     "Resume work on the current task. Loads the workflow Phase Index, figures out which phase/step to pick up at, then pulls the step-level detail via get_context.py --mode phase. Use when coming back to an in-progress task and you need to know what to do next.",
   "finish-work":
-    "Wrap up the current session: verify quality gate passed, remind user to commit, archive completed tasks, and record session progress to the developer journal. Use when done coding and ready to end the session.",
+    "Complete the active task and record the session journal after verification and code commits.",
   "before-dev":
     "Discovers and injects project-specific coding guidelines from .memerig/spec/ before implementation begins. Reads spec indexes, pre-development checklists, and shared thinking guides for the target package. Use when starting a new coding task, before writing any code, switching to a different package, or needing to refresh project conventions and standards.",
   brainstorm:
@@ -303,8 +302,7 @@ export function wrapWithSkillFrontmatter(
 const COMMAND_DESCRIPTIONS: Record<string, string> = {
   start: "Initialize a MemeRig development session.",
   continue: "Resume work on the current task at the correct phase.",
-  "finish-work":
-    "Wrap up the current session: quality gate, commit reminder, archive, journal.",
+  "finish-work": "Complete the active task and record the session journal.",
 };
 
 /** Wrap resolved command content with YAML frontmatter (name + description). */
@@ -333,7 +331,7 @@ export function wrapWithCommandFrontmatter(
  * Used by OMP platform's YAML frontmatter.
  */
 const COMMAND_ARGUMENT_HINTS: Record<string, string> = {
-  "finish-work": "[task-name]",
+  "finish-work": "[task-id]",
 };
 
 /**

@@ -747,7 +747,7 @@ def get_context_record_json(repo_root: Path | None = None) -> dict:
         if t.assignee == developer:
             done = sum(
                 1 for c in t.children
-                if all_statuses.get(c) in ("completed", "done")
+                if all_statuses.get(c) in ("completed", "done", "canceled")
             )
             my_tasks.append({
                 "dir": t.dir_name,

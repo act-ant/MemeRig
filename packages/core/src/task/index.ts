@@ -6,10 +6,12 @@
 export type {
   MemerigTaskRecord,
   TaskRecordField,
+  TaskRecordV1Field,
 } from "./schema.js";
 
 export {
   TASK_RECORD_FIELD_ORDER,
+  TASK_RECORD_V1_FIELD_ORDER,
   emptyTaskRecord,
   taskRecordSchema,
 } from "./schema.js";
@@ -29,3 +31,19 @@ export { validateTaskDirName, isValidTaskDirName } from "./paths.js";
 
 export type { MemerigTaskPhase } from "./phase.js";
 export { inferTaskPhase } from "./phase.js";
+
+export type {
+  CanonicalTaskStatus,
+  TaskLifecycleState,
+  VersionedTaskSnapshot,
+} from "./protocol.js";
+export {
+  TASK_STATUSES,
+  assertTaskRecordV1,
+  isActiveTaskStatus,
+  isClosedTaskStatus,
+  isVersionedTaskSnapshot,
+  normalizeTaskStatus,
+  taskLifecycleState,
+  validateTaskRecordV1,
+} from "./protocol.js";

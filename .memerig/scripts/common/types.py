@@ -49,6 +49,15 @@ class TaskData(TypedDict, total=False):
     relatedFiles: list[str]
     notes: str
     meta: dict
+    # Schema v1 additive fields (optional on legacy records).
+    schemaVersion: int
+    updatedAt: str
+    closedAt: str
+    parentId: str
+    legacyId: str
+    labels: list[str]
+    nextAction: str
+    extensions: dict
 
 
 # =============================================================================
@@ -91,6 +100,41 @@ class TaskInfo:
     @property
     def meta(self) -> dict:
         return self.raw.get("meta", {})
+
+    @property
+    def task_id(self) -> str:
+        """Stable identity (UUID on v1 records, legacy slug on older ones)."""
+        return self.raw.get("id") or self.dir_name
+
+    @property
+    def schema_version(self) -> int | None:
+        value = self.raw.get("schemaVersion")
+        return value if isinstance(value, int) else None
+
+    @property
+    def updated_at(self) -> str | None:
+        return self.raw.get("updatedAt")
+
+    @property
+    def closed_at(self) -> str | None:
+        return self.raw.get("closedAt")
+
+    @property
+    def parent_id(self) -> str | None:
+        return self.raw.get("parentId")
+
+    @property
+    def legacy_id(self) -> str | None:
+        return self.raw.get("legacyId")
+
+    @property
+    def labels(self) -> tuple[str, ...]:
+        value = self.raw.get("labels")
+        return tuple(value) if isinstance(value, list) else ()
+
+    @property
+    def next_action(self) -> str | None:
+        return self.raw.get("nextAction")
 
 
 # =============================================================================

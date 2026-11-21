@@ -17,6 +17,7 @@
 
 import * as os from "node:os";
 import * as path from "node:path";
+import { registeredProjectSummaries } from "../utils/registered-projects.js";
 
 import {
   extractMemDialogue,
@@ -252,6 +253,21 @@ function cmdProjects(argv: Argv): void {
   });
   printWarnings(warnings);
   const limit = parseOptionalNumberFlag(argv.flags.limit, "--limit", 30);
+  if (argv.flags.registered) {
+    const registered = registeredProjectSummaries(rows).slice(0, limit);
+    if (argv.flags.json) {
+      console.log(JSON.stringify(registered, null, 2));
+    } else if (registered.length === 0) {
+      console.log("(no registered projects)");
+    } else {
+      for (const project of registered) {
+        console.log(
+          `${project.projectId}  sessions=${project.sessions}  ${project.checkouts.map(shortPath).join(", ")}`,
+        );
+      }
+    }
+    return;
+  }
   const top = rows.slice(0, limit);
 
   if (argv.flags.json) {
@@ -463,6 +479,7 @@ flags:
   --since YYYY-MM-DD                     inclusive lower bound
   --until YYYY-MM-DD                     inclusive upper bound
   --global                               include all projects (default: cwd-scoped)
+  --registered                           projects: only explicitly registered checkouts, grouped by project ID
   --cwd <path>                           override the project cwd
   --limit N                              cap output (default 50)
   --grep KW                              extract / context: filter turns by keyword (multi-token AND)

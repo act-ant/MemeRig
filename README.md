@@ -49,7 +49,7 @@ MemeRig runs each task through four phases:
 1. **Plan.** The `brainstorm` skill works through requirements one question at a time and writes `prd.md`. Complex tasks also get `design.md` and `implement.md`.
 2. **Implement.** The `memerig-implement` sub-agent writes code from the PRD, with the relevant specs injected into its context.
 3. **Check.** The `memerig-check` sub-agent reviews the diff against the specs and runs lint, type checks, and tests.
-4. **Finish.** `/memerig:finish-work` archives the task, records the session journal, and the `update-spec` skill writes new lessons back into `.memerig/spec/`.
+4. **Finish.** `/memerig:finish-work` completes the task in place and records the session journal. The `update-spec` skill writes new lessons back into `.memerig/spec/`.
 
 | Path | Holds |
 | --- | --- |
@@ -69,13 +69,16 @@ pnpm build
 pnpm test
 ```
 
-After changing a template, regenerate the repository's own copies with the CLI you just built:
+After editing the contents of an existing template, run both commands from the repository root:
 
 ```bash
-MEMERIG_PYTHON_CMD=python3 node packages/cli/bin/memerig.js update
+pnpm sync:templates
+pnpm update:self
 ```
 
-`MEMERIG_PYTHON_CMD=python3` keeps the generated copies identical on every OS; without it, Windows renders `python` and every file shows as changed. `.memerig/config.yaml` is the only file intentionally edited by hand (it declares the `cli` and `core` packages), so keep your version when `update` asks.
+`sync:templates` copies assets into `packages/cli/dist/` without compiling TypeScript. `update:self` uses the local CLI and renders Python commands for the host (`python` on Windows, `python3` elsewhere). It honors `MEMERIG_PYTHON_CMD` when set. Use `pnpm update:self --dry-run` to preview the changes and keep the repository's `.memerig/config.yaml` when prompted.
+
+On a fresh checkout, after a TypeScript change, or after deleting or renaming a template, run `pnpm build` before `pnpm update:self`.
 
 Hook and workflow changes affect the agent session you are working in, so try them in a scratch project (`memerig init` in a temp directory) before relying on them here.
 

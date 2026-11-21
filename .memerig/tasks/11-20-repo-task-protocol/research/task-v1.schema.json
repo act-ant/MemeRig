@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://memerig.dev/schema/task-v1.json",
+  "title": "MemeRig task record v1",
+  "description": "Compatibility-first v1. Stored status vocabulary keeps planning/in_progress/review/completed/canceled so the per-turn workflow breadcrumb and existing integrations keep working; open/done are accepted aliases. The 24 legacy task.json fields remain required so memerig-core's MemerigTaskRecord stays valid. Closing in place writes closedAt and completedAt; archived tasks remain readable in the closed view.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "title",
+    "description",
+    "status",
+    "priority",
+    "creator",
+    "assignee",
+    "createdAt",
+    "updatedAt",
+    "subtasks",
+    "children",
+    "parent",
+    "relatedFiles",
+    "notes",
+    "meta"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "description": "Immutable UUID v4 identity for new records."
+    },
+    "legacyId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Pre-migration id/slug, kept resolvable."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "planning",
+        "in_progress",
+        "review",
+        "completed",
+        "canceled"
+      ],
+      "description": "Canonical stored state; open/done accepted on input."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "closedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Legacy close timestamp, mirrored from closedAt."
+    },
+    "parent": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Legacy parent directory-name mirror."
+    },
+    "parentId": {
+      "type": "string",
+      "description": "Canonical parent UUID edge."
+    },
+    "assignee": {
+      "type": "string",
+      "description": "Project-recognized handle; empty means unassigned."
+    },
+    "creator": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "string",
+      "minLength": 1
+    },
+    "labels": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      }
+    },
+    "nextAction": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+      },
+      "description": "Namespaced adapter metadata; preserve other keys."
+    },
+    "meta": {
+      "type": "object",
+      "description": "Legacy free-form metadata bag retained verbatim."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "canceled",
+              "completed"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "closedAt"
+        ]
+      }
+    }
+  ],
+  "examples": [
+    {
+      "schemaVersion": 1,
+      "id": "7be9eba6-7463-46b0-87b7-8d9b9a067b9a",
+      "name": "verify-clean-clone",
+      "title": "Verify a clean clone can resume a task",
+      "description": "Protocol smoke test",
+      "status": "in_progress",
+      "createdAt": "2026-11-19T09:00:00Z",
+      "updatedAt": "2026-11-19T10:30:00Z",
+      "nextAction": "Run task.py list in an empty user directory"
+    }
+  ]
+}

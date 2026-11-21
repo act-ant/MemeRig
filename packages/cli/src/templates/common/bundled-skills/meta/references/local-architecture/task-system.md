@@ -81,9 +81,9 @@ The user sees a "current task," but MemeRig stores active task state per session
 .memerig/.runtime/sessions/<context-key>.json
 ```
 
-`task.py start` writes the task path into the runtime session file for the current session. `task.py current --source` shows the current task and where it came from. Different AI windows can point to different tasks without overwriting each other.
+`task.py start <id>` writes the task path into the owning project's runtime session file. `task.py current --source` shows the current task and where it came from. Different AI windows can point to different tasks. `task.py complete <id>` clears matching pointers and records completion in place.
 
-If the platform or shell environment has no stable session identity, `task.py start` may be unable to set the active task. The AI should read the error, inspect the platform hook/session environment, and not fall back to a shared global pointer.
+Without stable session identity, `task.py start` advances the task to in progress without persisting a pointer. Use the explicit task ID to continue working.
 
 ## JSONL Context
 
@@ -111,8 +111,8 @@ python3 ./.memerig/scripts/task.py start <task>
 python3 ./.memerig/scripts/task.py current --source
 python3 ./.memerig/scripts/task.py add-context <task> implement <file> <reason>
 python3 ./.memerig/scripts/task.py validate <task>
-python3 ./.memerig/scripts/task.py finish
-python3 ./.memerig/scripts/task.py archive <task>
+python3 ./.memerig/scripts/task.py complete <task-id>
+python3 ./.memerig/scripts/task.py list --closed
 ```
 
 When modifying the task system, the AI should prefer script commands to maintain structure. Edit JSON/Markdown directly only when scripts do not cover the need.

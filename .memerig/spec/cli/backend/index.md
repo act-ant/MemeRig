@@ -35,6 +35,8 @@ This directory contains guidelines for backend development. Fill in each file wi
 | [`memerig ablate` / `restore` Commands](./commands-ablate.md) | Reversible full project subtraction, external transactions, conflict-safe exact restore | Done |
 | [Uninstall Scrubbers](./uninstall-scrubbers.md) | Pure scrubber contract for structured config files (`settings.json`, `hooks.json`, `package.json`, `config.toml`) | Done |
 | [`memerig channel` Command](./commands-channel.md) | Multi-agent collaboration runtime: events.jsonl protocol, per-worker supervisor, provider adapters (claude / codex), project buckets, ephemeral / run lifecycle, ShutdownController state machine | Done |
+| [Repository Setup](./project-setup.md) | Offline init, opt-in registration, task version control, and submodule ownership | Done |
+| [Task Protocol v1](./task-protocol.md) | Versioned `task.json`, UUID identity, stale-write tokens, in-place close, closed view, legacy migration and backups | Done |
 ---
 
 ## Pre-Development Checklist
@@ -61,6 +63,7 @@ Before writing backend code, read the relevant guidelines based on your task:
 - Editing `commands/uninstall.ts` or `utils/uninstall-scrubbers.ts` → [commands-uninstall.md](./commands-uninstall.md) + [uninstall-scrubbers.md](./uninstall-scrubbers.md)
 - Editing `commands/ablate.ts` or `utils/ablation-store.ts` → [commands-ablate.md](./commands-ablate.md) + [filesystem-safety.md](./filesystem-safety.md)
 - Editing `commands/channel/**` (events.jsonl protocol, supervisors, adapters, project buckets, channel-lifecycle commands) → [commands-channel.md](./commands-channel.md)
+- Editing `task.py` / `common/task_protocol.py` / `common/task_schema.py` / `common/task_migration.py` / `common/file_lock.py`, or `packages/core/src/task/**` → [task-protocol.md](./task-protocol.md) + [workflow-state-contract.md](./workflow-state-contract.md)
 
 Also read [unit-test/conventions.md](../unit-test/conventions.md) — specifically the "When to Write Tests" section.
 

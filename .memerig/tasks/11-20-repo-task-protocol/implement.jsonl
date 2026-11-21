@@ -1,0 +1,3 @@
+{"file": ".memerig/spec/cli/backend/index.md", "reason": "Python runtime, atomic file writes, and workflow-state contracts"}
+{"file": ".memerig/spec/core/backend/index.md", "reason": "Public task contract consumers"}
+{"file": ".memerig/tasks/11-20-repo-task-protocol/research/task-v1.schema.json", "reason": "Proposed task record schema"}

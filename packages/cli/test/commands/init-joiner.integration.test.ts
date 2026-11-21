@@ -25,6 +25,7 @@ vi.mock("inquirer", () => ({
 }));
 
 vi.mock("node:child_process", () => ({
+  execFileSync: vi.fn().mockReturnValue(""),
   execSync: vi.fn().mockImplementation((cmd: string) => {
     const py = process.platform === "win32" ? "python" : "python3";
     return cmd === `${py} --version` ? "Python 3.11.12" : "";
@@ -94,7 +95,7 @@ describe("init() joiner onboarding", () => {
   }
 
   it("#1 empty cwd + init → creator bootstrap task created", async () => {
-    await init({ yes: true, user: "alice" });
+    await init({ yes: true, user: "alice", withOnboarding: true });
 
     const bootstrap = path.join(
       tmpDir,
@@ -111,7 +112,7 @@ describe("init() joiner onboarding", () => {
   it("#2 existing .memerig/ + no .developer → joiner onboarding task created", async () => {
     simulateExistingCheckout();
 
-    await init({ yes: true, user: "bob", force: true });
+    await init({ yes: true, user: "bob", force: true, withOnboarding: true });
 
     const joiner = path.join(tmpDir, PATHS.TASKS, "00-join-bob");
     expect(fs.existsSync(joiner)).toBe(true);
@@ -137,15 +138,13 @@ describe("init() joiner onboarding", () => {
     expect(prd).toContain("workflow.md");
     expect(prd).toContain(".memerig/spec/");
     expect(prd).toContain("00-join-bob");
-    // Fallback text for empty archive
-    expect(prd).toContain("archive is empty");
+    expect(prd).toContain("list --closed");
     const expectedPythonCmd = process.platform === "win32" ? "python" : "python3";
     expect(prd).toContain(
-      `${expectedPythonCmd} ./.memerig/scripts/task.py list --assignee bob`,
+      `${expectedPythonCmd} ./.memerig/scripts/task.py list --mine`,
     );
-    expect(prd).toContain(`${expectedPythonCmd} ./.memerig/scripts/task.py finish`);
     expect(prd).toContain(
-      `${expectedPythonCmd} ./.memerig/scripts/task.py archive 00-join-bob`,
+      `${expectedPythonCmd} ./.memerig/scripts/task.py complete 00-join-bob`,
     );
 
     // init creates the joiner task but does not set repo-global current-task state.
@@ -170,7 +169,7 @@ describe("init() joiner onboarding", () => {
     fs.mkdirSync(path.join(workflow, DIR_NAMES.SPEC), { recursive: true });
     fs.mkdirSync(path.join(workflow, DIR_NAMES.WORKSPACE), { recursive: true });
 
-    await init({ yes: true, user: "alice" });
+    await init({ yes: true, user: "alice", withOnboarding: true });
 
     expect(
       fs.existsSync(path.join(tmpDir, PATHS.TASKS, "00-bootstrap-guidelines")),
@@ -189,7 +188,7 @@ describe("init() joiner onboarding", () => {
     fs.mkdirSync(path.join(workflow, DIR_NAMES.SPEC), { recursive: true });
     fs.mkdirSync(path.join(workflow, DIR_NAMES.WORKSPACE), { recursive: true });
 
-    await init({ yes: true, user: "alice", force: true });
+    await init({ yes: true, user: "alice", force: true, withOnboarding: true });
 
     expect(
       fs.existsSync(path.join(tmpDir, PATHS.TASKS, "00-bootstrap-guidelines")),
@@ -202,7 +201,7 @@ describe("init() joiner onboarding", () => {
   it("#3 existing .memerig/ + .developer → no task created", async () => {
     simulateSameDevReinit("carol");
 
-    await init({ yes: true, user: "carol", force: true });
+    await init({ yes: true, user: "carol", force: true, withOnboarding: true });
 
     expect(
       fs.existsSync(path.join(tmpDir, PATHS.TASKS, "00-join-carol")),
@@ -215,7 +214,7 @@ describe("init() joiner onboarding", () => {
   it("#4 after joiner archive but .developer remains → no new task on re-init", async () => {
     simulateExistingCheckout();
 
-    await init({ yes: true, user: "dave", force: true });
+    await init({ yes: true, user: "dave", force: true, withOnboarding: true });
     const joinerPath = path.join(tmpDir, PATHS.TASKS, "00-join-dave");
     expect(fs.existsSync(joinerPath)).toBe(true);
 
@@ -229,7 +228,7 @@ describe("init() joiner onboarding", () => {
     fs.rmSync(joinerPath, { recursive: true, force: true });
 
     // Re-init: should NOT recreate the joiner task
-    await init({ yes: true, user: "dave", force: true });
+    await init({ yes: true, user: "dave", force: true, withOnboarding: true });
 
     expect(fs.existsSync(joinerPath)).toBe(false);
   });
@@ -237,7 +236,7 @@ describe("init() joiner onboarding", () => {
   it("#5a developer name with spaces → filesystem-safe slug", async () => {
     simulateExistingCheckout();
 
-    await init({ yes: true, user: "Tao Su", force: true });
+    await init({ yes: true, user: "Tao Su", force: true, withOnboarding: true });
 
     const joiner = path.join(tmpDir, PATHS.TASKS, "00-join-tao-su");
     expect(fs.existsSync(joiner)).toBe(true);
@@ -252,7 +251,7 @@ describe("init() joiner onboarding", () => {
   it("#5b developer name with '/' → slug strips separator", async () => {
     simulateExistingCheckout();
 
-    await init({ yes: true, user: "@org/bob", force: true });
+    await init({ yes: true, user: "@org/bob", force: true, withOnboarding: true });
 
     // slugifyDeveloperName: lowercase @org/bob → punctuation-collapsed to "org-bob"
     const joiner = path.join(tmpDir, PATHS.TASKS, "00-join-org-bob");
@@ -262,7 +261,7 @@ describe("init() joiner onboarding", () => {
   it("#5c developer name with Unicode letters → task dir is filesystem-safe", async () => {
     simulateExistingCheckout();
 
-    await init({ yes: true, user: "田中 太郎", force: true });
+    await init({ yes: true, user: "\u7530\u4e2d \u592a\u90ce", force: true, withOnboarding: true });
 
     // Unicode letters pass through \p{Letter}, so dir name is non-empty
     const entries = fs
@@ -305,7 +304,7 @@ describe("init() joiner onboarding", () => {
     const warnSpy = vi.spyOn(console, "warn");
 
     await expect(
-      init({ yes: true, user: "eve", force: true }),
+      init({ yes: true, user: "eve", force: true, withOnboarding: true }),
     ).resolves.toBeUndefined();
 
     expect(
@@ -330,7 +329,7 @@ describe("init() joiner onboarding", () => {
   it("#7 handleReinit path: existing .memerig/ + no .developer → joiner task created", async () => {
     simulateExistingCheckout();
 
-    await init({ yes: true, user: "frank" });
+    await init({ yes: true, user: "frank", withOnboarding: true });
 
     const joiner = path.join(tmpDir, PATHS.TASKS, "00-join-frank");
     expect(fs.existsSync(joiner)).toBe(true);
@@ -349,7 +348,7 @@ describe("init() joiner onboarding", () => {
   it("#8 handleReinit path: existing .memerig/ + .developer → no task created", async () => {
     simulateSameDevReinit("grace");
 
-    await init({ yes: true, user: "grace" });
+    await init({ yes: true, user: "grace", withOnboarding: true });
 
     expect(
       fs.existsSync(path.join(tmpDir, PATHS.TASKS, "00-join-grace")),

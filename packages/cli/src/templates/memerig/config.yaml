@@ -3,6 +3,10 @@
 #
 # All values have sensible defaults. Only override what you need.
 
+# The project ID is assigned on init and shared through Git.
+# For explicit submodule inheritance, set task_owner: parent.
+# Change task Git policy with scripts/project.py configure --tasks local|tracked.
+
 #-------------------------------------------------------------------------------
 # Session Recording
 #-------------------------------------------------------------------------------

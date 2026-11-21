@@ -3,6 +3,10 @@
 #
 # All values have sensible defaults. Only override what you need.
 
+project_id: 4d6a2292-2198-439c-9841-cf46590274cb
+tasks:
+  version_control: tracked
+
 #-------------------------------------------------------------------------------
 # Session Recording
 #-------------------------------------------------------------------------------

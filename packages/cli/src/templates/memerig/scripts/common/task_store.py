@@ -18,10 +18,11 @@ Provides:
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
+import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
 
 from .config import (
@@ -45,7 +46,6 @@ from .git import (
 from .io import describe_json_read_failure, read_json_checked, write_json
 from .log import Colors, colored
 from .paths import (
-    DEVELOPER_HINT,
     DIR_ARCHIVE,
     DIR_TASKS,
     DIR_WORKFLOW,
@@ -68,6 +68,14 @@ from .task_utils import (
     resolve_task_dir,
     run_task_hooks,
 )
+from .task_protocol import (
+    TaskExistsError,
+    TaskProtocolError,
+    create_task_record,
+    parse_extension_pairs,
+    resolve_owner,
+)
+from .task_schema import TaskSchemaError, is_uuid_task_id, new_task_record, utc_now
 
 
 # =============================================================================
@@ -329,6 +337,13 @@ def _default_prd_content(title: str, description: str | None = None) -> str:
 def cmd_create(args: argparse.Namespace) -> int:
     """Create a new task."""
     repo_root = get_repo_root()
+    try:
+        owner = resolve_owner()
+    except TaskProtocolError as exc:
+        print(colored(f"Error: {exc}", Colors.RED), file=sys.stderr)
+        for key, value in exc.details.items():
+            print(f"  {key}: {value}", file=sys.stderr)
+        return 1
 
     # Title and description are checked first, before ensure_tasks_dir and any
     # other write, so a rejected create leaves the tree untouched. Both are
@@ -375,18 +390,15 @@ def cmd_create(args: argparse.Namespace) -> int:
         # Inferred: default_package → None (no task.json yet for create)
         package = resolve_package(repo_root=repo_root)
 
-    # Default assignee to current developer
-    assignee = args.assignee
-    if not assignee:
-        assignee = get_developer(repo_root)
-        if not assignee:
-            print(colored("Error: No developer set. Run init_developer.py first or use --assignee", Colors.RED), file=sys.stderr)
-            print(DEVELOPER_HINT, file=sys.stderr)
-            return 1
+    # Default assignee to the current developer when one is configured. An
+    # ordinary Python checkout may have no developer identity and no session;
+    # the record then carries an empty assignee (explicitly unassigned) rather
+    # than refusing to create a task.
+    assignee = args.assignee or get_developer(repo_root) or ""
 
-    ensure_tasks_dir(repo_root)
+    ensure_tasks_dir(owner)
 
-    # Get current developer as creator
+    # Get current developer as creator (empty when no identity is configured)
     creator = get_developer(repo_root) or assignee
 
     # Generate slug if not provided. A title-derived slug is sanitized by
@@ -394,8 +406,10 @@ def cmd_create(args: argparse.Namespace) -> int:
     # let it escape the tasks directory once joined into the dir name.
     slug = args.slug or _slugify(args.title)
     if not slug:
-        print(colored("Error: could not generate slug from title", Colors.RED), file=sys.stderr)
-        return 1
+        # Titles are often non-ASCII (the workflow itself is bilingual). A
+        # title-derived ASCII slug can therefore be empty; use a stable
+        # short identifier instead of refusing a valid title.
+        slug = f"task-{uuid.uuid4().hex[:8]}"
 
     if args.slug and ("/" in slug or "\\" in slug or ".." in slug):
         print(
@@ -408,7 +422,7 @@ def cmd_create(args: argparse.Namespace) -> int:
         return 1
 
     # Create task directory with MM-DD-slug format
-    tasks_dir = get_tasks_dir(repo_root)
+    tasks_dir = get_tasks_dir(owner)
     date_prefix = generate_task_date_prefix()
 
     # Guard against date-prefixed --slug (e.g. a full task dir name pasted in),
@@ -444,7 +458,7 @@ def cmd_create(args: argparse.Namespace) -> int:
     parent_dir: Path | None = None
     parent_data: dict | None = None
     if args.parent:
-        parent_dir = resolve_task_dir(args.parent, repo_root)
+        parent_dir = resolve_task_dir(args.parent, owner)
         if parent_dir is None:
             print(colored(f"Error: Parent task not resolved: {args.parent}", Colors.RED), file=sys.stderr)
             print("No task was created. Pass an existing task directory to --parent.", file=sys.stderr)
@@ -474,7 +488,9 @@ def cmd_create(args: argparse.Namespace) -> int:
     # Reusing a slug on the same day is an ordinary accident, and continuing
     # would rewrite the existing task.json below — resetting status, children,
     # parent, branch and meta, which nothing else can reconstruct. Fail like
-    # the archived-name collision above unless the caller asks for it.
+    # the archived-name collision above unless the caller asks for it. The
+    # protocol helper re-checks under the writer lock; this preflight exists
+    # only for the friendly message.
     if task_dir.exists():
         if not getattr(args, "force", False):
             print(colored(f"Error: Task already exists: {dir_name}", Colors.RED), file=sys.stderr)
@@ -491,12 +507,6 @@ def cmd_create(args: argparse.Namespace) -> int:
             ),
             file=sys.stderr,
         )
-        created_dir = False
-    else:
-        task_dir.mkdir(parents=True)
-        created_dir = True
-
-    today = datetime.now().strftime("%Y-%m-%d")
 
     # Record the PR target branch. Prefer the repo's actual default branch
     # (origin/HEAD) so creating a task from a feature branch doesn't
@@ -525,47 +535,65 @@ def cmd_create(args: argparse.Namespace) -> int:
                 file=sys.stderr,
             )
 
-    task_data = {
-        "id": slug,
-        "name": slug,
-        "title": args.title,
-        "description": description,
-        "status": "planning",
-        "dev_type": None,
-        "scope": None,
-        "package": package,
-        "priority": args.priority,
-        "creator": creator,
-        "assignee": assignee,
-        "createdAt": today,
-        "completedAt": None,
-        "branch": None,
-        "base_branch": base_branch,
-        "worktree_path": None,
-        "commit": None,
-        "pr_url": None,
-        "subtasks": [],
-        "children": [],
-        "parent": None,
-        "relatedFiles": [],
-        "notes": "",
-        "meta": meta,
-    }
+    try:
+        extensions = parse_extension_pairs(getattr(args, "extension", None))
+    except TaskProtocolError as exc:
+        print(colored(f"Error: {exc}", Colors.RED), file=sys.stderr)
+        return 1
+
+    try:
+        task_data = new_task_record(
+            title=args.title,
+            description=description,
+            slug=slug,
+            status="planning",
+            priority=args.priority,
+            creator=creator,
+            assignee=assignee,
+            package=package,
+            base_branch=base_branch,
+            labels=getattr(args, "label", None),
+            next_action=getattr(args, "next_action", None),
+            meta=meta,
+            extensions=extensions,
+        )
+    except TaskSchemaError as exc:
+        for error in exc.errors:
+            print(colored(f"Error: {error}", Colors.RED), file=sys.stderr)
+        return 1
 
     # A directory without task.json is not a task: `list` hides it and every
     # lifecycle command refuses it. Fail here rather than printing "Created
-    # task" and emitting the path for script chaining.
-    if not write_json(task_json_path, task_data):
-        _report_write_failure(task_json_path)
+    # task" and emitting the path for script chaining. The protocol helper
+    # holds the store writer lock across the collision check, task.json
+    # replacement, and the optional bidirectional parent link.
+    try:
+        task_data, task_version, _created_dir = create_task_record(
+            tasks_dir,
+            task_dir,
+            task_data,
+            parent_dir=parent_dir,
+            force=getattr(args, "force", False),
+        )
+    except TaskExistsError as exc:
+        archived_at = exc.details.get("archivedAt")
+        if archived_at:
+            print(colored(f"Error: Task already archived: {dir_name}", Colors.RED), file=sys.stderr)
+            print(f"Archived at: {_repo_relative_path(Path(str(archived_at)), repo_root)}", file=sys.stderr)
+            print("Use a new slug if you intend to create a new task.", file=sys.stderr)
+        else:
+            print(colored(f"Error: Task already exists: {dir_name}", Colors.RED), file=sys.stderr)
+            print(f"Existing task at: {_repo_relative_path(task_dir, repo_root)}", file=sys.stderr)
+            print(
+                "Use a different --slug, or pass --force to overwrite its task.json.",
+                file=sys.stderr,
+            )
+        return 1
+    except TaskProtocolError as exc:
+        print(colored(f"Error: {exc}", Colors.RED), file=sys.stderr)
+        for key, value in exc.details.items():
+            print(f"  {key}: {value}", file=sys.stderr)
         print(colored(f"No task was created: {dir_name}", Colors.RED), file=sys.stderr)
-        if created_dir:
-            try:
-                task_dir.rmdir()
-            except OSError:
-                print(
-                    f"Leftover empty directory: {_repo_relative_path(task_dir, repo_root)}",
-                    file=sys.stderr,
-                )
         return 1
 
     prd_path = task_dir / "prd.md"
@@ -590,37 +618,7 @@ def cmd_create(args: argparse.Namespace) -> int:
                 jsonl_path.write_text("", encoding="utf-8")
         created_jsonl = True
 
-    # Establish the bidirectional link. Both sides were validated above, so a
-    # failure here is a write failure, not a bad argument.
-    if parent_dir is not None and parent_data is not None:
-        parent_json_path = parent_dir / FILE_TASK_JSON
-
-        # Add child to parent's children list
-        parent_children = _ensure_children_list(parent_data)
-        if dir_name not in parent_children:
-            parent_children.append(dir_name)
-            parent_data["children"] = parent_children
-            if not write_json(parent_json_path, parent_data):
-                _report_write_failure(parent_json_path)
-                print(
-                    f"The task exists at {_repo_relative_path(task_dir, repo_root)} but is NOT "
-                    f"linked to {parent_dir.name}. Re-link with: task.py add-subtask "
-                    f"{parent_dir.name} {dir_name}",
-                    file=sys.stderr,
-                )
-                return 1
-
-        # Set parent in child's task.json
-        task_data["parent"] = parent_dir.name
-        if not write_json(task_json_path, task_data):
-            _report_write_failure(task_json_path)
-            print(
-                f"Link is half-written: {parent_dir.name} now lists '{dir_name}' as a child, "
-                f"but the new task does not record its parent.",
-                file=sys.stderr,
-            )
-            return 1
-
+    if parent_dir is not None:
         print(colored(f"Linked as child of: {parent_dir.name}", Colors.GREEN), file=sys.stderr)
 
     # Auto-activate the new task so the per-turn breadcrumb fires planning
@@ -657,11 +655,7 @@ def cmd_create(args: argparse.Namespace) -> int:
                 # case (see comment above) — stay silent, not a failure.
                 if context_key:
                     try:
-                        rel_dir = task_dir.relative_to(repo_root).as_posix()
-                    except ValueError:
-                        rel_dir = str(task_dir)
-                    try:
-                        active = set_active_task(rel_dir, repo_root)
+                        active = set_active_task(_repo_relative_path(task_dir, owner), owner)
                     except Exception as exc:
                         print(
                             colored(f"Warning: session activation failed (pointer persistence: {exc})", Colors.YELLOW),
@@ -704,8 +698,21 @@ def cmd_create(args: argparse.Namespace) -> int:
     print("  - Use /memerig:continue or phase context to decide the next step", file=sys.stderr)
     print("", file=sys.stderr)
 
-    # Output relative path for script chaining
-    print(f"{DIR_WORKFLOW}/{DIR_TASKS}/{dir_name}")
+    # Output relative path for script chaining; --json emits the record and
+    # version token on stdout for programmatic clients.
+    if getattr(args, "json", False):
+        print(
+            json.dumps(
+                {
+                    "task": task_data,
+                    "path": _repo_relative_path(task_dir, owner),
+                    "version": task_version,
+                },
+                ensure_ascii=False,
+            )
+        )
+    else:
+        print(_repo_relative_path(task_dir, owner))
 
     run_task_hooks("after_create", task_json_path, repo_root)
     return 0
@@ -1121,6 +1128,7 @@ def cmd_rename(args: argparse.Namespace) -> int:
         (name, task_data.get(name), slug)
         for name in RENAME_IDENTITY_FIELDS
         if task_data.get(name) != slug
+        and not (name == "id" and is_uuid_task_id(task_data.get(name)))
     ]
     plan.jsonl = _plan_jsonl_rewrites(task_dir, plan.old_rel, plan.new_rel)
     plan.backrefs, plan.unreadable = _plan_backrefs(
@@ -1313,9 +1321,6 @@ def cmd_archive(args: argparse.Namespace) -> int:
 
     dir_name = task_dir.name
     task_json_path = task_dir / FILE_TASK_JSON
-
-    # Update status before archiving
-    today = datetime.now().strftime("%Y-%m-%d")
     # Names of child task dirs whose task.json gets modified below; passed
     # into safe_archive_paths_to_add so they're staged in this commit.
     modified_children: list[str] = []
@@ -1349,7 +1354,9 @@ def cmd_archive(args: argparse.Namespace) -> int:
                 return 1
 
             data["status"] = "completed"
-            data["completedAt"] = today
+            closed_at = utc_now()
+            data["closedAt"] = closed_at
+            data["completedAt"] = closed_at
             if not write_json(task_json_path, data):
                 _report_write_failure(task_json_path)
                 print(
@@ -1668,6 +1675,11 @@ def cmd_add_subtask(args: argparse.Namespace) -> int:
 
     # Set parent in child's task.json
     child_data["parent"] = parent_dir.name
+    parent_id = parent_data.get("id")
+    if isinstance(parent_id, str) and parent_id.strip():
+        child_data["parentId"] = parent_id.strip()
+    else:
+        child_data.pop("parentId", None)
 
     # Write both. A link is two files; if the second write fails silently the
     # two sides disagree with no error, so check each and name the side that
@@ -1739,6 +1751,7 @@ def cmd_remove_subtask(args: argparse.Namespace) -> int:
 
     # Clear parent in child's task.json
     child_data["parent"] = None
+    child_data.pop("parentId", None)
 
     # Write both — see cmd_add_subtask: an unchecked second write leaves the
     # two sides disagreeing with no error.

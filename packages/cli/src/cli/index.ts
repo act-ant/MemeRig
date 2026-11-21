@@ -18,6 +18,7 @@ import { PACKAGE_NAME, VERSION } from "../constants/version.js";
 import { compareVersions } from "../utils/compare-versions.js";
 import { getConfiguredPlatforms } from "../configurators/index.js";
 import { AI_TOOLS } from "../types/ai-tools.js";
+import { BUILTIN_SPEC_IDS } from "../utils/builtin-specs.js";
 
 // Re-export for backwards compatibility (consumers should prefer constants/version.js)
 export { VERSION, PACKAGE_NAME };
@@ -109,11 +110,13 @@ program
   .option("--no-monorepo", "Skip monorepo detection")
   .option(
     "-t, --template <name>",
-    "Use a remote spec template (e.g., electron-fullstack)",
+    `Use a spec preset (blank, ${BUILTIN_SPEC_IDS.join(", ")}) or a Marketplace ID`,
   )
+  .option("--tasks <policy>", "Task Git policy: local or tracked")
+  .option("--with-onboarding", "Generate a guided setup task")
   .option(
     "--overwrite",
-    "Overwrite existing spec directory when using template",
+    "Overwrite a remote spec directory or generate review copies for a built-in preset",
   )
   .option("--append", "Only add missing files when using template")
   .option(

@@ -662,6 +662,33 @@ describe("runMem subcommand integration", () => {
     expect(ours?.by_platform.claude).toBe(1);
   });
 
+  it("projects --registered groups checkouts and excludes stale registrations", () => {
+    const id = "0e6d2734-09a8-4399-a6c8-76caf84c02d1";
+    const checkouts = [nodePath.join(fakeHome, "first-checkout"), nodePath.join(fakeHome, "other-checkout")];
+    for (const [i, checkout] of checkouts.entries()) {
+      const configDir = nodePath.join(checkout, ".memerig");
+      nodeFs.mkdirSync(configDir, { recursive: true });
+      nodeFs.writeFileSync(nodePath.join(configDir, "config.yaml"), `project_id: ${id}\n`);
+      const cwd = nodePath.join(checkout, "src");
+      const session = `registered-${i}`;
+      writeJsonl(nodePath.join(piProjectDir(cwd), `2026-06-18_${session}.jsonl`), [
+        { type: "session", version: 3, id: session, timestamp: "2026-06-18T11:00:00.000Z", cwd },
+        { type: "message", id: "m1", parentId: null, timestamp: "2026-06-18T11:00:01.000Z", message: { role: "user", content: "Check this project" } },
+      ]);
+    }
+    const catalog = nodePath.join(fakeHome, ".memerig");
+    nodeFs.mkdirSync(catalog, { recursive: true });
+    nodeFs.writeFileSync(nodePath.join(catalog, "projects.json"), JSON.stringify({
+      schemaVersion: 1,
+      userId: "6a4beb73-9136-460f-b9a9-063b65c84e74",
+      projects: { [id]: [...checkouts, nodePath.join(fakeHome, "deleted")] },
+    }));
+    runMem(["projects", "--registered", "--json"]);
+    expect(JSON.parse(logs[0] ?? "[]")).toEqual([
+      expect.objectContaining({ projectId: id, checkouts, sessions: 2, by_platform: expect.objectContaining({ pi: 2 }) }),
+    ]);
+  });
+
   // ---------- help / unknown ----------
 
   it("help command prints usage", () => {

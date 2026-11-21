@@ -1,10 +1,10 @@
 ---
-description: "MemeRig Copilot prompt: Finish Work — survey + archive task + record session journal"
+description: "MemeRig Copilot prompt: Complete the current task and record the session journal"
 ---
 
 # Finish Work
 
-Wrap up the current session: archive the active task (and any other completed-but-unarchived tasks the user wants to clean up) and record the session journal. Code commits are NOT done here — those happen in workflow Phase 3.4 before you invoke this prompt.
+Complete the current task in place and record the session journal. Commit the code in workflow Phase 3.4 before invoking this prompt.
 
 **Timing**: After Phase 3.4 (Commit changes) — when the working tree is already clean.
 
@@ -18,11 +18,9 @@ python3 ./.memerig/scripts/get_context.py --mode record
 
 This prints:
 
-- **My active tasks** — review whether any besides the current one are actually done (code merged, AC met) and should be archived this round.
+- **My active tasks** — identify the current task. If session identity is unavailable, use the task already identified in this conversation.
 - **Git status** — quick visual on what's dirty.
 - **Recent commits** — you'll need their hashes in Step 4 for `--commit`.
-
-If `--mode record` surfaces other completed tasks not tied to the current session, surface them to the user with a one-shot confirmation: "These N tasks look done — archive them too in this round? [y/N]". Default is no; the current active task is always archived in Step 3 regardless.
 
 ## Step 2: Sanity check — classify dirty paths
 
@@ -32,7 +30,7 @@ Run:
 git status --porcelain
 ```
 
-Filter out paths under `.memerig/workspace/` and `.memerig/tasks/` — those are managed by `add_session.py` and `task.py archive` auto-commits and will appear dirty as part of this prompt's own work.
+Filter out paths under `.memerig/workspace/` and `.memerig/tasks/`. Journal and task records are handled separately from code changes.
 
 For each remaining dirty path, decide whether it belongs to **the current task** or to **other parallel work** (e.g., another terminal window editing the same repo). Heuristics:
 
@@ -50,15 +48,13 @@ Then route:
   > "FYI, dirty files outside this task's scope — leaving them for the other window: `<list>`."
 - **Genuinely unsure** — ask the user once: "Are `<list>` this task's work I forgot to commit, or another window's? (commit / ignore)" — then route per their answer.
 
-## Step 3: Archive task(s)
+## Step 3: Complete the current task
 
 ```bash
-python3 ./.memerig/scripts/task.py archive <task-name>
+python3 ./.memerig/scripts/task.py complete <task-id>
 ```
 
-At minimum: the current active task (if any). Plus any extra tasks the user confirmed in Step 1. Each archive produces a `chore(task): archive ...` commit via the script's auto-commit.
-
-If there is no active task and the user did not confirm any cleanup archives, skip this step.
+Use the task UUID or path. Completion records the status at the existing path, clears matching session pointers, and makes no Git commit. If the project tracks tasks, include the completion record in Git review. Skip this step if the session has no task.
 
 ## Step 4: Record session journal
 
@@ -69,9 +65,7 @@ python3 ./.memerig/scripts/add_session.py \
   --summary "Brief summary"
 ```
 
-Use the work-commit hashes produced in Phase 3.4 (visible in Step 1's `Recent commits` list, or via `git log --oneline`) for `--commit`. Do not include the archive commit hashes from Step 3. This produces a `chore: record journal` commit.
-
-Final git log order: `<work commits from 3.4>` → `chore(task): archive ...` (one or more) → `chore: record journal`.
+Use the work-commit hashes produced in Phase 3.4 (visible in Step 1's Recent commits list or via `git log --oneline`). Journal commits follow the project's `session_auto_commit` setting.
 
 ---
 
@@ -82,14 +76,14 @@ Development Flow (workflow.md Phase 3):
   3.2 Debug retrospective (on demand)
   3.3 Spec update
   3.4 Commit changes  -> AI drafts batched commits, user confirms
-  3.5 Wrap-up         -> /finish-work (this prompt: survey + archive + journal)
+  3.5 Wrap-up         -> /finish-work (complete the task and record the journal)
   (3.1 was folded into 2.2 + 3.4 — see workflow.md "Phase 3: Finish" note)
 
 Debug Flow:
   Hit bug -> Fix -> /break-loop -> Knowledge capture
 ```
 
-- `/finish-work` — survey + archive + record session (this prompt)
+- `/finish-work` — complete the current task and record the journal (this prompt)
 - `/break-loop` — deep analysis after debugging
 
 ---

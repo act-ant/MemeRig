@@ -6,6 +6,8 @@
     "build": "pnpm --filter memerig-core build && pnpm --filter memerig build",
     "build:core": "pnpm --filter memerig-core build",
     "build:cli": "pnpm --filter memerig build",
+    "sync:templates": "pnpm --filter memerig run copy-templates",
+    "update:self": "node packages/cli/scripts/update-self.js",
     "test": "pnpm --filter memerig-core test && pnpm --filter memerig test",
     "test:core": "pnpm --filter memerig-core test",
     "test:cli": "pnpm --filter memerig test",

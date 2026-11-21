@@ -27,6 +27,10 @@ All workflow scripts target **Python 3.9+** for cross-platform compatibility (ma
 │   ├── active_task.py    # Session-scoped active task resolver
 │   ├── task_utils.py     # resolve_task_dir(), is_within_tasks_dir(), run_task_hooks()
 │   ├── task_store.py     # Task CRUD (create, archive, set-branch, etc.)
+│   ├── task_schema.py    # Task record v1 schema, normalization, validation
+│   ├── task_protocol.py  # UUID identity, locks, version tokens, list/show/update/complete
+│   ├── task_migration.py # Legacy task preview/apply migration with backups
+│   ├── file_lock.py      # Cross-platform advisory file lock (POSIX/Windows)
 │   ├── task_context.py   # JSONL context management (add-context, validate, list-context)
 │   ├── task_queue.py     # Task queue CRUD
 │   ├── config.py         # Config reader (config.yaml, hooks)

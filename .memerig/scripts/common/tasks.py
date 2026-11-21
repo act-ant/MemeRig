@@ -18,6 +18,7 @@ from pathlib import Path
 
 from .io import describe_json_read_failure, read_json_checked
 from .paths import FILE_TASK_JSON
+from .task_schema import is_closed_status, normalize_status
 from .types import TaskInfo
 
 
@@ -51,7 +52,10 @@ def load_task(task_dir: Path) -> TaskInfo | None:
         dir_name=task_dir.name,
         directory=task_dir,
         title=data.get("title") or data.get("name") or "unknown",
-        status=data.get("status", "unknown"),
+        # Stored aliases (open/done) are normalized in memory so every
+        # existing reader sees the canonical workflow vocabulary. The file is
+        # not rewritten by a read.
+        status=normalize_status(data.get("status")) or data.get("status", "unknown"),
         assignee=data.get("assignee", ""),
         priority=data.get("priority", "P2"),
         children=tuple(data.get("children", [])),
@@ -117,6 +121,6 @@ def children_progress(
     # parent progress doesn't regress when children are archived.
     done = sum(
         1 for c in children
-        if c not in all_statuses or all_statuses.get(c) in ("completed", "done")
+        if c not in all_statuses or is_closed_status(all_statuses.get(c))
     )
     return f" [{done}/{len(children)} done]"

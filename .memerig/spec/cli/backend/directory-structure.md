@@ -6,7 +6,7 @@
 
 ## Overview
 
-This project is a **TypeScript monorepo** using ES modules. It publishes a CLI package (`memerig`) and a reusable core package (`memerig-core`). The source code also follows a **dogfooding architecture** - MemeRig uses its own configuration files (`.cursor/`, `.claude/`, `.memerig/`) as templates for new projects.
+This TypeScript monorepo publishes the `memerig` CLI and the `memerig-core` SDK. MemeRig develops against its own workflow by running its local CLI to refresh the managed files in this checkout.
 
 ---
 
@@ -43,7 +43,7 @@ packages/
 
 ### Dogfooding Directories (Project Root)
 
-These directories are copied to `dist/` during build and used as templates:
+The CLI generates managed files in these directories from `packages/cli/src/templates/`. Project-specific specs, tasks, and journals live alongside the generated files in `.memerig/`.
 
 ```
 .cursor/                 # Cursor configuration (dogfooded)
@@ -67,7 +67,7 @@ These directories are copied to `dist/` during build and used as templates:
 │   └── index.md         # Index template (dogfooded)
 ├── spec/                # Project guidelines (NOT dogfooded)
 │   ├── cli/             # CLI package specs (backend/, unit-test/)
-│   ├── docs-site/       # Docs package specs (docs/)
+│   ├── core/            # Core SDK specs
 │   └── guides/          # Thinking guides
 ├── workflow.md          # Workflow documentation (dogfooded)
 └── .gitignore           # Git ignore rules (dogfooded)
@@ -77,52 +77,46 @@ These directories are copied to `dist/` during build and used as templates:
 
 ## Dogfooding Architecture
 
-### What is Dogfooded
+### Scope
 
-Files that are copied directly from MemeRig project to user projects:
+Use these commands from the repository root to prepare the local CLI and refresh the managed files used to develop MemeRig.
 
-| Source | Destination | Description |
-|--------|-------------|-------------|
-| `.cursor/` | `.cursor/` | Entire directory copied |
-| `.claude/` | `.claude/` | Entire directory copied |
-| `.memerig/scripts/` | `.memerig/scripts/` | All scripts copied |
-| `.memerig/workflow.md` | `.memerig/workflow.md` | Direct copy |
-| `.memerig/.gitignore` | `.memerig/.gitignore` | Direct copy |
-| `.memerig/workspace/index.md` | `.memerig/workspace/index.md` | Direct copy |
+### Commands
 
-### What is NOT Dogfooded
+| Command | Input | Output |
+| --- | --- | --- |
+| `pnpm build` | Core and CLI TypeScript, shipped templates, migration manifests | Clean build of both packages in their `dist/` directories |
+| `pnpm sync:templates` | `packages/cli/src/templates/` and `packages/cli/src/migrations/manifests/` | Copies non-TypeScript templates and migration manifests into `packages/cli/dist/` |
+| `pnpm update:self [flags]` | Built CLI and `packages/cli/dist/templates/` | Refreshes the current checkout using `memerig update` |
 
-Files that use generic templates (in `src/templates/`):
+### Contracts
 
-| Template Source | Destination | Reason |
-|----------------|-------------|--------|
-| `src/templates/markdown/spec/**/*.md.txt` | `.memerig/spec/**/*.md` | User fills with project-specific content |
-| `src/templates/markdown/agents.md` | `AGENTS.md` | Project root file |
+- The CLI loads assets from `dist/templates/` at runtime. Edit the shipped sources under `packages/cli/src/templates/` and regenerate the repository's managed copies through `update:self`.
+- `sync:templates` copies and overwrites assets. It does not compile TypeScript, remove deleted assets from `dist/`, or update managed project files.
+- `update:self` forwards flags to the local CLI, inherits terminal I/O and `MEMERIG_PYTHON_CMD`, and returns the child CLI's exit status. Without an override, the CLI renders `python` on Windows and `python3` elsewhere. The usual update prompts protect custom files such as `.memerig/config.yaml`.
 
-### Build Process
+### Validation and error handling
 
-```bash
-# scripts/copy-templates.js copies dogfooding sources to dist/
-pnpm build
+| Situation | Action |
+| --- | --- |
+| Fresh checkout or TypeScript changed | Run `pnpm build` before `pnpm update:self`. |
+| Changed the contents of an existing template | Run `pnpm sync:templates` before `pnpm update:self`. |
+| Deleted or renamed a template | Run `pnpm build` to clear stale asset paths from `dist/`. |
+| Preview the managed files affected | Run `pnpm update:self --dry-run`. The CLI reports changes without applying them. |
 
-# Result:
-dist/
-├── .cursor/           # From project root .cursor/
-├── .claude/           # From project root .claude/
-├── .memerig/          # From project root .memerig/ (filtered)
-│   ├── scripts/       # All scripts (no multi_agent/)
-│   ├── workspace/
-│   │   └── index.md   # Only index.md, no developer subdirs
-│   ├── workflow.md
-│   └── .gitignore
-└── templates/         # From src/templates/ (no .ts files)
-    ├── common/        # Shared command + skill templates
-    ├── shared-hooks/  # Platform-independent hook scripts
-    ├── claude/        # Claude-specific templates
-    ├── {platform}/    # Other platform templates
-    └── markdown/
-        └── spec/      # Generic spec templates
-```
+### Examples
+
+- A workflow Markdown edit needs asset sync followed by self-update.
+- A configurator TypeScript edit needs a build followed by self-update.
+- Running only self-update immediately after a source-template edit reads the previous `dist/` copy.
+
+### Verification
+
+Run `pnpm sync:templates` and compare the changed asset in `src/templates/` and `dist/templates/`. Run `pnpm update:self --dry-run` and check that it reports the expected managed change. A checkout already in sync should not report any automatic template updates.
+
+### Wrong vs correct
+
+Editing `.claude/skills/` in the checkout changes only the local copy. To change what new projects get, edit `packages/cli/src/templates/`, run `pnpm sync:templates`, then run `pnpm update:self`.
 
 ---
 
@@ -177,7 +171,7 @@ Full contract — map key/value rules, the three platforms that also need a
 
 ### Template Extraction
 
-`extract.ts` provides utilities for reading dogfooded files:
+`extract.ts` provides utilities for reading shipped templates:
 
 ```typescript
 // Get path to .memerig/ (works in dev and production)
@@ -404,17 +398,16 @@ Packages that received a remote template download (tracked via `remoteSpecPackag
 
 ### DO
 
-- Dogfood from project's own config files when possible
+- Use the built CLI to refresh this checkout's managed configuration.
 - Describe a platform's file set exactly once, in its `collect<Platform>Templates()`
 - Keep generic templates in `src/templates/markdown/`
 - Use `.md.txt` or `.yaml.txt` for template files
-- Update dogfooding sources (`.cursor/`, `.claude/`, `.memerig/scripts/`) when making changes
-- Always use `python3` explicitly when documenting script invocation (Windows compatibility)
+- Edit shipped templates under `packages/cli/src/templates/` and regenerate the managed copies.
+- When documenting Python commands, identify the host-specific alias or use the template's `{{PYTHON_CMD}}` placeholder.
 
 ### DON'T
 
 - Don't hardcode file lists - copy entire directories instead
-- Don't duplicate content between templates and dogfooding sources
 - Don't put project-specific content in generic templates
 - Don't use dogfooding for spec/ (users fill these in)
 

@@ -17,6 +17,7 @@
 
 # Task directory runtime files
 .plan-log
+/tasks/.task.lock
 
 # Atomic update temp files
 *.tmp

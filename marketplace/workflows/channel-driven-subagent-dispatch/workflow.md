@@ -38,11 +38,11 @@ Each task has its own directory under `.memerig/tasks/{MM-DD-name}/` with `task.
 Common commands:
 
 ```bash
-python3 ./.memerig/scripts/task.py create "<title>" [--slug <name>] [--parent <dir>]
-python3 ./.memerig/scripts/task.py start <name>
+python3 ./.memerig/scripts/task.py create "<title>" --description "<summary>" [--slug <name>] [--parent <dir>]
+python3 ./.memerig/scripts/task.py start <id>
 python3 ./.memerig/scripts/task.py current --source
 python3 ./.memerig/scripts/task.py finish
-python3 ./.memerig/scripts/task.py archive <name>
+python3 ./.memerig/scripts/task.py complete <id>          # mark completed in place
 python3 ./.memerig/scripts/task.py validate <name>
 ```
 
@@ -91,7 +91,7 @@ Lightweight tasks may be PRD-only. Complex tasks must have `prd.md`, `design.md`
 
 ### Parent / Child Task Trees
 
-Use a parent task when one request contains several independently verifiable deliverables. Child tasks own deliverables that can be planned, implemented, checked, and archived independently. Parent/child structure is not a dependency system; dependencies must be written in the child `prd.md` / `implement.md`.
+Use a parent task when one request contains several independently verifiable deliverables. Child tasks own deliverables that can be planned, implemented, checked, and completed independently. Parent/child structure is not a dependency system; dependencies must be written in the child `prd.md` / `implement.md`.
 
 [workflow-state:no_task]
 No active task. First classify the current turn and ask for task-creation consent before creating any MemeRig task.
@@ -370,7 +370,7 @@ Do not amend. Do not push.
 
 #### 3.5 Wrap-up reminder
 
-After committing, remind the user to run `/memerig:finish-work` to archive the task and record the session.
+After committing, remind the user to run `/memerig:finish-work` to complete the task and record the session.
 
 ---
 

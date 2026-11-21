@@ -54,8 +54,10 @@ interface DocDefinition {
  * Options for creating workflow structure
  */
 export interface WorkflowOptions {
-  /** Detected or specified project type */
+  /** Detected or specified project type. */
   projectType: ProjectType;
+  /** Leave journaling and channel agent files to explicit platform/workflow setup. */
+  baseOnly?: boolean;
   /** Skip creating local spec templates (when using remote template) — single-repo mode */
   skipSpecTemplates?: boolean;
   /** Detected monorepo packages (enables monorepo spec creation) */
@@ -146,17 +148,18 @@ export async function createWorkflowStructure(
     replacePythonCommandLiterals(workflowMd),
   );
 
-  // Copy .gitignore from templates
-  await writeFile(
-    path.join(cwd, DIR_NAMES.WORKFLOW, ".gitignore"),
-    gitignoreTemplate,
-  );
+  // Project identity, task policy, and custom rules belong to this checkout.
+  const memerig = path.join(cwd, DIR_NAMES.WORKFLOW);
+  for (const [name, template] of [
+    [".gitignore", gitignoreTemplate],
+    ["config.yaml", configYamlTemplate],
+  ] as const) {
+    const target = path.join(memerig, name);
+    if (!fs.existsSync(target)) await writeFile(target, template);
+  }
 
-  // Copy config.yaml from templates
-  await writeFile(
-    path.join(cwd, DIR_NAMES.WORKFLOW, "config.yaml"),
-    configYamlTemplate,
-  );
+  ensureDir(path.join(cwd, PATHS.TASKS));
+  if (options?.baseOnly) return;
 
   // Ensure project-root .gitattributes carries the journal merge=union rule
   // (additive-only — never overwrites a user's existing file wholesale).
@@ -179,9 +182,6 @@ export async function createWorkflowStructure(
     path.join(cwd, PATHS.WORKSPACE, "index.md"),
     replacePythonCommandLiterals(agentProgressIndexContent),
   );
-
-  // Create tasks/ directory
-  ensureDir(path.join(cwd, PATHS.TASKS));
 
   // Create spec templates based on project type
   // These are NOT dogfooded - they are generic templates for new projects

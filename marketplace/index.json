@@ -2,6 +2,30 @@
   "version": 1,
   "templates": [
     {
+      "id": "learn-harness",
+      "type": "spec",
+      "name": "Learning Harness",
+      "description": "Goal-and-evidence learning workflow with reproducible handoffs",
+      "path": "specs/learn-harness",
+      "tags": ["learning", "education", "evidence", "handoff"]
+    },
+    {
+      "id": "trellis",
+      "type": "spec",
+      "name": "Trellis Layered Spec",
+      "description": "Layer-routed project conventions with explicit boundary contracts and reuse checks",
+      "path": "specs/trellis",
+      "tags": ["layered", "contracts", "reuse", "verification"]
+    },
+    {
+      "id": "game-dev",
+      "type": "spec",
+      "name": "Game Development",
+      "description": "Engine-neutral playable scenarios, asset provenance, and reproducible game evidence",
+      "path": "specs/game-dev",
+      "tags": ["game", "engine-neutral", "assets", "playtest"]
+    },
+    {
       "id": "electron-fullstack",
       "type": "spec",
       "name": "Electron + React + TypeScript",

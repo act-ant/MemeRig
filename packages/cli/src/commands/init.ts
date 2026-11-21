@@ -1,5 +1,6 @@
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import readline from "node:readline";
 import chalk from "chalk";
@@ -66,6 +67,7 @@ import {
 import { setupProxy, maskProxyUrl } from "../utils/proxy.js";
 import { toPosix } from "../utils/posix.js";
 import { updateHashes } from "../utils/template-hash.js";
+import { getBuiltinSpecDirectory } from "../utils/builtin-specs.js";
 
 const MIN_PYTHON_MAJOR = 3;
 const MIN_PYTHON_MINOR = 9;
@@ -521,11 +523,10 @@ When the developer confirms the checklist items above are done with real
 examples (not placeholders), guide them to run:
 
 \`\`\`bash
-${pythonCmd} ./.memerig/scripts/task.py finish
-${pythonCmd} ./.memerig/scripts/task.py archive 00-bootstrap-guidelines
+${pythonCmd} ./.memerig/scripts/task.py complete 00-bootstrap-guidelines
 \`\`\`
 
-After archive, every new developer who joins this project will get a
+After completing setup, every new developer who joins this project will get a
 \`00-join-<slug>\` onboarding task instead of this bootstrap task.
 
 ---
@@ -670,8 +671,8 @@ code every session.
 
 - **Three phases**: Plan (brainstorm → \`prd.md\`) → Execute (code + check) →
   Finish (capture + wrap). Full reference: \`.memerig/workflow.md\`.
-- **Task lifecycle**: planning → in_progress → done → archive, under
-  \`.memerig/tasks/\`.
+- **Task lifecycle**: planning → in_progress → completed. Task records stay in
+  \`.memerig/tasks/\` when completed.
 - **Core slash commands**:
   - \`/memerig:continue\` — resume the current session's active task
   - \`/memerig:finish-work\` — wrap up a finished task
@@ -706,9 +707,8 @@ File layout (mention when they ask "where does what live"):
 
 - Summarize \`.memerig/spec/\` for them — what coding conventions this
   specific team enforces.
-- Point at the last 5 entries in \`.memerig/tasks/archive/\` as a rhythm
-  example of how people actually work here. **If archive is empty** (the
-  project just started), skip this — don't invent examples.
+- Run \`${pythonCmd} ./.memerig/scripts/task.py list --closed\` and use recent
+  completed tasks as examples. Skip this if the closed view is empty.
 - Not your job in this onboarding to teach them the business code itself —
   the README and their teammates handle that.
 
@@ -716,8 +716,8 @@ File layout (mention when they ask "where does what live"):
 
 - Check if \`.memerig/workspace/${developer}/\` already exists — if yes, it's
   their journal from another machine and worth mentioning.
-- Run \`${pythonCmd} ./.memerig/scripts/task.py list --assignee ${developer}\` to
-  show tasks assigned to them. (Quote the name if it contains spaces.)
+- Run \`${pythonCmd} ./.memerig/scripts/task.py list --mine\` to show their
+  assigned tasks.
 - Remind them that the "My Tasks" section appears in the SessionStart context
   on every new session.
 
@@ -737,8 +737,7 @@ When they feel oriented (or after you've covered the four topics with
 reasonable back-and-forth), guide them to run:
 
 \`\`\`bash
-${pythonCmd} ./.memerig/scripts/task.py finish
-${pythonCmd} ./.memerig/scripts/task.py archive 00-join-${slug}
+${pythonCmd} ./.memerig/scripts/task.py complete 00-join-${slug}
 \`\`\`
 
 ---
@@ -1039,6 +1038,8 @@ interface InitOptions {
   withStatusline?: boolean;
   workflow?: string;
   workflowSource?: string;
+  tasks?: "local" | "tracked";
+  withOnboarding?: boolean;
 }
 
 // Compile-time check: every CliFlag must be a key of InitOptions.
@@ -1094,10 +1095,28 @@ function writeMonorepoConfig(cwd: string, packages: DetectedPackage[]): void {
   );
 }
 
-interface InitAnswers {
-  tools: string[];
-  template?: string;
-  existingDirAction?: TemplateStrategy;
+async function installInitSpecs(
+  cwd: string,
+  isFirstInit: boolean,
+  install: (root: string) => Promise<void>,
+): Promise<void> {
+  if (!isFirstInit) {
+    await install(cwd);
+    return;
+  }
+
+  // A failed fetch can leave extracted files behind. Keep all downloads for
+  // a fresh checkout outside the project until the install has succeeded.
+  const staging = fs.mkdtempSync(path.join(os.tmpdir(), "memerig-init-spec-"));
+  try {
+    await install(staging);
+    const spec = path.join(staging, PATHS.SPEC);
+    if (fs.existsSync(spec)) {
+      fs.cpSync(spec, path.join(cwd, PATHS.SPEC), { recursive: true });
+    }
+  } finally {
+    fs.rmSync(staging, { recursive: true, force: true });
+  }
 }
 
 export async function init(options: InitOptions): Promise<void> {
@@ -1119,12 +1138,19 @@ export async function init(options: InitOptions): Promise<void> {
 
   const cwd = process.cwd();
   const isFirstInit = !fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW));
-  // Captured here (before createWorkflowStructure + init_developer run) so
-  // the three-branch dispatch at the bottom can tell "fresh clone joiner"
-  // (.memerig/ exists, .developer missing) apart from "creator first init".
-  const hadDeveloperFileAtStart = fs.existsSync(
-    path.join(cwd, DIR_NAMES.WORKFLOW, FILE_NAMES.DEVELOPER),
+  const hasProjectConfig = fs.existsSync(
+    path.join(cwd, DIR_NAMES.WORKFLOW, "config.yaml"),
   );
+  const hadDeveloperFileAtStart =
+    options.withOnboarding &&
+    fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW, FILE_NAMES.DEVELOPER));
+  if (
+    options.tasks &&
+    options.tasks !== "local" &&
+    options.tasks !== "tracked"
+  ) {
+    throw new Error("--tasks must be local or tracked");
+  }
 
   // Generate ASCII art banner dynamically using FIGlet "Rebel" font
   const banner = figlet.textSync("MemeRig", { font: "Rebel" });
@@ -1159,7 +1185,7 @@ export async function init(options: InitOptions): Promise<void> {
 
   // Detect developer name from git config or options
   let developerName = options.user;
-  if (!developerName) {
+  if (!developerName && options.withOnboarding) {
     // Only detect from git if current directory is a git repo
     const isGitRepo = fs.existsSync(path.join(cwd, ".git"));
     if (isGitRepo) {
@@ -1184,21 +1210,25 @@ export async function init(options: InitOptions): Promise<void> {
   // Re-init fast path: skip full flow when .memerig/ already exists
   // ==========================================================================
 
-  // Aborted-init recovery (issue #204): if .memerig/ exists but tasks/ is
-  // empty, the previous init never reached bootstrap creation. Fall through
-  // to the full flow so the main-dispatch tasksEmpty fallback fires —
-  // handleReinit's joiner branch would otherwise mis-route the recovery.
-  const tasksDirEarly = path.join(cwd, PATHS.TASKS);
-  const tasksEmptyEarly =
-    !fs.existsSync(tasksDirEarly) || fs.readdirSync(tasksDirEarly).length === 0;
   const hasTemplateRequest = !!options.template || !!options.registry;
+  const builtinSpec =
+    options.template && !options.registry
+      ? getBuiltinSpecDirectory(options.template)
+      : undefined;
+  const useMarketplace =
+    Boolean(options.registry) ||
+    Boolean(options.template && options.template !== "blank" && !builtinSpec);
 
   if (
     !isFirstInit &&
     !options.force &&
     !options.skipExisting &&
-    !tasksEmptyEarly &&
-    !hasTemplateRequest
+    !hasTemplateRequest &&
+    !options.tasks &&
+    options.withOnboarding &&
+    fs.existsSync(path.join(cwd, PATHS.SCRIPTS, "project.py")) &&
+    fs.existsSync(path.join(cwd, PATHS.TASKS)) &&
+    fs.readdirSync(path.join(cwd, PATHS.TASKS)).length > 0
   ) {
     const reinitDone = await handleReinit(
       cwd,
@@ -1210,7 +1240,7 @@ export async function init(options: InitOptions): Promise<void> {
     // reinitDone === false means user chose "full re-initialize" → fall through
   }
 
-  if (!developerName && !options.yes) {
+  if (!developerName && !options.yes && options.withOnboarding) {
     // Ask for developer name if not detected and not in yes mode
     console.log(
       chalk.gray(
@@ -1234,17 +1264,8 @@ export async function init(options: InitOptions): Promise<void> {
   let registry: RegistrySource | undefined;
   let registrySourceForConfig: string | undefined;
   if (options.registry) {
-    try {
-      registry = parseRegistrySource(options.registry);
-      registrySourceForConfig = options.registry;
-    } catch (error) {
-      console.log(
-        chalk.red(
-          error instanceof Error ? error.message : "Invalid registry source",
-        ),
-      );
-      return;
-    }
+    registry = parseRegistrySource(options.registry);
+    registrySourceForConfig = options.registry;
   }
 
   // Determine template strategy from flags (needed before monorepo template downloads)
@@ -1262,7 +1283,10 @@ export async function init(options: InitOptions): Promise<void> {
   let monorepoPackages: DetectedPackage[] | undefined;
   let remoteSpecPackages: Set<string> | undefined;
 
-  if (options.monorepo !== false) {
+  if (
+    options.monorepo === true ||
+    (options.monorepo !== false && useMarketplace)
+  ) {
     // options.monorepo: true = --monorepo, false = --no-monorepo, undefined = auto
     const detected = detectMonorepo(cwd);
 
@@ -1335,7 +1359,7 @@ export async function init(options: InitOptions): Promise<void> {
         remoteSpecPackages = new Set<string>();
 
         // Per-package template selection (unless -y mode: all use blank spec)
-        if (!options.yes && !options.template) {
+        if (useMarketplace && !options.yes && !options.template) {
           for (const pkg of detected) {
             const { specSource } = await inquirer.prompt<{
               specSource: string;
@@ -1404,77 +1428,46 @@ export async function init(options: InitOptions): Promise<void> {
               }
             }
           }
-        } else if (options.template) {
-          // --template as default for all packages
-          for (const pkg of detected) {
-            const destDir = path.join(
-              cwd,
-              PATHS.SPEC,
-              sanitizePkgName(pkg.name),
-            );
-            const result = await downloadTemplateById(
-              cwd,
-              options.template,
-              templateStrategy,
-              undefined,
-              registry,
-              destDir,
-            );
-            if (result.success && !result.skipped) {
-              remoteSpecPackages.add(sanitizePkgName(pkg.name));
+        } else if (options.template && useMarketplace) {
+          const templateId = options.template;
+          await installInitSpecs(cwd, isFirstInit, async (root) => {
+            for (const pkg of detected) {
+              const packageName = sanitizePkgName(pkg.name);
+              const result = await downloadTemplateById(
+                root,
+                templateId,
+                templateStrategy,
+                undefined,
+                registry,
+                path.join(root, PATHS.SPEC, packageName),
+              );
+              if (!result.success) throw new Error(result.message);
+              if (!result.skipped) remoteSpecPackages?.add(packageName);
             }
-          }
+          });
         }
       }
     }
   }
 
   // Tool definitions derived from platform registry
-  const TOOLS = getInitToolChoices();
-
-  // Build tools from explicit flags
-  const explicitTools = TOOLS.filter(
-    (t) => options[t.key as keyof InitOptions],
-  ).map((t) => t.key);
-
-  let tools: string[];
-
-  if (explicitTools.length > 0) {
-    // Explicit flags take precedence (works with or without -y)
-    tools = explicitTools;
-  } else if (options.yes) {
-    // No explicit tools + -y: default to Cursor and Claude
-    tools = TOOLS.filter((t) => t.defaultChecked).map((t) => t.key);
-  } else {
-    // Interactive mode
-    const answers = await inquirer.prompt<InitAnswers>([
-      {
-        type: "checkbox",
-        name: "tools",
-        message: "Select AI tools to configure:",
-        choices: TOOLS.map((t) => ({
-          name: t.name,
-          value: t.key,
-          checked: t.defaultChecked,
-        })),
-      },
-    ]);
-    tools = answers.tools;
-  }
+  const tools = getInitToolChoices()
+    .filter((tool) => options[tool.key as keyof InitOptions])
+    .map((tool) => tool.key);
 
   // Treat unknown project type as fullstack
   const projectType: ProjectType =
     detectedType === "unknown" ? "fullstack" : detectedType;
 
-  if (tools.length === 0) {
-    console.log(
-      chalk.yellow("No tools selected. At least one tool is required."),
-    );
-    return;
-  }
-
   // Opt-in Claude Code statusLine: confirm interactively when the flag wasn't passed
-  await maybePromptStatuslineOptIn(options, tools);
+  const configuredPlatforms = getConfiguredPlatforms(cwd);
+  await maybePromptStatuslineOptIn(
+    options,
+    tools.filter((tool) => {
+      const platform = resolveCliFlag(tool);
+      return platform && !configuredPlatforms.has(platform);
+    }),
+  );
 
   // ==========================================================================
   // Template Selection (single-repo only; monorepo handles templates above)
@@ -1491,7 +1484,7 @@ export async function init(options: InitOptions): Promise<void> {
     ? `${registry.rawBaseUrl}/index.json`
     : TEMPLATE_INDEX_URL;
 
-  if (monorepoPackages) {
+  if (monorepoPackages || !useMarketplace) {
     // Monorepo: template selection already handled above
   } else if (options.template) {
     // Template specified via --template flag
@@ -1500,16 +1493,12 @@ export async function init(options: InitOptions): Promise<void> {
       const probeResult = await probeRegistryIndex(indexUrl, registry);
       registryBackend = probeResult.backend;
       if (probeResult.error) {
-        console.log(chalk.red(`Error: ${probeResult.error.message}`));
-        return;
+        throw probeResult.error;
       }
       if (probeResult.isNotFound) {
-        console.log(
-          chalk.red(
-            "Error: Registry has no index.json. Remove --template to use direct download mode.",
-          ),
+        throw new Error(
+          "Registry has no index.json. Remove --template to use direct download mode.",
         );
-        return;
       }
       fetchedTemplates = probeResult.templates;
     }
@@ -1554,12 +1543,10 @@ export async function init(options: InitOptions): Promise<void> {
       );
     } else if (templates.length === 0 && registry) {
       // Custom registry: transient error (not a 404) — abort, don't misclassify
-      console.log(
-        chalk.red(
-          `   ${registryProbeError?.message ?? "Could not reach registry. Check your connection and try again."}`,
-        ),
+      throw new Error(
+        registryProbeError?.message ??
+          "Could not reach registry. Check your connection and try again.",
       );
-      return;
     } else if (templates.length === 0) {
       console.log(
         chalk.gray(
@@ -1754,22 +1741,17 @@ export async function init(options: InitOptions): Promise<void> {
     registryBackend = probeResult.backend;
     if (probeResult.templates.length > 0) {
       // Marketplace mode requires interactive selection — can't auto-select
-      console.log(
-        chalk.red(
-          "Error: Registry is a marketplace with multiple templates. " +
-            "Use --template <id> to specify which one, or remove -y for interactive selection.",
-        ),
+      throw new Error(
+        "Registry is a marketplace with multiple templates. " +
+          "Use --template <id> to specify which one, or remove -y for interactive selection.",
       );
-      return;
     }
     if (!probeResult.isNotFound) {
       // Transient error (not 404) — abort, don't misclassify as direct-download
-      console.log(
-        chalk.red(
-          `Error: ${probeResult.error?.message ?? "Could not reach registry. Check your connection and try again."}`,
-        ),
+      throw new Error(
+        probeResult.error?.message ??
+          "Could not reach registry. Check your connection and try again.",
       );
-      return;
     }
     // isNotFound=true → no index.json, proceed with direct download (fetchedTemplates stays empty)
   }
@@ -1789,37 +1771,33 @@ export async function init(options: InitOptions): Promise<void> {
     // Find pre-fetched SpecTemplate to avoid double-fetch
     const prefetched = fetchedTemplates.find((t) => t.id === selectedTemplate);
 
-    const result = await downloadTemplateById(
-      cwd,
-      selectedTemplate,
-      templateStrategy,
-      prefetched,
-      registry,
-      undefined,
-      registryBackend,
-    );
-
-    if (result.success) {
+    const templateId = selectedTemplate;
+    await installInitSpecs(cwd, isFirstInit, async (root) => {
+      const result = await downloadTemplateById(
+        root,
+        templateId,
+        templateStrategy,
+        prefetched,
+        registry,
+        undefined,
+        registryBackend,
+      );
+      if (!result.success) throw new Error(result.message);
       if (result.skipped) {
         console.log(chalk.gray(`   ${result.message}`));
-      } else {
-        console.log(chalk.green(`   ${result.message}`));
-        useRemoteTemplate = true;
-        if (registry) {
-          registrySpecConfigToPersist = {
-            source: registrySourceForConfig ?? registry.gigetSource,
-            template: selectedTemplate,
-          };
-        }
+        return;
       }
-    } else {
-      console.log(chalk.yellow(`   ${result.message}`));
-      console.log(chalk.gray("   Falling back to blank templates..."));
-      const retryCmd = registry
-        ? `memerig init --registry ${registry.gigetSource} --template ${selectedTemplate}`
-        : `memerig init --template ${selectedTemplate}`;
-      console.log(chalk.gray(`   You can retry later: ${retryCmd}`));
-    }
+      console.log(
+        chalk.green(`   Installed template "${templateId}" in ${PATHS.SPEC}`),
+      );
+      useRemoteTemplate = true;
+      if (registry) {
+        registrySpecConfigToPersist = {
+          source: registrySourceForConfig ?? registry.gigetSource,
+          template: templateId,
+        };
+      }
+    });
   } else if (registry && fetchedTemplates.length === 0) {
     // Direct download mode: registry has no index.json, download directory directly
     console.log(
@@ -1850,33 +1828,26 @@ export async function init(options: InitOptions): Promise<void> {
       }
     }
 
-    const result = await downloadRegistryDirect(
-      cwd,
-      registry,
-      templateStrategy,
-      undefined,
-      registryBackend,
-    );
-
-    if (result.success) {
+    const source = registry;
+    await installInitSpecs(cwd, isFirstInit, async (root) => {
+      const result = await downloadRegistryDirect(
+        root,
+        source,
+        templateStrategy,
+        undefined,
+        registryBackend,
+      );
+      if (!result.success) throw new Error(result.message);
       if (result.skipped) {
         console.log(chalk.gray(`   ${result.message}`));
-      } else {
-        console.log(chalk.green(`   ${result.message}`));
-        useRemoteTemplate = true;
-        registrySpecConfigToPersist = {
-          source: registrySourceForConfig ?? registry.gigetSource,
-        };
+        return;
       }
-    } else {
-      console.log(chalk.yellow(`   ${result.message}`));
-      console.log(chalk.gray("   Falling back to blank templates..."));
-      console.log(
-        chalk.gray(
-          `   You can retry later: memerig init --registry ${registry.gigetSource}`,
-        ),
-      );
-    }
+      console.log(chalk.green(`   Installed registry spec in ${PATHS.SPEC}`));
+      useRemoteTemplate = true;
+      registrySpecConfigToPersist = {
+        source: registrySourceForConfig ?? source.gigetSource,
+      };
+    });
   }
 
   // ==========================================================================
@@ -1916,11 +1887,23 @@ export async function init(options: InitOptions): Promise<void> {
     console.log(chalk.blue("📁 Creating workflow structure..."));
     await createWorkflowStructure(cwd, {
       projectType,
-      skipSpecTemplates: useRemoteTemplate,
-      packages: monorepoPackages,
+      skipSpecTemplates: !useMarketplace || useRemoteTemplate,
+      packages: useMarketplace ? monorepoPackages : undefined,
+      baseOnly:
+        tools.length === 0 &&
+        !options.withOnboarding &&
+        !options.workflow &&
+        !options.workflowSource,
       remoteSpecPackages,
       workflowMdOverride,
     });
+    if (builtinSpec) {
+      await installBuiltinSpec(
+        builtinSpec,
+        path.join(cwd, PATHS.SPEC),
+        options.overwrite ?? false,
+      );
+    }
 
     // Write monorepo packages to config.yaml (non-destructive patch)
     if (monorepoPackages) {
@@ -1969,7 +1952,10 @@ export async function init(options: InitOptions): Promise<void> {
   }
 
   // Initialize template hashes for modification tracking
-  const hashedCount = initializeHashes(cwd, { trackedPaths: writtenPaths });
+  const hashedCount = initializeHashes(cwd, {
+    trackedPaths: writtenPaths,
+    merge: hasProjectConfig,
+  });
   if (useRemoteTemplate) {
     const specFilesToHash = new Map<string, string>();
     for (const relativePath of collectSpecPaths(cwd)) {
@@ -1998,14 +1984,24 @@ export async function init(options: InitOptions): Promise<void> {
   if (developerName) {
     try {
       const scriptPath = path.join(cwd, PATHS.SCRIPTS, "init_developer.py");
-      execSync(`${pythonCmd} "${scriptPath}" "${developerName}"`, {
-        cwd,
-        stdio: "pipe", // Silent
-      });
+      runProjectScript(pythonCmd, [scriptPath, developerName], cwd);
     } catch {
       // Silent failure - user can run init_developer.py manually
     }
+  }
 
+  runProjectScript(
+    pythonCmd,
+    [
+      path.join(cwd, PATHS.SCRIPTS, "project.py"),
+      "configure",
+      ...(!hasProjectConfig ? ["--new"] : []),
+      ...(options.tasks ? ["--tasks", options.tasks] : []),
+    ],
+    cwd,
+  );
+
+  if (developerName && options.withOnboarding) {
     // Three-branch dispatch using flags captured at init() start (before
     // createWorkflowStructure/init_developer ran, so they reflect the disk
     // state of the user's checkout, not the state this init just produced):
@@ -2046,6 +2042,50 @@ export async function init(options: InitOptions): Promise<void> {
             `⚠ Joiner onboarding setup failed: ${err instanceof Error ? err.message : String(err)}`,
           ),
         );
+      }
+    }
+  }
+}
+
+function runProjectScript(command: string, args: string[], cwd: string): void {
+  const [executable, ...prefix] = command.match(/"[^"]+"|[^\s]+/g) ?? [];
+  if (!executable) throw new Error("No Python command configured");
+  execFileSync(executable.replace(/^"|"$/g, ""), [...prefix, ...args], {
+    cwd,
+    stdio: ["ignore", "ignore", "inherit"],
+  });
+}
+
+async function installBuiltinSpec(
+  source: string,
+  destination: string,
+  previewConflicts: boolean,
+): Promise<void> {
+  if (
+    fs.existsSync(destination) &&
+    fs.lstatSync(destination).isSymbolicLink()
+  ) {
+    throw new Error(`Spec destination is a symbolic link: ${destination}`);
+  }
+  fs.mkdirSync(destination, { recursive: true });
+  for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
+    const target = path.join(destination, entry.name);
+    const input = path.join(source, entry.name);
+    if (entry.isDirectory()) {
+      await installBuiltinSpec(input, target, previewConflicts);
+    } else if (entry.isFile()) {
+      const content = fs.readFileSync(input, "utf-8");
+      if (!fs.existsSync(target)) {
+        await writeFile(target, content);
+      } else if (previewConflicts && !fs.lstatSync(target).isSymbolicLink()) {
+        const preview = `${target}.new`;
+        if (
+          !fs.existsSync(preview) &&
+          content !== fs.readFileSync(target, "utf-8")
+        ) {
+          await writeFile(preview, content);
+          console.log(`Review template change: ${preview}`);
+        }
       }
     }
   }

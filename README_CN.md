@@ -49,7 +49,7 @@ MemeRig 把每个任务分成四个阶段：
 1. **规划**：`brainstorm` 技能逐个问题梳理需求并写出 `prd.md`。复杂任务还会有 `design.md` 和 `implement.md`。
 2. **实现**：`memerig-implement` 子 Agent 根据 PRD 写代码，相关规范会注入到它的上下文里。
 3. **检查**：`memerig-check` 子 Agent 对照规范审查改动，并运行 lint、类型检查和测试。
-4. **收尾**：`/memerig:finish-work` 归档任务、记录会话日志，`update-spec` 技能把新经验写回 `.memerig/spec/`。
+4. **收尾**。`/memerig:finish-work` 原地完成任务并记录会话日志。`update-spec` 技能把新经验写回 `.memerig/spec/`。
 
 | 路径 | 内容 |
 | --- | --- |
@@ -69,13 +69,16 @@ pnpm build
 pnpm test
 ```
 
-改完模板后，用刚构建好的命令行重新生成仓库里的副本：
+修改现有模板的内容后，在仓库根目录执行：
 
 ```bash
-MEMERIG_PYTHON_CMD=python3 node packages/cli/bin/memerig.js update
+pnpm sync:templates
+pnpm update:self
 ```
 
-`MEMERIG_PYTHON_CMD=python3` 保证生成的副本在所有系统上完全一致；不设置的话，Windows 会把命令渲染成 `python`，所有文件都会显示为已修改。`.memerig/config.yaml` 是唯一手工维护的文件（它声明了 `cli` 和 `core` 两个包），`update` 询问时保留你的版本。
+`sync:templates` 将模板同步到 `packages/cli/dist/`，无需编译 TypeScript。`update:self` 用本地构建的 CLI 刷新仓库配置，根据系统生成 Python 命令（Windows 用 `python`，其他平台用 `python3`），也可用 `MEMERIG_PYTHON_CMD` 指定。可用 `pnpm update:self --dry-run` 预览改动。遇到 `.memerig/config.yaml` 的更新提示时，保留仓库配置。
+
+首次检出、修改 TypeScript，或删除、重命名模板后，先运行 `pnpm build`，再运行 `pnpm update:self`。
 
 改 hook 或工作流会影响你当前正在使用的 Agent 会话，所以先在临时项目里验证（在临时目录运行 `memerig init`），再在本仓库使用。
 

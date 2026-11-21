@@ -41,13 +41,15 @@ python3 ./.memerig/scripts/get_context.py --mode packages   # list packages / la
 
 Every task has its own directory under `.memerig/tasks/{MM-DD-name}/` holding `task.json`, `prd.md`, optional `design.md`, optional `implement.md`, optional `research/`, and context manifests (`implement.jsonl`, `check.jsonl`) for sub-agent-capable platforms.
 
+For ordinary collaboration, run the checked-in scripts with Python 3.9+. Use `task.py list --json` and `task.py show <id> --json` to find and resume work. Run `task.py complete <id>` after verification. This records completion in place and includes the task in `task.py list --closed`. Hooks and developer setup are optional for these commands.
+
 ```bash
 # Task lifecycle
-python3 ./.memerig/scripts/task.py create "<title>" [--slug <name>] [--parent <dir>]
-python3 ./.memerig/scripts/task.py start <name>          # set active task (session-scoped when available)
+python3 ./.memerig/scripts/task.py create "<title>" --description "<summary>" [--slug <name>] [--parent <dir>]
+python3 ./.memerig/scripts/task.py start <id>          # set active task (session-scoped when available)
 python3 ./.memerig/scripts/task.py current --source      # show active task and source
 python3 ./.memerig/scripts/task.py finish                # clear active task (triggers after_finish hooks)
-python3 ./.memerig/scripts/task.py archive <name>        # move to archive/{year-month}/
+python3 ./.memerig/scripts/task.py complete <id>          # mark completed in place
 python3 ./.memerig/scripts/task.py list [--mine] [--status <s>]
 python3 ./.memerig/scripts/task.py list-archive
 
@@ -75,7 +77,7 @@ python3 ./.memerig/scripts/task.py create-pr [name] [--dry-run]
 
 > Run `python3 ./.memerig/scripts/task.py --help` to see the authoritative, up-to-date list.
 
-**Current-task mechanism**: `task.py create` creates the task directory and (when session identity is available) auto-sets the per-session active-task pointer so the planning breadcrumb fires immediately. `task.py start` writes the same pointer (idempotent if already set) and flips `task.json.status` from `planning` to `in_progress`. State is stored under `.memerig/.runtime/sessions/`. If no context key is available from hook input, `MEMERIG_CONTEXT_ID`, or a platform-native session environment variable, there is no active task and `task.py start` fails with a session identity hint. `task.py finish` deletes the current session file (status unchanged). `task.py archive <task>` writes `status=completed`, moves the directory to `archive/`, and deletes any runtime session files that still point at the archived task.
+**Current-task mechanism**: `create` sets a session pointer to the planning task when a session identity is available. `start` accepts the task UUID or a legacy selector, advances planning to in progress, and persists the pointer when possible. `finish` clears only this session’s pointer. `complete` closes the task in place and clears all matching pointers in the owning project. The active list hides closed tasks, and `list --closed` includes both in-place and legacy archived tasks.
 
 ### Workspace System
 
@@ -126,14 +128,9 @@ python3 ./.memerig/scripts/get_context.py --mode phase --step <X.Y>  # detailed 
     [workflow-state:planning-inline] → Codex inline variant of Phase 1
     [workflow-state:in_progress]  → Phase 2 + Phase 3.2-3.4
                                     (status stays 'in_progress' from
-                                    task.py start until task.py archive)
+                                    task.py start until completion)
     [workflow-state:in_progress-inline] → Codex inline variant of Phase 2/3
-    [workflow-state:completed]    → currently DEAD: cmd_archive flips
-                                    status and moves the dir in the same
-                                    call, so the resolver loses the
-                                    pointer (block kept for a future
-                                    explicit in_progress→completed
-                                    transition)
+    [workflow-state:completed]    → only if another status writer leaves an active pointer
 
   Editing checklist:
     - When you change a [workflow-state:STATUS] block, also check the
@@ -170,7 +167,7 @@ Phase 3: Finish  → verify, update spec, commit, and wrap up
 
 Use a parent task when one user request contains several independently verifiable deliverables. The parent task owns the source requirement set, the task map, cross-child acceptance criteria, and final integration review; it normally should not be the implementation target unless it also has direct work.
 
-Use child tasks for deliverables that can be planned, implemented, checked, and archived independently. Parent/child structure is not a dependency system: if one child must wait for another, write that ordering in the child `prd.md` / `implement.md` and keep each child's acceptance criteria testable.
+Use child tasks for deliverables that can be planned, implemented, checked, and completed independently. Parent/child structure is not a dependency system: if one child must wait for another, write that ordering in the child `prd.md` / `implement.md` and keep each child's acceptance criteria testable.
 
 Create new children with `task.py create "<title>" --slug <name> --parent <parent-dir>`. Link existing tasks with `task.py add-subtask <parent> <child>`, and unlink mistakes with `task.py remove-subtask <parent> <child>`.
 
@@ -227,7 +224,7 @@ Inline mode: skip jsonl curation; Phase 2 reads artifacts/specs via `before-dev`
 
 <!-- Per-turn breadcrumb: shown while status='in_progress'.
      Scope: all of Phase 2 + Phase 3.2-3.4 (status stays 'in_progress' from
-     task.py start until task.py archive; only archive flips it). The body
+     task.py start until completion). The body
      therefore must cover every required step from implementation through
      commit, including Phase 3.3 spec update and Phase 3.4 commit. -->
 
@@ -260,15 +257,11 @@ Read context: `prd.md` -> `design.md if present` -> `implement.md if present`, p
 > Note: step 3.1 was folded into 2.2 (last-iteration full-scope check) and 3.4 (commit preamble). Numbering kept stable to avoid breaking external references.
 
 <!-- Per-turn breadcrumb: shown while status='completed'.
-     Currently DEAD in normal flow: cmd_archive writes status='completed' in
-     the same call that moves the task dir to archive/, so the active-task
-     resolver loses the pointer and the hook never fires on archived tasks.
-     Block preserved for a future status-transition redesign (e.g. an
-     explicit in_progress→completed command). Edit through the same spec
-     channel as the live blocks. -->
+     Only shown if a completed task still has a session pointer (for example,
+     after an explicit status update). `complete` already clears that pointer. -->
 
 [workflow-state:completed]
-Code committed. Run `/memerig:finish-work`; if dirty, return to Phase 3.4 first.
+This task is already complete. Run `/memerig:finish-work` only if the session journal still needs recording.
 [/workflow-state:completed]
 
 ### Rules
@@ -354,7 +347,7 @@ The brainstorm skill will guide you to:
 When considering a parent/child split:
 - Use a parent task when one request contains several independently verifiable deliverables.
 - Parent tasks own source requirements, child-task mapping, cross-child acceptance criteria, and final integration review.
-- Child tasks own actual deliverables that can be planned, implemented, checked, and archived independently.
+- Child tasks own actual deliverables that can be planned, implemented, checked, and completed independently.
 - Parent/child structure is not a dependency system. If child B depends on child A, write that ordering in child B's `prd.md` / `implement.md`.
 - Start the child task that owns the next deliverable. Do not start the parent unless the parent itself has direct implementation work.
 
@@ -601,7 +594,7 @@ Update the docs under `.memerig/spec/` accordingly. Even if the conclusion is "n
 
 **Spec-sync preamble**: before drafting commits, ask: did this task fix a bug or surface non-obvious knowledge that should land in `.memerig/spec/` so future-you (or future-AI) doesn't repeat the mistake? If yes, return to Phase 3.3 first — spec writes belong in the same task's commit batch, not as a forgotten follow-up.
 
-The AI drives a batched commit of this task's code changes so `/finish-work` can run cleanly afterwards. Goal: produce work commits FIRST, then bookkeeping (archive + journal) commits land after — never interleaved.
+The AI drives a batched commit of this task’s code changes before `/finish-work` completes the task and records the journal.
 
 **Step-by-step**:
 
@@ -644,14 +637,14 @@ The AI drives a batched commit of this task's code changes so `/finish-work` can
 7. **On rejection** (user replies "不行" / "我自己来" / "manual" / any pushback on the plan): stop. Do not attempt a second plan. The user will commit by hand; you skip ahead to 3.5 once they confirm.
 
 **Rules**:
-- No `git commit --amend` anywhere — three-stage three-commit flow (work commits → archive commit → journal commit).
+- Keep code commits separate from task and journal updates.
 - Never push to remote in this step.
 - If the user wants different message wording but accepts the file grouping, edit the message and re-confirm once — but if they reject the grouping, exit to manual mode.
 - The batched plan is one prompt; do not prompt per commit.
 
 #### 3.5 Wrap-up reminder
 
-After the above, remind the user they can run `/finish-work` to wrap up (archive the task, record the session).
+After the above, remind the user they can run `/finish-work` to wrap up (complete the task, record the session).
 
 ---
 
@@ -676,7 +669,7 @@ All tag blocks live in the `## Phase Index` section above, immediately after eac
 | Codex inline Phase 1 | `[workflow-state:planning-inline]` |
 | Phase 2 + Phase 3.2–3.4 (implementation + check + wrap-up) | `[workflow-state:in_progress]` (after Phase 2 summary) |
 | Codex inline Phase 2 + Phase 3.2–3.4 | `[workflow-state:in_progress-inline]` |
-| After Phase 3.5 (archived) | `[workflow-state:completed]` (after Phase 3 summary; **currently DEAD**) |
+| After Phase 3.5 | `[workflow-state:no_task]` (the task pointer has been cleared) |
 
 ### Changing the per-turn prompt text
 
@@ -695,7 +688,7 @@ your per-turn prompt text
 Constraints:
 - STATUS charset: `[A-Za-z0-9_-]+` (underscores and hyphens allowed, e.g. `in-review`, `blocked-by-team`)
 - A lifecycle hook must write `task.json.status` to your custom value, otherwise the tag is never read
-- Lifecycle hooks live in `task.json.hooks.after_*` and bind to one of `after_create / after_start / after_finish / after_archive`
+- Lifecycle hooks live in `task.json.hooks.after_*` and bind to one of `after_create / after_start / after_finish / after_complete / after_archive`
 
 ### Adding a lifecycle hook
 
@@ -711,7 +704,7 @@ Add a `hooks` field to your `task.json`:
 }
 ```
 
-Supported events: `after_create / after_start / after_finish / after_archive`. Note that `after_finish` ≠ a status change (it only clears the active-task pointer); use `after_archive` for "task is done" notifications.
+Supported events: `after_create / after_start / after_finish / after_complete / after_archive`. `after_finish` only clears the session pointer. Use `after_complete` for in-place completion and `after_archive` for explicit legacy archive moves.
 
 ### Full contract
 

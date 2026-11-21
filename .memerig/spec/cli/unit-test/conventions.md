@@ -28,13 +28,16 @@
 
 `test/setup.ts` is registered via `setupFiles` in `vitest.config.ts` and
 unconditionally `delete`s a list of env vars before any test loads. The list is
-currently 10 entries in three groups, and each group exists for a *different*
+organized into three groups, and each group exists for a *different*
 reason — which is what makes the "when to extend" rule easy to get wrong.
 
 **Group 1 — vars production resolvers honor as a user override.**
 
 ```ts
 delete process.env.MEMERIG_CONTEXT_ID;
+delete process.env.PI_SESSION_ID;
+delete process.env.PI_SESSIONID;
+delete process.env.MEMERIG_DEVELOPER;
 ```
 
 `MemerigContext.getContextKey` treats it as the highest-priority override —
@@ -43,6 +46,10 @@ OpenCode session it leaks in from the parent shell and hijacks the resolver,
 ignoring the test's mocked `platformInput`. Symptom: a test expecting
 `opencode_oc-a` receives `claude_<host-session-id>`, failing deterministically
 only on dev machines.
+
+Pi's inherited session keys can override fallback-identity fixtures.
+`MEMERIG_DEVELOPER` can override a fixture's `.developer` and redirect journal
+commands into a different workspace.
 
 `OPENCODE_RUN_ID` used to sit in this group. The JS branch that read it was
 removed on 2026-08-06 (no OpenCode version sets the name), so it is no longer a

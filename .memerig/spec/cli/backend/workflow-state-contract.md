@@ -256,17 +256,21 @@ a new writer requires updating this spec.**
 
 | # | Writer | File:Line | Value | Trigger |
 |---|--------|-----------|-------|---------|
-| 1 | `cmd_create` | `packages/cli/src/templates/memerig/scripts/common/task_store.py:206` | `"planning"` | `task.py create "<title>"` (also visibly auto-sets the session active-task pointer when session identity is available; `--no-start` skips pointer movement for backlog batching — see R7 in 04-30-workflow-state-commit-gap PRD) |
-| 2 | `_record_start_state` (called from both `cmd_start` branches) | `packages/cli/src/templates/memerig/scripts/task.py:111` | `"in_progress"` (gated on prior `"planning"`; the same write also records `task.json.branch` when empty) | `task.py start <dir>` |
-| 3 | `cmd_archive` | `packages/cli/src/templates/memerig/scripts/common/task_store.py:1275` | `"completed"` (flip + archive `mv`, but only after `_validate_branch_metadata` passes) | `task.py archive <dir>` |
-| 4 | `emptyTaskJson` factory | `packages/cli/src/utils/task-json.ts:54` | `"planning"` (default) | TS callers (init, update) |
-| 5 | `getBootstrapTaskJson` | `packages/cli/src/commands/init.ts:535` | `"in_progress"` (override) | `memerig init` (creator path) |
-| 6 | `getJoinerTaskJson` | `packages/cli/src/commands/init.ts:587` | `"in_progress"` (override) | `memerig init` (joiner path) |
-| 7 | migration-task via `emptyTaskJson` | `packages/cli/src/commands/update.ts:2483-2494` | `"planning"` (override on factory) | `memerig update --migrate` for breaking-change manifest |
+| 1 | `cmd_create` | `packages/cli/src/templates/memerig/scripts/common/task_store.py` | `"planning"` | `task.py create "<title>"` (also visibly auto-sets the session active-task pointer when session identity is available; `--no-start` skips pointer movement for backlog batching — see R7 in 04-30-workflow-state-commit-gap PRD) |
+| 2 | `_record_start_state` (called from both `cmd_start` branches) | `packages/cli/src/templates/memerig/scripts/task.py` | `"in_progress"` (gated on prior `"planning"` after alias normalization; the same write also records `task.json.branch` when empty) | `task.py start <dir>` |
+| 3 | `cmd_archive` | `packages/cli/src/templates/memerig/scripts/common/task_store.py` | `"completed"` + `closedAt`/`completedAt` (flip + archive `mv`, but only after `_validate_branch_metadata` passes) | `task.py archive <dir>` |
+| 4 | `complete_task_record` | `packages/cli/src/templates/memerig/scripts/common/task_protocol.py` | `"completed"` + `closedAt`/`completedAt` (in place; replay is a no-op) | `task.py complete <id>` |
+| 5 | `_apply_changes` via `update_task_record` | `packages/cli/src/templates/memerig/scripts/common/task_protocol.py` | any legal status (explicit transition; close sets `closedAt`, reopen clears it) | `task.py update <id> --status <s>` |
+| 6 | `emptyTaskJson` factory | `packages/cli/src/utils/task-json.ts` | `"planning"` (default) | TS callers (init, update) |
+| 7 | `getBootstrapTaskJson` | `packages/cli/src/commands/init.ts` | `"in_progress"` (override) | `memerig init` (creator path) |
+| 8 | `getJoinerTaskJson` | `packages/cli/src/commands/init.ts` | `"in_progress"` (override) | `memerig init` (joiner path) |
+| 9 | migration-task via `emptyTaskJson` | `packages/cli/src/commands/update.ts` | `"planning"` (override on factory) | `memerig update --migrate` for breaking-change manifest |
 
 **No other writer exists.** No hook script writes `task.json.status` — verified
 by `grep -rn '"status"' .memerig/scripts/`. Linear-sync hook (`linear_sync.py`)
-writes `meta.linear_issue` only.
+writes `meta.linear_issue` only. `task.py migrate --apply` normalizes stored
+aliases (`open`→`planning`, `done`→`completed`) and timestamps without adding a
+new lifecycle path.
 
 ---
 
@@ -280,12 +284,15 @@ Subscribers must understand the difference:
 | `after_create` | end of `cmd_create` | `"planning"` (just written) |
 | `after_start` | end of `cmd_start` | `"in_progress"` if status was `"planning"`; otherwise unchanged. Re-running `start` does NOT re-fire status flip. |
 | `after_finish` | end of `cmd_finish` | **unchanged** — `cmd_finish` only clears the per-session active-task pointer. Status stays whatever it was (typically `"in_progress"`). |
+| `after_complete` | end of `cmd_complete` when the status transition actually happened | `"completed"` (in place, matching session pointers cleared, no event on replay) |
 | `after_archive` | end of `cmd_archive` | `"completed"` (just written, then dir moved to `archive/YYYY-MM/`) |
 
 **Common mistake**: subscribing to `after_finish` to mark a task "done" in an
 external system (Linear, Jira). `after_finish` means "AI session closed its
 pointer to this task" — the task may resume in a different session. The
-correct event for "task is done" is `after_archive`.
+correct events for "task is done" are `after_complete` (in-place close) and
+`after_archive` (legacy moving close). Subscribe to both until every writer
+uses `complete`.
 
 ---
 
@@ -298,8 +305,8 @@ Which breadcrumbs actually fire in normal flow:
 | `no_task` | ✅ reachable | Pseudo-status; emitted when `resolve_active_task()` returns no pointer. |
 | `task_error` | ✅ reachable | Pseudo-status; emitted when a session task pointer resolves to a directory whose `task.json` cannot be read or has no usable `status`. |
 | `planning` | ✅ reachable | After `cmd_create` (which now auto-sets the session pointer when available) and before `cmd_start`. `planning-inline` is the Codex inline-mode breadcrumb body for the same task status. |
-| `in_progress` | ✅ reachable | After `cmd_start`, until `cmd_archive`. `in_progress-inline` is the Codex inline-mode breadcrumb body for the same task status. |
-| `completed` | ❌ DEAD in normal flow | `cmd_archive` writes `status="completed"` and immediately moves the task dir to `archive/`. The session-pointer cleanup in `clear_task_from_sessions` runs before the move, so the resolver loses the pointer in the same call. The block body in workflow.md is preserved for a future status-transition redesign (e.g. an explicit `in_progress → completed` command) but no current code path produces it. |
+| `in_progress` | ✅ reachable | After `cmd_start`, until completion or another explicit transition. `in_progress-inline` is the Codex inline-mode breadcrumb body for the same task status. |
+| `completed` | Reachable after an explicit status update | `complete` clears matching session pointers. An explicit `update --status completed` may leave a pointer for this breadcrumb. |
 | `stale_<source_type>` | ✅ reachable (rare) | Synthesized when the session pointer references a deleted task directory. Emits the generic body via `build_breadcrumb` because no `stale_*` tag is shipped. |
 
 **Test invariant** (`test/regression.test.ts`): workflow-state blocks must

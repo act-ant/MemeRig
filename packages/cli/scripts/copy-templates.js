@@ -28,6 +28,13 @@ import { join, extname } from "node:path";
 const EXCLUDED_TEMPLATE_ENTRIES = new Set(["__pycache__", ".DS_Store"]);
 const EXCLUDED_TEMPLATE_EXTENSIONS = new Set([".pyc", ".pyo", ".ts"]);
 
+/**
+ * Starter presets bundled for offline installer use. The canonical content is
+ * `marketplace/specs/<id>`; `src/utils/builtin-specs.ts` exposes the same ids.
+ * Keep the two lists in sync when adding a preset.
+ */
+const STARTER_SPEC_IDS = ["learn-harness", "trellis", "game-dev"];
+
 function shouldSkipTemplateEntry(entry) {
   return (
     EXCLUDED_TEMPLATE_ENTRIES.has(entry) ||
@@ -67,6 +74,18 @@ function copyDir(src, dest) {
 // Copy src/templates to dist/templates
 copyDir("src/templates", "dist/templates");
 console.log("Copied src/templates/ to dist/templates/");
+
+// Copy canonical Marketplace starter specs into the release artifact. These
+// bytes are what getBuiltinSpecDirectory() resolves offline in an installed
+// CLI; the Marketplace copies under marketplace/specs/ remain the source of
+// truth for downloads.
+for (const id of STARTER_SPEC_IDS) {
+  copyDir(
+    join("..", "..", "marketplace", "specs", id),
+    join("dist", "templates", "starter-specs", id),
+  );
+}
+console.log("Copied marketplace starter specs to dist/templates/starter-specs/");
 
 // Copy src/migrations/manifests to dist/migrations/manifests
 copyDir("src/migrations/manifests", "dist/migrations/manifests");

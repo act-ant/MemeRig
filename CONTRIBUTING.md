@@ -40,6 +40,31 @@ Code contributions are welcome for:
 
 ## Development Setup
 
+### Work on a task from a fresh clone
+
+The repository includes the task tools. Python 3.9+ is enough for task work. Use `python3` if that is how your system names Python 3.
+
+```bash
+python .memerig/scripts/task.py list
+python .memerig/scripts/task.py create "Improve the setup guide" --description "Document offline setup" --json
+python .memerig/scripts/task.py show <task-id> --json
+python .memerig/scripts/task.py start <task-id>
+python .memerig/scripts/task.py complete <task-id>
+```
+
+Use `prd.md` to record requirements and verification. Share work through Git review of the task directory. The task stays at the same path after completion. For programmatic clients, `task.py schema --json` prints the record schema. Use the version token from `show --json` with `update --expect-version` to reject stale writes.
+
+Maintainers can run `memerig init --tasks tracked` to set up another shared project. Plain `memerig init` installs the blank configuration with local-only tasks. Select a platform by flag when the team uses it. See the [Marketplace publishing and adoption guide](marketplace/README.md) for offline presets and pinned Git versions.
+
+```bash
+python .memerig/scripts/project.py doctor
+python .memerig/scripts/project.py configure --tasks tracked
+python .memerig/scripts/project.py register
+python .memerig/scripts/project.py list
+```
+
+The first registration creates `~/.memerig/projects.json` with a local user ID and a map of registered checkout paths by project ID. Task and session content stays in the original storage. `memerig mem projects --registered` groups the session counts for those checkouts. A submodule can set `task_owner: parent` in its own `.memerig/config.yaml` and invoke the parent task script from the module directory.
+
 ### Prerequisites
 
 - Node.js 18.0.0+

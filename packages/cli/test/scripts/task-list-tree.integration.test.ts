@@ -18,10 +18,11 @@ const TEMPLATE_SCRIPTS = path.resolve(
   __dirname,
   "../../src/templates/memerig/scripts",
 );
+const PYTHON = process.platform === "win32" ? "python" : "python3";
 
 function hasPython(): boolean {
   try {
-    execFileSync("python3", ["--version"], { stdio: "ignore" });
+    execFileSync(PYTHON, ["--version"], { stdio: "ignore" });
     return true;
   } catch {
     return false;
@@ -66,7 +67,7 @@ function makeTask(
 }
 
 function runTask(repo: string, ...args: string[]) {
-  return spawnSync("python3", [".memerig/scripts/task.py", ...args], {
+  return spawnSync(PYTHON, [".memerig/scripts/task.py", ...args], {
     cwd: repo,
     encoding: "utf-8",
   });
@@ -106,7 +107,8 @@ describe.skipIf(!hasPython())("task.py list tree view (#402)", () => {
     const childBIdx = lines.findIndex((l) => l.includes("07-03-child-b/"));
     expect(parentIdx).toBeGreaterThanOrEqual(0);
     expect(childAIdx).toBeGreaterThan(parentIdx);
-    expect(childBIdx).toBeGreaterThan(parentIdx);
+    expect(childBIdx).toBe(-1);
+    expect(lines[parentIdx]).toContain("[1/2 done]");
     // Children are indented further than the parent.
     const parentIndent = lines[parentIdx].match(/^\s*/)?.[0].length ?? 0;
     const childIndent = lines[childAIdx].match(/^\s*/)?.[0].length ?? 0;

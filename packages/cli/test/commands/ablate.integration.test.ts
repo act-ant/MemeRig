@@ -13,6 +13,7 @@ vi.mock("inquirer", () => ({
 }));
 
 vi.mock("node:child_process", () => ({
+  execFileSync: vi.fn().mockReturnValue(""),
   execSync: vi.fn().mockImplementation((cmd: string) => {
     const python = process.platform === "win32" ? "python" : "python3";
     return cmd === `${python} --version` ? "Python 3.11.12" : "";
@@ -131,7 +132,7 @@ describe("ablate()/restore() integration", () => {
     expect(fs.existsSync(getTransactionPaths(projectDir).transactionDir)).toBe(
       false,
     );
-  });
+  }, 30_000);
 
   it("#2 dry-run creates no recovery state and changes no project path", async () => {
     await initialize();

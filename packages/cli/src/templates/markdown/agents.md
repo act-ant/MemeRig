@@ -10,7 +10,11 @@ This project is managed by MemeRig. The working knowledge you need lives under `
 - `.memerig/workspace/` — per-developer journals and session traces
 - `.memerig/tasks/` — active and archived tasks (PRDs, research, jsonl context)
 
-If a MemeRig command is available on your platform (e.g. `/memerig:finish-work`, `/memerig:continue`), prefer it over manual steps. Not every platform exposes every command.
+- List shared work with `python .memerig/scripts/task.py list`. Use the name of your Python 3 executable.
+- Resume by task ID and update the task as you work. After verifying the result, run `python .memerig/scripts/task.py complete <id>`.
+- Inspect effective project configuration with `python .memerig/scripts/project.py doctor`.
+
+Platform integrations can supply additional context. The repository scripts are usable directly.
 
 If you're using Codex or another agent-capable tool, additional project-scoped helpers may live in:
 - `.agents/skills/` — reusable MemeRig skills

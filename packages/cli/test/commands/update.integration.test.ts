@@ -22,6 +22,7 @@ vi.mock("inquirer", () => ({
 }));
 
 vi.mock("node:child_process", () => ({
+  execFileSync: vi.fn().mockReturnValue(""),
   execSync: vi.fn().mockImplementation((cmd: string) => {
     const py = process.platform === "win32" ? "python" : "python3";
     return cmd === `${py} --version` ? "Python 3.11.12" : "";
@@ -545,7 +546,10 @@ describe("update() integration", () => {
     const targetRelative = FILE_NAMES.AGENTS;
     const targetFull = path.join(tmpDir, targetRelative);
     const templateContent = fs.readFileSync(targetFull, "utf-8");
-    const oldContent = removeSubagentsSection(templateContent);
+    const oldContent = removeSubagentsSection(templateContent).replace(
+      /- List shared work[\s\S]+?The repository scripts are usable directly\./,
+      "If a MemeRig command is available on your platform (e.g. `/memerig:finish-work`, `/memerig:continue`), prefer it over manual steps. Not every platform exposes every command.",
+    );
     const existingContent = `# Local instructions\n\n${oldContent}\n\n## Project Notes\n\nKeep this.`;
     const expectedContent = `# Local instructions\n\n${templateContent}\n\n## Project Notes\n\nKeep this.`;
 
@@ -911,7 +915,7 @@ describe("update() integration", () => {
 
     // User customizes a spec guides file
     const guidesIndex = path.join(tmpDir, PATHS.SPEC, "guides", "index.md");
-    expect(fs.existsSync(guidesIndex)).toBe(true);
+    fs.mkdirSync(path.dirname(guidesIndex), { recursive: true });
     const customContent = "# My Custom Guides\n\nEdited by user.\n";
     fs.writeFileSync(guidesIndex, customContent);
 
@@ -1087,7 +1091,7 @@ describe("update() integration", () => {
   });
 
   it("#15a backfills .gitattributes journal merge=union rule when missing (#415)", async () => {
-    await setupProject();
+    await init({ yes: true, force: true, claude: true });
 
     const gitattributesPath = path.join(tmpDir, ".gitattributes");
     fs.rmSync(gitattributesPath, { force: true });

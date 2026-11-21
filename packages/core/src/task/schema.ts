@@ -35,6 +35,16 @@ export interface MemerigTaskRecord {
   relatedFiles: string[];
   notes: string;
   meta: Record<string, unknown>;
+  // Schema v1 additive fields. Optional so legacy records and the 24-field
+  // canonical factory keep loading/writing unchanged.
+  schemaVersion?: number;
+  updatedAt?: string;
+  closedAt?: string;
+  parentId?: string;
+  legacyId?: string;
+  labels?: string[];
+  nextAction?: string;
+  extensions?: Record<string, unknown>;
 }
 
 /**
@@ -70,6 +80,25 @@ export const TASK_RECORD_FIELD_ORDER = [
 
 export type TaskRecordField = (typeof TASK_RECORD_FIELD_ORDER)[number];
 
+/**
+ * Additive v1 fields, written after the canonical 24 legacy fields. Kept out
+ * of {@link TASK_RECORD_FIELD_ORDER} so existing 24-field fixtures and
+ * readers that assume that exact shape keep working.
+ */
+export const TASK_RECORD_V1_FIELD_ORDER = [
+  "schemaVersion",
+  "updatedAt",
+  "closedAt",
+  "parentId",
+  "legacyId",
+  "labels",
+  "nextAction",
+  "extensions",
+] as const satisfies readonly (keyof MemerigTaskRecord)[];
+
+export type TaskRecordV1Field =
+  (typeof TASK_RECORD_V1_FIELD_ORDER)[number];
+
 const STRING_FIELDS: ReadonlySet<TaskRecordField> = new Set([
   "id",
   "name",
@@ -101,6 +130,9 @@ const STRING_ARRAY_FIELDS: ReadonlySet<TaskRecordField> = new Set([
   "children",
   "relatedFiles",
 ]);
+
+const EXTENSION_KEY_RE =
+  /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/;
 
 /**
  * Lightweight runtime schema for {@link MemerigTaskRecord}. Zero-dep on
@@ -146,7 +178,62 @@ function parseTaskRecord(input: unknown): MemerigTaskRecord {
     const value = (input as Record<string, unknown>)[field];
     assignField(out, field, value);
   }
+  for (const field of TASK_RECORD_V1_FIELD_ORDER) {
+    const value = (input as Record<string, unknown>)[field];
+    if (value !== undefined) {
+      assignV1Field(out, field, value);
+    }
+  }
   return out;
+}
+
+function assignV1Field(
+  record: MemerigTaskRecord,
+  field: TaskRecordV1Field,
+  value: unknown,
+): void {
+  const bag = record as unknown as Record<string, unknown>;
+  if (field === "schemaVersion") {
+    if (value !== 1) {
+      throw new Error("task.schemaVersion must be 1");
+    }
+    bag[field] = 1;
+    return;
+  }
+  if (field === "labels") {
+    if (
+      !Array.isArray(value) ||
+      value.some((item) => typeof item !== "string" || item.trim() === "")
+    ) {
+      throw new Error("task.labels must be an array of non-empty strings");
+    }
+    if (new Set(value).size !== value.length) {
+      throw new Error("task.labels must not contain duplicates");
+    }
+    bag[field] = [...value];
+    return;
+  }
+  if (field === "extensions") {
+    if (!isPlainObject(value)) {
+      throw new Error("task.extensions must be a JSON object");
+    }
+    for (const key of Object.keys(value)) {
+      if (!EXTENSION_KEY_RE.test(key)) {
+        throw new Error(
+          `task.extensions key ${JSON.stringify(key)} must be namespaced (e.g. com.example.board)`,
+        );
+      }
+    }
+    bag[field] = cloneJsonObject(value, "task.extensions");
+    return;
+  }
+  if (typeof value !== "string") {
+    throw new Error(`task.${field} must be a string`);
+  }
+  if (field === "nextAction" && value.trim() === "") {
+    throw new Error("task.nextAction must be a non-empty string");
+  }
+  bag[field] = value;
 }
 
 function assignField(

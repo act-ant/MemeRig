@@ -4,7 +4,7 @@ description: "MemeRig Copilot prompt: Method 1: Simple parameters"
 
 [!] **Prerequisite**: This command should only be used AFTER the human has tested and committed the code.
 
-**Do NOT run `git commit` directly** — the scripts below handle their own commits for `.memerig/` metadata. You only need to read git history (`git log`, `git status`, `git diff`) and run the Python scripts.
+Read Git history and run the Python scripts. Journal commits follow the project's `session_auto_commit` setting.
 
 ---
 
@@ -16,13 +16,10 @@ description: "MemeRig Copilot prompt: Method 1: Simple parameters"
 python3 ./.memerig/scripts/get_context.py --mode record
 ```
 
-[!] Archive tasks whose work is **actually done** — judge by work status, not the `status` field in task.json:
-- Code committed? → Archive it (don't wait for PR)
-- All acceptance criteria met? → Archive it
-- Don't skip archiving just because `status` still says `planning` or `in_progress`
+If the current task meets its acceptance criteria, complete it by UUID or path. If there is no task, proceed to the journal.
 
 ```bash
-python3 ./.memerig/scripts/task.py archive <task-name>
+python3 ./.memerig/scripts/task.py complete <task-id>
 ```
 
 ### Step 2: One-Click Add Session
@@ -52,7 +49,7 @@ EOF
 - [OK] Auto-detects line count, creates new file if >2000 lines
 - [OK] Auto-detects Branch context (`--branch` override; otherwise Branch = task.json -> current git branch; missing values are omitted gracefully)
 - [OK] Updates index.md (Total Sessions +1, Last Active, line stats, history)
-- [OK] Auto-commits .memerig/workspace and .memerig/tasks changes
+- [OK] Commits workspace journal changes when `session_auto_commit` is enabled
 
 ---
 
@@ -62,5 +59,5 @@ EOF
 |---------|---------|
 | `python3 ./.memerig/scripts/get_context.py --mode record` | Get context for record-session |
 | `python3 ./.memerig/scripts/add_session.py --title "..." --commit "..."` | **One-click add session (recommended, branch auto-complete)** |
-| `python3 ./.memerig/scripts/task.py archive <name>` | Archive completed task (auto-commits) |
+| `python3 ./.memerig/scripts/task.py complete <task-id>` | Complete task in place |
 | `python3 ./.memerig/scripts/task.py list` | List active tasks |

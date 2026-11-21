@@ -12,7 +12,7 @@
  * 5. Platform Registry (beta.9, beta.13, beta.16)
  */
 
-import { execSync, spawn, spawnSync } from "node:child_process";
+import { execFileSync, execSync, spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -349,22 +349,19 @@ ${separator}
   }
 
   function runAddSession(title: string, options?: { branch?: string }): void {
-    const command = [
-      "python3",
-      JSON.stringify(
-        path.join(tmpDir, ".memerig", "scripts", "add_session.py"),
-      ),
+    const args = [
+      path.join(tmpDir, ".memerig", "scripts", "add_session.py"),
       "--title",
-      JSON.stringify(title),
+      title,
       "--summary",
-      JSON.stringify("Regression test session"),
+      "Regression test session",
       "--no-commit",
     ];
     if (options?.branch) {
-      command.push("--branch", JSON.stringify(options.branch));
+      args.push("--branch", options.branch);
     }
 
-    execSync(command.join(" "), {
+    execFileSync(process.platform === "win32" ? "python" : "python3", args, {
       cwd: tmpDir,
       encoding: "utf-8",
       env: { ...process.env, MEMERIG_CONTEXT_ID: "session-a" },
@@ -4585,7 +4582,7 @@ print(json.dumps({
   function contextIdExports(envFile: string): string[] {
     return fs
       .readFileSync(envFile, "utf-8")
-      .split("\n")
+      .split(/\r?\n/)
       .filter((line) => line.startsWith("export MEMERIG_CONTEXT_ID="));
   }
 
@@ -7629,7 +7626,7 @@ print(len(entries))
       "result = {'M': mod._strip_breadcrumb_tag_blocks(matched), 'X': mod._strip_breadcrumb_tag_blocks(mismatched), 'N': mod._strip_breadcrumb_tag_blocks(nested_orphan)}",
       "print(json.dumps(result))",
     ].join("; ");
-    const output = execSync(`${pythonCmd} -c ${JSON.stringify(probe)}`, {
+    const output = execFileSync(pythonCmd, ["-c", probe], {
       cwd: tmpDir,
       encoding: "utf-8",
     });
@@ -10666,13 +10663,13 @@ describe("regression: session-start.py f-string Python <=3.11 compat (0.5.2)", (
       ).toBeNull();
     });
 
-    it(`${rel} parses cleanly with python3 -m py_compile`, () => {
+    it(`${rel} parses cleanly with Python`, () => {
       // Belt-and-braces: ask the host Python to parse the file. On Python
       // 3.12+ this won't catch the regression (PEP 701 allows it), so the
       // regex test above is the primary gate. On macOS system Python 3.9 or
       // any CI runner with python3 < 3.12 this is a hard catch.
       const r = spawnSync(
-        "python3",
+        process.platform === "win32" ? "python" : "python3",
         [
           "-c",
           `import ast,sys; ast.parse(open(sys.argv[1], encoding='utf-8').read()); print('OK')`,
@@ -10686,7 +10683,7 @@ describe("regression: session-start.py f-string Python <=3.11 compat (0.5.2)", (
         return;
       expect(
         r.status,
-        `python3 ast.parse failed for ${rel}:\n${r.stderr ?? ""}`,
+        `Python ast.parse failed for ${rel}:\n${r.stderr ?? ""}`,
       ).toBe(0);
       expect(r.stdout ?? "").toContain("OK");
     });
@@ -11975,6 +11972,7 @@ describe("regression: task.py rename rewrites every reference in one pass", () =
     const target = create("target", parent);
     const childA = create("kid-a", target);
     const childB = create("kid-b", target);
+    const id = String(readTaskJson(target).id);
 
     const r = runTask("rename", target, "renamed");
     expect(r.status, r.stderr).toBe(0);
@@ -11983,9 +11981,9 @@ describe("regression: task.py rename rewrites every reference in one pass", () =
     expect(fs.existsSync(taskDir(target))).toBe(false);
     expect(fs.existsSync(taskDir(renamed))).toBe(true);
 
-    // Identity fields carry the bare slug; back-references carry the full
-    // directory name.
-    expect(readTaskJson(renamed).id).toBe("renamed");
+    const found = runTask("show", id, "--json");
+    expect(found.status, found.stderr).toBe(0);
+    expect(JSON.parse(found.stdout).location.dir).toBe(`.memerig/tasks/${renamed}`);
     expect(readTaskJson(renamed).name).toBe("renamed");
     expect(readTaskJson(renamed).parent).toBe(parent);
     expect(readTaskJson(parent).children).toEqual([renamed]);
@@ -12025,13 +12023,14 @@ describe("regression: task.py rename rewrites every reference in one pass", () =
       path.join(tmpDir, ".memerig", "workflow.md"),
       `The plan is tracked in ${target}.\n`,
     );
+    const before = readTaskJson(target);
 
     const dry = runTask("rename", target, "renamed", "--dry-run");
     expect(dry.status, dry.stderr).toBe(0);
     expect(dry.stderr).toContain("Dry run: nothing was written");
     expect(fs.existsSync(taskDir(target))).toBe(true);
     expect(fs.existsSync(taskDir(`${datePrefix}-renamed`))).toBe(false);
-    expect(readTaskJson(target).id).toBe("target");
+    expect(readTaskJson(target)).toEqual(before);
     expect(readTaskJson(parent).children).toEqual([target]);
 
     const applied = runTask("rename", target, "renamed");
@@ -12042,7 +12041,7 @@ describe("regression: task.py rename rewrites every reference in one pass", () =
     expect(dry.stdout).toContain(
       `dir: .memerig/tasks/${target} -> .memerig/tasks/${datePrefix}-renamed`,
     );
-    expect(dry.stdout).toContain("task.json: id: target -> renamed");
+    expect(readTaskJson(`${datePrefix}-renamed`).id).toBe(before.id);
     expect(dry.stdout).toContain(
       `backref: .memerig/tasks/${parent}/task.json: children[0]: ${target} -> ${datePrefix}-renamed`,
     );
@@ -12087,6 +12086,7 @@ describe("regression: task.py rename rewrites every reference in one pass", () =
   it("[task-rename] refuses an existing destination, an archived name, a bad slug and an unknown task", () => {
     const other = create("other");
     const target = create("target");
+    const before = readTaskJson(target);
 
     const occupied = runTask("rename", target, "other");
     expect(occupied.status).not.toBe(0);
@@ -12111,7 +12111,7 @@ describe("regression: task.py rename rewrites every reference in one pass", () =
 
     // Every refusal is pre-flight: the task is still exactly where it was.
     expect(fs.existsSync(taskDir(target))).toBe(true);
-    expect(readTaskJson(target).id).toBe("target");
+    expect(readTaskJson(target)).toEqual(before);
   });
 
   it("[task-rename] refuses a slug carrying a date prefix, normalizing only its own", () => {
@@ -12181,14 +12181,9 @@ describe("regression: task.py rename rewrites every reference in one pass", () =
 });
 
 describe("regression: a linked worktree inherits developer identity", () => {
-  // `.memerig/.developer` is gitignored (it carries a personal identity), so a
-  // fresh `git worktree add` used to start with no identity at all and every
-  // task.py command failed with "No developer set" until init_developer.py was
-  // re-run per worktree — which blocks worktree-per-worker parallel runs.
+  // Task creation works anonymously, while assigned work still inherits a developer
+  // from the main checkout when the linked worktree has no identity of its own.
   const pyCmd = process.platform === "win32" ? "python" : "python3";
-  const pad = (n: number): string => String(n).padStart(2, "0");
-  const now = new Date();
-  const datePrefix = `${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   let tmpDir: string;
   let mainDir: string;
   let worktreeDir: string;
@@ -12277,13 +12272,10 @@ describe("regression: a linked worktree inherits developer identity", () => {
   }
 
   function assigneeOf(cwd: string, slug: string): unknown {
-    const taskJson = path.join(
-      cwd,
-      ".memerig",
-      "tasks",
-      `${datePrefix}-${slug}`,
-      "task.json",
-    );
+    const tasksDir = path.join(cwd, ".memerig", "tasks");
+    const directory = fs.readdirSync(tasksDir).find((name) => name.slice(6) === slug);
+    if (!directory) throw new Error(`Missing task ${slug} in ${tasksDir}`);
+    const taskJson = path.join(tasksDir, directory, "task.json");
     return (
       JSON.parse(fs.readFileSync(taskJson, "utf-8")) as Record<string, unknown>
     ).assignee;
@@ -12315,13 +12307,12 @@ describe("regression: a linked worktree inherits developer identity", () => {
     const listed = runTask(worktreeDir, ["list", "--json", "--mine"]);
     expect(listed.status, listed.stderr).toBe(0);
     const tasks = (
-      JSON.parse(listed.stdout) as { tasks: { id: string; assignee: string }[] }
+      JSON.parse(listed.stdout) as { tasks: { dir: string; assignee: string }[] }
     ).tasks;
-    expect(tasks.map((t) => [t.id, t.assignee])).toEqual([
-      ["inherited", "main-dev"],
-    ]);
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({ dir: expect.stringMatching(/-inherited$/), assignee: "main-dev" });
 
-    const started = runTask(worktreeDir, ["start", `${datePrefix}-inherited`]);
+    const started = runTask(worktreeDir, ["start", "inherited"]);
     expect(started.status, started.stderr).toBe(0);
 
     // Inheritance is read-only: copying the file in would go stale and shadow
@@ -12395,16 +12386,13 @@ describe("regression: a linked worktree inherits developer identity", () => {
     expect(assigneeOf(worktreeDir, "blank")).toBe("main-dev");
   });
 
-  it("[worktree-identity] with no identity anywhere, the error names all three sources", () => {
+  it("[worktree-identity] creates unassigned tasks and explains identity for --mine", () => {
     buildRepo(null);
 
     for (const cwd of [mainDir, worktreeDir]) {
       const created = createTask(cwd, "nobody");
-      expect(created.status).not.toBe(0);
-      expect(created.stderr).toContain("No developer set");
-      expect(created.stderr).toContain("init_developer.py");
-      expect(created.stderr).toContain("MEMERIG_DEVELOPER");
-      expect(created.stderr).toContain("linked git worktree");
+      expect(created.status, created.stderr).toBe(0);
+      expect(assigneeOf(cwd, "nobody")).toBe("");
 
       const listed = runTask(cwd, ["list", "--json", "--mine"]);
       expect(listed.status).not.toBe(0);
@@ -12427,9 +12415,8 @@ describe("regression: a linked worktree inherits developer identity", () => {
     writeScripts(bareWt);
 
     const created = createTask(bareWt, "nobody");
-    expect(created.status).toBe(1);
-    expect(created.stderr).toContain("No developer set");
-    expect(created.stderr).not.toContain("Traceback");
+    expect(created.status, created.stderr).toBe(0);
+    expect(assigneeOf(bareWt, "nobody")).toBe("");
   });
 
   it("[worktree-identity] a bare repo nested inside an unrelated checkout does not leak that checkout's identity", () => {
@@ -12458,17 +12445,15 @@ describe("regression: a linked worktree inherits developer identity", () => {
     writeScripts(nestedWt);
 
     const created = createTask(nestedWt, "leak");
-    expect(created.status).toBe(1);
-    expect(created.stderr).not.toContain("unrelated-stranger");
-    expect(created.stderr).toContain("No developer set");
+    expect(created.status, created.stderr).toBe(0);
+    expect(assigneeOf(nestedWt, "leak")).toBe("");
   });
 
-  it("[worktree-identity] a directory that is not a git repo fails normally, never crashes", () => {
+  it("[worktree-identity] creates an unassigned task outside Git", () => {
     writeScripts(mainDir);
 
     const created = createTask(mainDir, "nogit");
-    expect(created.status).toBe(1);
-    expect(created.stderr).toContain("No developer set");
-    expect(created.stderr).not.toContain("Traceback");
+    expect(created.status, created.stderr).toBe(0);
+    expect(assigneeOf(mainDir, "nogit")).toBe("");
   });
 });

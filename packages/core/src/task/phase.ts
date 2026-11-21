@@ -39,6 +39,7 @@ export function inferTaskPhase(
       : recordOrStatus?.status;
   switch (status) {
     case "planning":
+    case "open":
       return "plan";
     case "in_progress":
       return "implement";
@@ -46,6 +47,10 @@ export function inferTaskPhase(
       return "review";
     case "completed":
     case "done":
+    case "archived":
+    case "closed":
+    case "canceled":
+    case "cancelled":
       return "completed";
     default:
       return "unknown";

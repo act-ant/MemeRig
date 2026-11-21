@@ -289,7 +289,7 @@ function materializeDirectory(basePath, dirPath, reason, limits, budget, maxFile
   }
 
   for (const filename of files.slice(0, maxFiles)) {
-    const relativePath = join(dirPath, filename)
+    const relativePath = join(dirPath, filename).replaceAll("\\", "/")
     const block = materializeFile(basePath, relativePath, reason, limits, budget)
     if (block) blocks.push(block)
   }

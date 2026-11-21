@@ -40,6 +40,31 @@
 
 ## 开发环境设置
 
+### 从干净克隆接手任务
+
+仓库已包含任务工具。日常任务只需 Python 3.9+。如果系统使用 `python3`，请替换下面的命令名。
+
+```bash
+python .memerig/scripts/task.py list
+python .memerig/scripts/task.py create "完善初始化指南" --description "补充离线初始化说明" --json
+python .memerig/scripts/task.py show <task-id> --json
+python .memerig/scripts/task.py start <task-id>
+python .memerig/scripts/task.py complete <task-id>
+```
+
+在 `prd.md` 记录需求和验证结果，通过 Git 评审共享任务文件。任务完成后路径保持不变。外部程序可运行 `task.py schema --json` 获取任务结构，把 `show --json` 返回的版本标记传给 `update --expect-version`，避免覆盖别人的更新。
+
+维护者可用 `memerig init --tasks tracked` 初始化团队项目。直接运行 `memerig init` 会安装空白配置，任务默认保存在本地。团队需要平台集成时，通过相应参数开启。离线模板、固定 Git 版本和发布方式见 [Marketplace 指南](marketplace/README.md)。
+
+```bash
+python .memerig/scripts/project.py doctor
+python .memerig/scripts/project.py configure --tasks tracked
+python .memerig/scripts/project.py register
+python .memerig/scripts/project.py list
+```
+
+首次登记会创建 `~/.memerig/projects.json`，仅保存本机用户 ID 和按项目 ID 归组的检出路径。任务与会话内容保留在原位置。`memerig mem projects --registered` 按登记的项目汇总会话。子模块可在自己的 `.memerig/config.yaml` 设置 `task_owner: parent`，并从子模块目录调用父级任务脚本。
+
 ### 前置要求
 
 - Node.js 18.0.0+

@@ -3,6 +3,7 @@ import path from "node:path";
 
 import {
   TASK_RECORD_FIELD_ORDER,
+  TASK_RECORD_V1_FIELD_ORDER,
   emptyTaskRecord,
   isPlainObject,
   taskRecordSchema,
@@ -74,6 +75,11 @@ export function writeTaskRecord(options: WriteTaskRecordOptions): void {
   const recordBag = record as unknown as Record<string, unknown>;
   for (const field of TASK_RECORD_FIELD_ORDER) {
     out[field] = recordBag[field];
+  }
+  for (const field of TASK_RECORD_V1_FIELD_ORDER) {
+    if (recordBag[field] !== undefined) {
+      out[field] = recordBag[field];
+    }
   }
   if (existing) {
     for (const key of Object.keys(existing)) {
