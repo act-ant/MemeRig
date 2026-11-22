@@ -51,3 +51,26 @@ Switched publish.yml to OIDC trusted publishing (Node 24, pnpm 12.21.0, no NPM_T
 ### Status
 
 [OK] **Completed**
+
+
+## Session 3: Restore interactive init guidance
+<!-- memerig-session: v=2 fp=48802b192e8312e5 -->
+
+**Date**: 2026-11-22
+**Task**: Restore interactive init guidance
+**Package**: cli
+**Branch**: `main`
+
+### Summary
+
+First init asks for platforms + spec template again; no-platform install is an explicit AGENTS.md open-protocol mode; non-TTY never prompts. Verified by unit + integration tests and real CLI smoke (init -y, -y --claude, -y --template trellis).
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3c42a0d5` | feat(cli): restore interactive init guidance with AGENTS.md open protocol |
+
+### Status
+
+[OK] **Completed**
