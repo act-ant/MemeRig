@@ -28,3 +28,26 @@ Verified offline starter specs and standalone Git registry tag resolution using 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 2: npm trusted publishing for 0.7.0
+<!-- memerig-session: v=2 fp=ca7a774dac894272 -->
+
+**Date**: 2026-11-22
+**Task**: npm trusted publishing for 0.7.0
+**Package**: cli
+**Branch**: `main`
+
+### Summary
+
+Switched publish.yml to OIDC trusted publishing (Node 24, pnpm 12.21.0, no NPM_TOKEN), moved toolchain to pnpm 12.21.0 with allowBuilds for esbuild, bumped both packages to 0.7.0 and added the 0.7.0 migration manifest. Verified: release-preflight gates, frozen install, typecheck, build, 1772 tests.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1c6153b041` | chore(release): publish 0.7.0 via npm trusted publishing |
+
+### Status
+
+[OK] **Completed**
