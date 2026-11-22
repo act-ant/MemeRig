@@ -227,14 +227,20 @@ export function collectPlatformTemplates(
 }
 
 /**
- * Build TOOLS array for interactive init prompt, derived from AI_TOOLS registry
+ * One selectable AI platform for the interactive init prompt, derived from the
+ * `AI_TOOLS` registry.
  */
-export function getInitToolChoices(): {
+export interface InitToolChoice {
   key: CliFlag;
   name: string;
   defaultChecked: boolean;
   platformId: AITool;
-}[] {
+}
+
+/**
+ * Build TOOLS array for interactive init prompt, derived from AI_TOOLS registry
+ */
+export function getInitToolChoices(): InitToolChoice[] {
   return PLATFORM_IDS.map((id) => ({
     key: AI_TOOLS[id].cliFlag,
     name: AI_TOOLS[id].name,

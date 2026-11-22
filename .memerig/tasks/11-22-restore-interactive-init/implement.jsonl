@@ -1,0 +1,4 @@
+{"file": ".memerig/spec/cli/backend/platform-integration.md", "reason": "init.ts flow wiring rules, two-point dispatch, prompt regressions"}
+{"file": ".memerig/spec/cli/backend/quality-guidelines.md", "reason": "forbidden patterns and code standards for CLI changes"}
+{"file": ".memerig/spec/cli/backend/filesystem-safety.md", "reason": "init writes user files; ownership and overwrite rules"}
+{"file": ".memerig/spec/cli/unit-test/conventions.md", "reason": "where tests live and when a test is required"}

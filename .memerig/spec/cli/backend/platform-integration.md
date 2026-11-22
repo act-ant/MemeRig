@@ -1085,6 +1085,21 @@ These are now **automatically derived** from the registry:
 
 ---
 
+## Init Interactive Gates (platform + spec template)
+
+`memerig init` decides two independent things. Both prompts are gated on `!options.yes && process.stdin.isTTY`; a non-interactive caller (CI, `-y`, piped stdin) must never reach inquirer — a closed stdin surfaces as `ERR_USE_AFTER_CLOSE`, which is why `init.test.ts` runs without a TTY.
+
+| Decision | Trigger | Resolver | Non-interactive fallback |
+| --- | --- | --- | --- |
+| AI platforms | no platform flag | `resolveInitTools()` in `commands/init.ts` (checkbox over `getInitToolChoices()`, pre-checked from `defaultChecked`) | AGENTS.md open protocol (no platform dirs) |
+| Spec template | no `--template` / `--registry` | `buildSpecTemplateChoices()` — bundled presets first (`BUILTIN_SPECS`, offline-safe), then marketplace entries, then `custom` | none (scaffolds the project-type spec docs) |
+
+**AGENTS.md open protocol** is a first-class mode, not a degraded install: `tools.length === 0` writes the full workflow structure (spec scaffolds, `workspace/`, `.memerig/agents/`, `.gitattributes`) plus the root `AGENTS.md` managed block, and prints a notice naming the protocol. Any agent that reads `AGENTS.md` drives `.memerig/workflow.md` + `.memerig/scripts/`. Do not reintroduce a `baseOnly` early return keyed on the platform count — it silently stripped `workspace/`, channel agents, and the journal merge rule.
+
+Bundled preset ids bypass the download path in both directions: `--template <bundled-id>` short-circuits before the index probe, and a picker selection sets `selectedBuiltinSpec` so `installBuiltinSpec()` copies from disk after `createWorkflowStructure()`.
+
+---
+
 ## Command Format by Platform
 
 | Platform    | Command Format                                                         | File Format                                                   | Example (finish-work)  |

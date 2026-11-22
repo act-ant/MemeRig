@@ -39,12 +39,37 @@ const catalogPath = repoSpecRoot
   ? path.join(repoRoot, "marketplace", "index.json")
   : path.resolve(__dirname, "../templates/marketplace-index.json");
 const catalog = JSON.parse(fs.readFileSync(catalogPath, "utf-8")) as {
-  templates: { id: string; type: string; bundled?: boolean }[];
+  templates: {
+    id: string;
+    type: string;
+    name?: string;
+    description?: string;
+    bundled?: boolean;
+  }[];
 };
 
-export const BUILTIN_SPEC_IDS: readonly string[] = catalog.templates
+/** Catalog entry for a bundled spec preset (id + human-facing label). */
+export interface BuiltinSpecEntry {
+  id: string;
+  name: string;
+  description: string;
+}
+
+/**
+ * Bundled spec presets, in marketplace order. Consumers that render a picker
+ * need the label too; keeping it here preserves the single catalog read.
+ */
+export const BUILTIN_SPECS: readonly BuiltinSpecEntry[] = catalog.templates
   .filter((entry) => entry.type === "spec" && entry.bundled === true)
-  .map((entry) => entry.id);
+  .map((entry) => ({
+    id: entry.id,
+    name: entry.name ?? entry.id,
+    description: entry.description ?? "",
+  }));
+
+export const BUILTIN_SPEC_IDS: readonly string[] = BUILTIN_SPECS.map(
+  (entry) => entry.id,
+);
 
 export type BuiltinSpecId = (typeof BUILTIN_SPEC_IDS)[number];
 

@@ -13,6 +13,7 @@ import {
   configurePlatform,
   getConfiguredPlatforms,
   getPlatformsWithPythonHooks,
+  type InitToolChoice,
 } from "../configurators/index.js";
 import {
   getPythonCommandForPlatform,
@@ -67,11 +68,20 @@ import {
 import { setupProxy, maskProxyUrl } from "../utils/proxy.js";
 import { toPosix } from "../utils/posix.js";
 import { updateHashes } from "../utils/template-hash.js";
-import { getBuiltinSpecDirectory } from "../utils/builtin-specs.js";
+import {
+  BUILTIN_SPECS,
+  getBuiltinSpecDirectory,
+  isBuiltinSpecId,
+} from "../utils/builtin-specs.js";
 
 const MIN_PYTHON_MAJOR = 3;
 const MIN_PYTHON_MINOR = 9;
 const PYTHON_VERSION_RE = /Python (\d+)\.(\d+)/;
+
+/** Picker value meaning "no preset — scaffold the default spec docs". */
+const BLANK_SPEC_VALUE = "blank";
+/** Picker value meaning "ask for a custom registry source". */
+const CUSTOM_SPEC_VALUE = "__custom__";
 
 function collectSpecPaths(cwd: string): Set<string> {
   const specRoot = path.join(cwd, PATHS.SPEC);
@@ -1119,6 +1129,120 @@ async function installInitSpecs(
   }
 }
 
+/** How `memerig init` decided which AI platforms to configure. */
+export type InitToolMode = "explicit" | "interactive" | "open-protocol";
+
+/**
+ * Resolve the platforms `memerig init` will configure.
+ *
+ * Precedence, in order:
+ * 1. Explicit flags (`--claude`, `--cursor`, …) win, with or without `-y`.
+ * 2. A non-interactive caller (`-y`, piped stdin, CI) never reaches inquirer
+ *    and falls back to the AGENTS.md open protocol — a closed stdin must not
+ *    surface as `ERR_USE_AFTER_CLOSE`.
+ * 3. Interactive selection; submitting nothing also means open protocol.
+ */
+export async function resolveInitTools(params: {
+  explicitTools: string[];
+  interactive: boolean;
+  promptPlatforms: () => Promise<string[]>;
+}): Promise<{ tools: string[]; mode: InitToolMode }> {
+  if (params.explicitTools.length > 0) {
+    return { tools: params.explicitTools, mode: "explicit" };
+  }
+  if (!params.interactive) {
+    return { tools: [], mode: "open-protocol" };
+  }
+  const picked = await params.promptPlatforms();
+  return {
+    tools: picked,
+    mode: picked.length > 0 ? "interactive" : "open-protocol",
+  };
+}
+
+/**
+ * Platform checkbox prompt. Pre-checks mirror `defaultChecked`; an empty
+ * submission selects the AGENTS.md open protocol, which is a supported mode
+ * rather than an error.
+ */
+async function promptPlatformSelection(
+  choices: InitToolChoice[],
+): Promise<string[]> {
+  const answers = await inquirer.prompt<{ tools: string[] }>([
+    {
+      type: "checkbox",
+      name: "tools",
+      message:
+        "Select AI tools to configure (space to toggle; none = AGENTS.md open protocol):",
+      choices: choices.map((choice) => ({
+        name: choice.name,
+        value: choice.key,
+        checked: choice.defaultChecked,
+      })),
+    },
+  ]);
+  return answers.tools ?? [];
+}
+
+/** Console summary for the platform-agnostic mode. */
+function printOpenProtocolNotice(): void {
+  console.log(
+    chalk.blue("📄 AGENTS.md open protocol: no AI platform selected."),
+  );
+  console.log(
+    chalk.gray(
+      "   Any agent that reads AGENTS.md can drive .memerig/workflow.md and .memerig/scripts/.",
+    ),
+  );
+  console.log(
+    chalk.gray(
+      "   Add platforms later: memerig init --claude --cursor --codex …",
+    ),
+  );
+}
+
+/** One entry of the `Select a spec template` list. */
+export interface SpecChoice {
+  name: string;
+  value: string;
+}
+
+/**
+ * Build the spec-template picker list.
+ *
+ * Order: `from scratch` (default), bundled presets (offline-safe), marketplace
+ * entries that are not bundled, then the custom-registry escape hatch. A
+ * bundled id shadows a same-id remote entry so labels stay stable offline.
+ */
+export function buildSpecTemplateChoices(
+  builtins: readonly { id: string; name: string }[],
+  remote: readonly { id: string; name: string }[],
+  options: { includeCustom?: boolean } = {},
+): SpecChoice[] {
+  const builtinIds = new Set(builtins.map((entry) => entry.id));
+  const choices: SpecChoice[] = [
+    { name: "from scratch (default)", value: BLANK_SPEC_VALUE },
+    ...builtins.map((entry) => ({
+      name: `${entry.id} (${entry.name})`,
+      value: entry.id,
+    })),
+  ];
+
+  for (const entry of remote) {
+    if (builtinIds.has(entry.id)) continue;
+    choices.push({ name: `${entry.id} (${entry.name})`, value: entry.id });
+  }
+
+  if (options.includeCustom) {
+    choices.push({
+      name: "custom (enter a registry source)",
+      value: CUSTOM_SPEC_VALUE,
+    });
+  }
+
+  return choices;
+}
+
 export async function init(options: InitOptions): Promise<void> {
   // Refuse to run in $HOME — running here would scoop platform runtime data
   // (Claude/Codex/OpenCode session histories etc.) into the memerig hash
@@ -1211,10 +1335,13 @@ export async function init(options: InitOptions): Promise<void> {
   // ==========================================================================
 
   const hasTemplateRequest = !!options.template || !!options.registry;
-  const builtinSpec =
+  // Reassigned by the interactive spec picker when the user chooses a bundled
+  // preset; `--template <builtin>` seeds it from the flag.
+  let selectedBuiltinSpec =
     options.template && !options.registry
       ? getBuiltinSpecDirectory(options.template)
       : undefined;
+  const builtinSpec = selectedBuiltinSpec;
   const useMarketplace =
     Boolean(options.registry) ||
     Boolean(options.template && options.template !== "blank" && !builtinSpec);
@@ -1451,9 +1578,16 @@ export async function init(options: InitOptions): Promise<void> {
   }
 
   // Tool definitions derived from platform registry
-  const tools = getInitToolChoices()
+  const toolChoices = getInitToolChoices();
+  const explicitTools = toolChoices
     .filter((tool) => options[tool.key as keyof InitOptions])
     .map((tool) => tool.key);
+  const { tools, mode: toolMode } = await resolveInitTools({
+    explicitTools,
+    interactive: !options.yes && Boolean(process.stdin.isTTY),
+    promptPlatforms: () => promptPlatformSelection(toolChoices),
+  });
+  if (toolMode === "open-protocol") printOpenProtocolNotice();
 
   // Treat unknown project type as fullstack
   const projectType: ProjectType =
@@ -1484,8 +1618,11 @@ export async function init(options: InitOptions): Promise<void> {
     ? `${registry.rawBaseUrl}/index.json`
     : TEMPLATE_INDEX_URL;
 
-  if (monorepoPackages || !useMarketplace) {
+  if (monorepoPackages) {
     // Monorepo: template selection already handled above
+  } else if (options.template && selectedBuiltinSpec) {
+    // Bundled preset (`--template trellis` …): installed from disk after the
+    // workflow structure is created; no index probe, no download.
   } else if (options.template) {
     // Template specified via --template flag
     selectedTemplate = options.template;
@@ -1502,8 +1639,10 @@ export async function init(options: InitOptions): Promise<void> {
       }
       fetchedTemplates = probeResult.templates;
     }
-  } else if (!options.yes) {
-    // Interactive mode: show template selection
+  } else if (!options.yes && process.stdin.isTTY) {
+    // Interactive mode: show template selection. Bundled presets are always
+    // offered (offline-safe); marketplace entries are appended when the index
+    // is reachable.
     const timeoutSec = TIMEOUTS.INDEX_FETCH_MS / 1000;
     const sourceLabel = registry ? registry.gigetSource : TEMPLATE_INDEX_URL;
     console.log(
@@ -1527,7 +1666,11 @@ export async function init(options: InitOptions): Promise<void> {
       registryProbeError = probeResult.error;
       registryBackend = probeResult.backend;
     } else {
-      templates = await fetchTemplateIndex(indexUrl);
+      try {
+        templates = await fetchTemplateIndex(indexUrl);
+      } catch {
+        templates = [];
+      }
     }
     clearInterval(ticker);
     // Clear the loading line
@@ -1553,32 +1696,22 @@ export async function init(options: InitOptions): Promise<void> {
           "   Could not fetch templates (offline or server unavailable).",
         ),
       );
-      console.log(chalk.gray("   Using blank templates.\n"));
+      console.log(chalk.gray("   Using bundled presets only.\n"));
     }
 
-    if (templates.length > 0) {
-      // Build template choices
-      const specTemplates = templates
-        .filter((t) => t.type === "spec")
-        .map((t) => ({
-          name: `${t.id} (${t.name})`,
-          value: t.id,
-        }));
+    const remoteSpecTemplates = templates
+      .filter((t) => t.type === "spec")
+      .map((t) => ({ id: t.id, name: t.name }));
 
-      const templateChoices = registry
-        ? specTemplates
-        : [
-            {
-              name: "from scratch (default)",
-              value: "blank",
-            },
-            ...specTemplates,
-            {
-              name: "custom (enter a registry source)",
-              value: "__custom__",
-            },
-          ];
+    // Bundled presets first so a first install is usable offline; a same-id
+    // marketplace entry is deduped in favor of the bundled label.
+    const templateChoices = buildSpecTemplateChoices(
+      registry ? [] : BUILTIN_SPECS,
+      remoteSpecTemplates,
+      { includeCustom: !registry },
+    );
 
+    if (templateChoices.length > 0) {
       // Loop to allow returning from custom source input back to the picker
       let templatePicked = false;
       while (templateChoices.length > 0 && !templatePicked) {
@@ -1588,11 +1721,11 @@ export async function init(options: InitOptions): Promise<void> {
             name: "template",
             message: "Select a spec template:",
             choices: templateChoices,
-            default: registry ? undefined : "blank",
+            default: registry ? undefined : BLANK_SPEC_VALUE,
           },
         ]);
 
-        if (templateAnswer.template === "__custom__") {
+        if (templateAnswer.template === CUSTOM_SPEC_VALUE) {
           // Prompt for custom registry source (empty → back to picker)
           const customSource = await askInput(
             "Enter registry source (e.g., gh:myorg/myrepo/specs), or press Enter to go back: ",
@@ -1696,8 +1829,17 @@ export async function init(options: InitOptions): Promise<void> {
           }
         } else {
           templatePicked = true;
-          if (templateAnswer.template !== "blank") {
-            selectedTemplate = templateAnswer.template;
+          if (templateAnswer.template !== BLANK_SPEC_VALUE) {
+            const pickedBuiltinSpec = isBuiltinSpecId(templateAnswer.template)
+              ? getBuiltinSpecDirectory(templateAnswer.template)
+              : undefined;
+            if (pickedBuiltinSpec) {
+              // Bundled preset: installed from disk after the workflow
+              // structure is created, no network and no remote download.
+              selectedBuiltinSpec = pickedBuiltinSpec;
+            } else {
+              selectedTemplate = templateAnswer.template;
+            }
 
             // Check if spec directory already exists and ask what to do
             const specDir = path.join(cwd, PATHS.SPEC);
@@ -1887,19 +2029,17 @@ export async function init(options: InitOptions): Promise<void> {
     console.log(chalk.blue("📁 Creating workflow structure..."));
     await createWorkflowStructure(cwd, {
       projectType,
-      skipSpecTemplates: !useMarketplace || useRemoteTemplate,
+      skipSpecTemplates:
+        useRemoteTemplate ||
+        Boolean(selectedBuiltinSpec) ||
+        Boolean(monorepoPackages),
       packages: useMarketplace ? monorepoPackages : undefined,
-      baseOnly:
-        tools.length === 0 &&
-        !options.withOnboarding &&
-        !options.workflow &&
-        !options.workflowSource,
       remoteSpecPackages,
       workflowMdOverride,
     });
-    if (builtinSpec) {
+    if (selectedBuiltinSpec) {
       await installBuiltinSpec(
-        builtinSpec,
+        selectedBuiltinSpec,
         path.join(cwd, PATHS.SPEC),
         options.overwrite ?? false,
       );

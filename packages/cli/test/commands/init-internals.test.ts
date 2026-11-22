@@ -6,8 +6,10 @@ vi.mock("node:child_process", () => ({
 }));
 
 import {
+  buildSpecTemplateChoices,
   isSupportedPythonVersion,
   requireSupportedPython,
+  resolveInitTools,
   resolveSupportedPython,
 } from "../../src/commands/init.js";
 import {
@@ -203,5 +205,97 @@ describe("resolveSupportedPython", () => {
 
     const result = resolveSupportedPython();
     expect(result.version).toMatch(/sandbox-restricted/);
+  });
+});
+
+describe("resolveInitTools", () => {
+  const neverPrompt = () => {
+    throw new Error("promptPlatforms must not be called");
+  };
+
+  it("lets explicit platform flags win, even in interactive mode", async () => {
+    const result = await resolveInitTools({
+      explicitTools: ["claude", "cursor"],
+      interactive: true,
+      promptPlatforms: neverPrompt,
+    });
+
+    expect(result).toEqual({
+      tools: ["claude", "cursor"],
+      mode: "explicit",
+    });
+  });
+
+  it("falls back to the AGENTS.md open protocol without a TTY", async () => {
+    const result = await resolveInitTools({
+      explicitTools: [],
+      interactive: false,
+      promptPlatforms: neverPrompt,
+    });
+
+    expect(result).toEqual({ tools: [], mode: "open-protocol" });
+  });
+
+  it("treats an empty interactive selection as the open protocol", async () => {
+    const result = await resolveInitTools({
+      explicitTools: [],
+      interactive: true,
+      promptPlatforms: async () => [],
+    });
+
+    expect(result).toEqual({ tools: [], mode: "open-protocol" });
+  });
+
+  it("returns the interactive selection as-is", async () => {
+    const result = await resolveInitTools({
+      explicitTools: [],
+      interactive: true,
+      promptPlatforms: async () => ["codex"],
+    });
+
+    expect(result).toEqual({ tools: ["codex"], mode: "interactive" });
+  });
+});
+
+describe("buildSpecTemplateChoices", () => {
+  const builtins = [
+    { id: "trellis", name: "Trellis Layered Spec" },
+    { id: "game-dev", name: "Game Development" },
+  ];
+
+  it("offers bundled presets when the marketplace is unreachable", () => {
+    const choices = buildSpecTemplateChoices(builtins, []);
+
+    expect(choices.map((choice) => choice.value)).toEqual([
+      "blank",
+      "trellis",
+      "game-dev",
+    ]);
+    expect(choices[0].name).toBe("from scratch (default)");
+  });
+
+  it("appends marketplace-only entries and dedupes bundled ids", () => {
+    const choices = buildSpecTemplateChoices(builtins, [
+      { id: "trellis", name: "Remote Trellis" },
+      { id: "nextjs-fullstack", name: "Next.js Fullstack" },
+    ]);
+
+    expect(choices.map((choice) => choice.value)).toEqual([
+      "blank",
+      "trellis",
+      "game-dev",
+      "nextjs-fullstack",
+    ]);
+    expect(choices[1].name).toBe("trellis (Trellis Layered Spec)");
+  });
+
+  it("only adds the custom-registry slot when requested", () => {
+    const without = buildSpecTemplateChoices(builtins, []);
+    const withCustom = buildSpecTemplateChoices(builtins, [], {
+      includeCustom: true,
+    });
+
+    expect(without.some((choice) => choice.value === "__custom__")).toBe(false);
+    expect(withCustom.at(-1)?.value).toBe("__custom__");
   });
 });

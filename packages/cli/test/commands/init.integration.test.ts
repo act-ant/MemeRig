@@ -50,6 +50,7 @@ vi.mock("giget", async () => {
 // === Imports ===
 
 import { init } from "../../src/commands/init.js";
+import inquirer from "inquirer";
 import { VERSION } from "../../src/constants/version.js";
 import { DIR_NAMES, FILE_NAMES, PATHS } from "../../src/constants/paths.js";
 import { collectPlatformTemplates } from "../../src/configurators/index.js";
@@ -91,20 +92,74 @@ describe("init() integration", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("initializes local tasks without project specs, onboarding, or platforms", async () => {
+  it("initializes the AGENTS.md open protocol when no platform is selected", async () => {
     const fetch = vi.fn().mockRejectedValue(new Error("Network disabled"));
     vi.stubGlobal("fetch", fetch);
     await init({});
     const memerig = path.join(tmpDir, DIR_NAMES.WORKFLOW);
     expect(fs.existsSync(path.join(tmpDir, PATHS.SCRIPTS, "task.py"))).toBe(true);
-    expect(fs.existsSync(path.join(tmpDir, PATHS.SPEC))).toBe(false);
+    // Open protocol still gets the full workflow structure: spec scaffolds,
+    // workspace, channel runtime agents, and the journal merge rule.
+    expect(fs.existsSync(path.join(tmpDir, PATHS.SPEC))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, PATHS.WORKSPACE))).toBe(true);
+    expect(fs.existsSync(path.join(memerig, "agents"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".gitattributes"))).toBe(true);
     expect(fs.readdirSync(path.join(tmpDir, PATHS.TASKS))).toEqual([]);
+    // No platform directories, and no prompts (stdin is not a TTY here).
     expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, "AGENTS.md"))).toBe(true);
+    expect(fs.readFileSync(path.join(tmpDir, "AGENTS.md"), "utf-8")).toContain(
+      ".memerig/workflow.md",
+    );
+    expect(
+      vi
+        .mocked(console.log)
+        .mock.calls.flat()
+        .some(
+          (part) =>
+            typeof part === "string" &&
+            part.includes("AGENTS.md open protocol"),
+        ),
+    ).toBe(true);
     expect(fs.readFileSync(path.join(memerig, "config.yaml"), "utf-8")).toMatch(/^ {2}version_control: local$/m);
     expect(fs.readFileSync(path.join(memerig, ".gitignore"), "utf-8")).toMatch(/^\/tasks\/$/m);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("configures the interactively selected platform and bundled preset", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("Network disabled")),
+    );
+    const originalIsTTY = Object.getOwnPropertyDescriptor(
+      process.stdin,
+      "isTTY",
+    );
+    Object.defineProperty(process.stdin, "isTTY", {
+      configurable: true,
+      value: true,
+    });
+    try {
+      vi.mocked(inquirer.prompt)
+        .mockResolvedValueOnce({ tools: ["claude"] })
+        .mockResolvedValueOnce({ withStatusline: false })
+        .mockResolvedValueOnce({ template: "trellis" });
+
+      await init({});
+
+      expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(false);
+      expect(fs.existsSync(path.join(tmpDir, PATHS.SPEC, "index.md"))).toBe(
+        true,
+      );
+    } finally {
+      if (originalIsTTY) {
+        Object.defineProperty(process.stdin, "isTTY", originalIsTTY);
+      } else {
+        Reflect.deleteProperty(process.stdin, "isTTY");
+      }
+    }
   });
 
   it("leaves a fresh checkout untouched when an explicit template is unknown", async () => {

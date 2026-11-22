@@ -1,0 +1,2 @@
+{"file": ".memerig/spec/cli/backend/platform-integration.md", "reason": "verify no prompt path fires without a TTY"}
+{"file": ".memerig/spec/cli/unit-test/integration-patterns.md", "reason": "command-level test expectations for init"}

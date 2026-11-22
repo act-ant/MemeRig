@@ -56,8 +56,6 @@ interface DocDefinition {
 export interface WorkflowOptions {
   /** Detected or specified project type. */
   projectType: ProjectType;
-  /** Leave journaling and channel agent files to explicit platform/workflow setup. */
-  baseOnly?: boolean;
   /** Skip creating local spec templates (when using remote template) — single-repo mode */
   skipSpecTemplates?: boolean;
   /** Detected monorepo packages (enables monorepo spec creation) */
@@ -159,7 +157,6 @@ export async function createWorkflowStructure(
   }
 
   ensureDir(path.join(cwd, PATHS.TASKS));
-  if (options?.baseOnly) return;
 
   // Ensure project-root .gitattributes carries the journal merge=union rule
   // (additive-only — never overwrites a user's existing file wholesale).
