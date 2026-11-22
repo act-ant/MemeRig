@@ -1,0 +1,9 @@
+{
+  "version": "0.7.0",
+  "description": "First MemeRig stable release: rebranded packages, task protocol in memerig-core, provenance-backed releases",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Highlights:**\n- Packages are now `memerig` (CLI) and `memerig-core` (SDK).\n- `memerig-core` exposes the task protocol (`schema`, `protocol`, `records`, `paths`) that MemeRig's own project workflow uses.\n- Releases publish through npm trusted publishing (OIDC): published tarballs carry provenance attestations and CI holds no long-lived npm token.",
+  "migrations": [],
+  "notes": "Package name changed to `memerig`; install with `npm install -g memerig`. Run `memerig update` to refresh templates and hooks."
+}

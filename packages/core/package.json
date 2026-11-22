@@ -1,6 +1,6 @@
 {
   "name": "memerig-core",
-  "version": "0.6.17",
+  "version": "0.7.0",
   "description": "MemeRig core SDK — channel and task domain primitives consumed by the MemeRig CLI and downstream Node services",
   "type": "module",
   "main": "./dist/index.js",

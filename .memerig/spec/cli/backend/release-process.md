@@ -44,6 +44,31 @@ node packages/cli/scripts/release-preflight.js verify-npm --package all
 
 ---
 
+## Trusted publishing (OIDC), no npm token
+
+Publishing authenticates with npm [trusted publishing](https://docs.npmjs.com/trusted-publishers): GitHub Actions mints an OIDC token (`permissions: id-token: write`) and npm exchanges it for a short-lived publish credential. There is **no `NPM_TOKEN` secret** in the repository, and it must not be re-added as a workaround.
+
+Prerequisites, in order:
+
+1. **The package must already exist on the public registry.** Trusted publishing can only be configured for a package that is already published, so the *first* publish of a new package name is token-based or manual (one-off bootstrap). Revoke that token / disallow token publishing immediately afterwards.
+2. On `npmjs.com` → package → Settings → Trusted Publisher → GitHub Actions: owner `blackplume233`, repository `MemeRig`, workflow filename `publish.yml`, environment blank, allowed action "`npm publish`". Configure it for **both** `memerig` and `memerig-core`.
+3. A newly created trusted-publisher configuration must complete a successful publish within **2 days** or it expires and has to be recreated.
+4. After the first OIDC publish succeeds, set package Settings → Publishing access to "Require two-factor authentication and disallow tokens".
+
+CI constraints implied by the above:
+
+| Requirement | Value | Why |
+|---|---|---|
+| Job permission | `id-token: write` | OIDC token for npm |
+| Node | 24 | trusted publishing needs Node >= 22.14 |
+| npm | >= 11.5.1 | bundled with Node 24 |
+| pnpm | 12.x | `pnpm publish` on pnpm 10 has no OIDC support (10.x implements publish natively and never delegates to the npm CLI) |
+| `NODE_AUTH_TOKEN` | absent | a token must not shadow the OIDC exchange |
+
+Provenance is generated automatically under trusted publishing for a public package from a public repository. Do not set `NPM_CONFIG_PROVENANCE` by hand.
+
+---
+
 ## Version invariants
 
 | Invariant | Rule |
@@ -233,6 +258,7 @@ git -C "$tmpdir" init -q
 - [ ] Worktree is clean except intentional release changes.
 - [ ] Relevant coding specs have been read.
 - [ ] Manifest exists for the target version.
+- [ ] Trusted publisher configured on npmjs.com for **both** `memerig` and `memerig-core` (owner `blackplume233`, repo `MemeRig`, workflow `publish.yml`), or — for the first publish of a new package name — the one-off bootstrap publish is done and its token revoked.
 - [ ] Release notes for the target version are written (the manifest `changelog`).
 - [ ] `node packages/cli/scripts/release-preflight.js check-versions` passes.
 - [ ] `node packages/cli/scripts/release-preflight.js verify-packed-cli` passes.
