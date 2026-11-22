@@ -3,7 +3,7 @@
   "name": "npm-publish-oidc",
   "title": "npm publish automation: OIDC trusted publishing for 0.7.0",
   "description": "Enable token-free npm publishing for memerig/memerig-core via npm Trusted Publishing (OIDC), align version to 0.7.0, add 0.7.0 migration manifest",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": "cli",
@@ -11,7 +11,7 @@
   "creator": "codex",
   "assignee": "codex",
   "createdAt": "2026-11-22T08:40:52Z",
-  "completedAt": null,
+  "completedAt": "2026-11-22T08:48:03Z",
   "branch": "main",
   "base_branch": "main",
   "worktree_path": null,
@@ -24,5 +24,6 @@
   "notes": "",
   "meta": {},
   "schemaVersion": 1,
-  "updatedAt": "2026-11-22T08:40:52Z"
+  "updatedAt": "2026-11-22T08:48:03Z",
+  "closedAt": "2026-11-22T08:48:03Z"
 }
