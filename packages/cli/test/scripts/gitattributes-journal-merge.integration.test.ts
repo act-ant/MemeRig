@@ -17,7 +17,7 @@ import path from "node:path";
 
 const GITATTRIBUTES_TEMPLATE = path.resolve(
   __dirname,
-  "../../src/templates/memerig/gitattributes.txt",
+  "../../../templates/assets/memerig/gitattributes.txt",
 );
 
 function git(cwd: string, ...args: string[]): { status: number; stdout: string; stderr: string } {

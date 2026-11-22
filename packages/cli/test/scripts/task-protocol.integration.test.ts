@@ -16,7 +16,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 const TEMPLATE_SCRIPTS = path.resolve(
   __dirname,
-  "../../src/templates/memerig/scripts",
+  "../../../templates/assets/memerig/scripts",
 );
 
 function findPython(): string | null {

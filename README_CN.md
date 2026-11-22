@@ -61,7 +61,7 @@ MemeRig 把每个任务分成四个阶段：
 
 ## 开发 MemeRig
 
-MemeRig 用 MemeRig 自己开发：仓库里的 `.memerig/`、`.claude/`、`.cursor/`、`.opencode/`、`.codex/`、`.pi/`、`.agents/skills/` 由命令行根据 `packages/cli/src/templates/` 生成。
+MemeRig 用 MemeRig 自己开发：仓库里的 `.memerig/`、`.claude/`、`.cursor/`、`.opencode/`、`.codex/`、`.pi/`、`.agents/skills/` 由命令行根据 `packages/templates/assets/` 生成。
 
 ```bash
 pnpm install

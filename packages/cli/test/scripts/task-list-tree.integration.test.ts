@@ -2,7 +2,7 @@
  * Integration tests for `task.py list` tree rendering (#402).
  *
  * The python script lives under
- * `src/templates/memerig/scripts/task.py` (+ `common/task_store.py` for
+ * `../templates/assets/memerig/scripts/task.py` (+ `common/task_store.py` for
  * `set-meta`); this test stamps the real templates into a fresh git repo
  * and exercises the actual `python3 task.py list` / `list --json` /
  * `create --meta` / `set-meta` paths.
@@ -16,7 +16,7 @@ import path from "node:path";
 
 const TEMPLATE_SCRIPTS = path.resolve(
   __dirname,
-  "../../src/templates/memerig/scripts",
+  "../../../templates/assets/memerig/scripts",
 );
 const PYTHON = process.platform === "win32" ? "python" : "python3";
 

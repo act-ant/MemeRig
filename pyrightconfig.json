@@ -2,7 +2,7 @@
   "include": [
     ".memerig/scripts/**/*.py",
     ".claude/hooks/**/*.py",
-    "packages/cli/src/templates/**/*.py"
+    "packages/templates/assets/**/*.py"
   ],
   "exclude": ["**/node_modules", "**/__pycache__", "dist"],
   "typeCheckingMode": "standard",

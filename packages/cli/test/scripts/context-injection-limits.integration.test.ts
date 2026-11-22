@@ -2,11 +2,11 @@
  * Integration tests for sub-agent context injection limits (issue #441).
  *
  * Covers two templates:
- *   - `src/templates/memerig/scripts/common/config.py` — config parsing
+ *   - `../templates/assets/memerig/scripts/common/config.py` — config parsing
  *     (`get_context_injection_limits`)
- *   - `src/templates/shared-hooks/inject-subagent-context.py` — truncation,
+ *   - `../templates/assets/shared-hooks/inject-subagent-context.py` — truncation,
  *     total-budget degradation, UTF-8 safety
- *   - `src/templates/memerig/scripts/common/task_context.py` — `task.py
+ *   - `../templates/assets/memerig/scripts/common/task_context.py` — `task.py
  *     validate` path resolution and hygiene warnings
  *
  * Scripts are stamped into a fresh temp dir and exercised through the real
@@ -21,7 +21,7 @@ import path from "node:path";
 
 const TEMPLATE_SCRIPTS = path.resolve(
   __dirname,
-  "../../src/templates/memerig/scripts",
+  "../../../templates/assets/memerig/scripts",
 );
 const TASK_CONTEXT_PATH = path.join(
   TEMPLATE_SCRIPTS,
@@ -30,7 +30,7 @@ const TASK_CONTEXT_PATH = path.join(
 );
 const HOOK_PATH = path.resolve(
   __dirname,
-  "../../src/templates/shared-hooks/inject-subagent-context.py",
+  "../../../templates/assets/shared-hooks/inject-subagent-context.py",
 );
 
 describe("task_context.py Python compatibility", () => {

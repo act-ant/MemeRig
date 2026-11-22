@@ -8,20 +8,20 @@ import {
   readContextInjectionLimits,
   MemerigContext,
   truncateUtf8,
-} from "../../src/templates/opencode/lib/memerig-context.js";
+} from "../../../templates/assets/opencode/lib/memerig-context.js";
 import {
   findUserTextPart,
   insertSyntheticTextPart,
   MESSAGES_TRANSFORM_HOOK,
   prependEphemeralText,
-} from "../../src/templates/opencode/lib/context-visibility.js";
+} from "../../../templates/assets/opencode/lib/context-visibility.js";
 import {
   buildSessionContext,
   hasInjectedMemerigContext,
-} from "../../src/templates/opencode/lib/session-utils.js";
-import injectSubagentContextPlugin from "../../src/templates/opencode/plugins/inject-subagent-context.js";
-import sessionStartPlugin from "../../src/templates/opencode/plugins/session-start.js";
-import injectWorkflowStatePlugin from "../../src/templates/opencode/plugins/inject-workflow-state.js";
+} from "../../../templates/assets/opencode/lib/session-utils.js";
+import injectSubagentContextPlugin from "../../../templates/assets/opencode/plugins/inject-subagent-context.js";
+import sessionStartPlugin from "../../../templates/assets/opencode/plugins/session-start.js";
+import injectWorkflowStatePlugin from "../../../templates/assets/opencode/plugins/inject-workflow-state.js";
 
 interface TestContextCollector {
   processed: Set<string>;

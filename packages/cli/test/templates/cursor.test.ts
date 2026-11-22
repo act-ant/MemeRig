@@ -31,7 +31,7 @@ describe("cursor agents frontmatter single-line description", () => {
     it(`${name}.md frontmatter description is a single-line literal (no '|' block scalar)`, () => {
       const filePath = path.join(
         repoRoot,
-        "packages/cli/src/templates/cursor/agents",
+        "packages/templates/assets/cursor/agents",
         `${name}.md`,
       );
       const content = fs.readFileSync(filePath, "utf-8");

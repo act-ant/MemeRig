@@ -1,8 +1,8 @@
 # MemeRig Marketplace
 
-Downloadable templates for MemeRig. The CLI reads `index.json` from the selected
-repository and ref; every `path` in that index is relative to this `marketplace/`
-directory.
+Downloadable templates for MemeRig. The CLI reads `index.json` at the selected
+Git revision. Each `path` is relative to the directory containing that index,
+which can be the root of a standalone registry repository.
 
 ## Structure
 
@@ -42,6 +42,10 @@ The CLI resolves the release copy through `getBuiltinSpecDirectory(id)` in
 by installer help and validation. An installed CLI therefore needs no network access for
 these presets. The default blank initialization installs no spec files at all.
 
+Reusable platform assets such as built-in skills and hooks live in the private
+workspace package `packages/templates/assets/`. The CLI ships those assets
+alongside the bundled starter specs in its npm tarball.
+
 ## Install and adopt
 
 ### From a release artifact (offline)
@@ -64,6 +68,20 @@ For an existing project, apply the preset on a branch and review `git diff` befo
 committing. The installer must preserve files you edited and report conflicts rather than
 silently overwriting them. If your release does not offer the preset selector yet, use one
 of the pinned/manual paths below.
+
+### Install from a standalone registry
+
+Put `index.json`, `specs/`, and `workflows/` in your registry repository and
+publish a Git tag. For a registry with the spec `team-spec` and workflow
+`team-flow`, run these commands from the target project:
+
+```bash
+memerig init --template team-spec --registry gh:myorg/memerig-marketplace#v1.0.0
+memerig workflow --template team-flow --marketplace gh:myorg/memerig-marketplace#v1.0.0
+```
+
+Set each spec entry's `path` to its directory and each workflow entry's `path`
+to its `workflow.md`. A registry can keep its own release cadence.
 
 ### Pin a Git revision
 
@@ -126,9 +144,9 @@ resulting diff.
 
    `path` is relative to `marketplace/`, so a spec directory is `specs/<id>` — never an
    absolute path or a repository-root path.
-3. If the preset is one of the bundled starter specs, add its id to both
-   `packages/cli/src/utils/builtin-specs.ts` (`BUILTIN_SPEC_IDS`) and
-   `packages/cli/scripts/copy-templates.js` (`STARTER_SPEC_IDS`).
+3. To ship an official spec offline, set `"bundled": true` on its index entry.
+   The CLI build copies the spec from `specs/<id>/` and includes the index in
+   the tarball. Installer help reads the bundled IDs from that index.
 4. Verify that every `type: "spec"` entry resolves to a real directory, and that the
    bundled starter presets have their `index.md` entry point:
 

@@ -23,11 +23,11 @@ import path from "node:path";
 
 const TEMPLATE_SCRIPTS = path.resolve(
   __dirname,
-  "../../src/templates/memerig/scripts",
+  "../../../templates/assets/memerig/scripts",
 );
 const HOOK_PATH = path.resolve(
   __dirname,
-  "../../src/templates/shared-hooks/inject-subagent-context.py",
+  "../../../templates/assets/shared-hooks/inject-subagent-context.py",
 );
 
 const TASK = "08-21-demo";

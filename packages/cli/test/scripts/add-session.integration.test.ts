@@ -3,7 +3,7 @@
  * recording state machine (commit evidence, retry convergence, numbering).
  *
  * The python script lives under
- * `src/templates/memerig/scripts/add_session.py`; this test stamps the real
+ * `../templates/assets/memerig/scripts/add_session.py`; this test stamps the real
  * templates into a fresh git repo and exercises the actual `python3
  * add_session.py` paths — no source-string assertions.
  *
@@ -22,7 +22,7 @@ import path from "node:path";
 
 const TEMPLATE_SCRIPTS = path.resolve(
   __dirname,
-  "../../src/templates/memerig/scripts",
+  "../../../templates/assets/memerig/scripts",
 );
 
 const DEVELOPER = "tester";

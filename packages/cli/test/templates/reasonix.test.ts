@@ -28,7 +28,7 @@ describe("reasonix agent frontmatter", () => {
     it(`${name}.md frontmatter declares runAs: subagent`, () => {
       const filePath = path.join(
         repoRoot,
-        "packages/cli/src/templates/reasonix/agents",
+        "packages/templates/assets/reasonix/agents",
         `${name}.md`,
       );
       const content = fs.readFileSync(filePath, "utf-8");

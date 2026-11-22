@@ -17,8 +17,7 @@ const TEMPLATES_ROOT = join(
   dirname(__filename),
   "..",
   "..",
-  "src",
-  "templates",
+  "../templates/assets",
 );
 
 /**

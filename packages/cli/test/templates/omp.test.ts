@@ -13,7 +13,7 @@ import {
 import { collectOmpTemplates } from "../../src/configurators/omp.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const templateDir = path.resolve(__dirname, "../../src/templates/omp");
+const templateDir = path.resolve(__dirname, "../../../templates/assets/omp");
 
 type OmpEventHandler = (event: unknown, ctx?: unknown) => unknown;
 type OmpExtension = (pi: {

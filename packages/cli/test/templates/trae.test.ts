@@ -86,7 +86,7 @@ describe("trae sub-agent recursion guard", () => {
     it(`${name}.md forbids spawning memerig-implement / memerig-check`, () => {
       const mdPath = path.join(
         repoRoot,
-        "packages/cli/src/templates/trae/agents",
+        "packages/templates/assets/trae/agents",
         `${name}.md`,
       );
       const content = fs.readFileSync(mdPath, "utf-8");
@@ -107,7 +107,7 @@ describe("trae has no config.toml (no Codex CLI trust mechanism)", () => {
   it("does not ship a config.toml template", () => {
     const configPath = path.join(
       repoRoot,
-      "packages/cli/src/templates/trae/config.toml",
+      "packages/templates/assets/trae/config.toml",
     );
     expect(fs.existsSync(configPath)).toBe(false);
   });
@@ -116,7 +116,7 @@ describe("trae has no config.toml (no Codex CLI trust mechanism)", () => {
 describe("trae hooks.json registers SessionStart + UserPromptSubmit", () => {
   const hooksPath = path.join(
     repoRoot,
-    "packages/cli/src/templates/trae/hooks.json",
+    "packages/templates/assets/trae/hooks.json",
   );
 
   it("includes version field and wires session-start.py under SessionStart", () => {
@@ -194,7 +194,7 @@ describe("trae platform detection in shared inject-workflow-state.py", () => {
   it("_detect_platform returns 'trae' for a .trae script path", () => {
     const hookPath = path.join(
       repoRoot,
-      "packages/cli/src/templates/shared-hooks/inject-workflow-state.py",
+      "packages/templates/assets/shared-hooks/inject-workflow-state.py",
     );
     const content = fs.readFileSync(hookPath, "utf-8");
     expect(content).toMatch(/if "\.trae" in script_parts:\s*\n\s*return "trae"/);
@@ -207,7 +207,7 @@ describe("trae platform detection in shared session-start.py", () => {
   it("detects .trae directory and TRAE_PROJECT_DIR env", () => {
     const hookPath = path.join(
       repoRoot,
-      "packages/cli/src/templates/shared-hooks/session-start.py",
+      "packages/templates/assets/shared-hooks/session-start.py",
     );
     const content = fs.readFileSync(hookPath, "utf-8");
     expect(content).toMatch(/if "\.trae" in script_parts:\s*\n\s*return "trae"/);

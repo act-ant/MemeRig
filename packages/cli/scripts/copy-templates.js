@@ -1,39 +1,12 @@
 #!/usr/bin/env node
 
-/**
- * Cross-platform script to copy template files to dist/
- *
- * This script copies src/templates/ to dist/templates/ (excluding .ts files).
- *
- * The templates are GENERIC templates for user projects:
- * - src/templates/memerig/ - Workflow scripts and config
- * - src/templates/claude/ - Claude Code commands, agents, hooks
- * - src/templates/cursor/ - Cursor commands
- * - src/templates/iflow/ - iFlow CLI commands, agents, hooks
- * - src/templates/opencode/ - OpenCode commands, agents, hooks
- * - src/templates/codex/ - Codex agents, hooks, config
- * - src/templates/kilo/ - Kilo CLI commands
- * - src/templates/antigravity/ - Antigravity workflows
- * - src/templates/kiro/ - Kiro Code skills
- * - src/templates/gemini/ - Gemini CLI commands (TOML)
- * - src/templates/markdown/ - Markdown templates (spec, guides)
- *
- * Note: We NO LONGER copy from the project's own .memerig/, .cursor/, .claude/
- * because those may be customized for the MemeRig project itself.
- */
+/** Copy workspace template assets and bundled marketplace specs into the CLI. */
 
-import { cpSync, readdirSync, statSync, mkdirSync } from "node:fs";
+import { cpSync, readFileSync, readdirSync, statSync, mkdirSync } from "node:fs";
 import { join, extname } from "node:path";
 
 const EXCLUDED_TEMPLATE_ENTRIES = new Set(["__pycache__", ".DS_Store"]);
 const EXCLUDED_TEMPLATE_EXTENSIONS = new Set([".pyc", ".pyo", ".ts"]);
-
-/**
- * Starter presets bundled for offline installer use. The canonical content is
- * `marketplace/specs/<id>`; `src/utils/builtin-specs.ts` exposes the same ids.
- * Keep the two lists in sync when adding a preset.
- */
-const STARTER_SPEC_IDS = ["learn-harness", "trellis", "game-dev"];
 
 function shouldSkipTemplateEntry(entry) {
   return (
@@ -45,8 +18,7 @@ function shouldSkipTemplateEntry(entry) {
 /**
  * Recursively copy directory, excluding source and runtime cache artifacts.
  * Python hooks are executed during local tests, so ignored `__pycache__`
- * directories can exist in src/templates; they must not be copied into the npm
- * tarball.
+ * directories can exist alongside template assets and must stay out of the tarball.
  *
  * @param {string} src - Source directory
  * @param {string} dest - Destination directory
@@ -71,21 +43,23 @@ function copyDir(src, dest) {
   }
 }
 
-// Copy src/templates to dist/templates
-copyDir("src/templates", "dist/templates");
-console.log("Copied src/templates/ to dist/templates/");
+copyDir("../templates/assets", "dist/templates");
 
-// Copy canonical Marketplace starter specs into the release artifact. These
-// bytes are what getBuiltinSpecDirectory() resolves offline in an installed
-// CLI; the Marketplace copies under marketplace/specs/ remain the source of
-// truth for downloads.
-for (const id of STARTER_SPEC_IDS) {
-  copyDir(
-    join("..", "..", "marketplace", "specs", id),
-    join("dist", "templates", "starter-specs", id),
-  );
+const marketplace = join("..", "..", "marketplace");
+const catalogPath = join(marketplace, "index.json");
+const { templates } = JSON.parse(readFileSync(catalogPath, "utf-8"));
+const starterSpecs = templates.filter((entry) => entry.bundled === true);
+const seen = new Set();
+for (const { id, type, path } of starterSpecs) {
+  if (type !== "spec" || typeof id !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) || path !== `specs/${id}` || seen.has(id)) {
+    throw new Error(`Invalid or duplicate bundled marketplace spec: ${id}`);
+  }
+  seen.add(id);
+  const source = join(marketplace, path);
+  statSync(join(source, "index.md"));
+  copyDir(source, join("dist", "templates", "starter-specs", id));
 }
-console.log("Copied marketplace starter specs to dist/templates/starter-specs/");
+cpSync(catalogPath, join("dist", "templates", "marketplace-index.json"));
 
 // Copy src/migrations/manifests to dist/migrations/manifests
 copyDir("src/migrations/manifests", "dist/migrations/manifests");

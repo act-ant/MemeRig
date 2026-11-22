@@ -133,7 +133,7 @@ describe("codex sub-agent recursion guard (issue #234)", () => {
     it(`${name}.toml developer_instructions forbids spawning memerig-implement / memerig-check`, () => {
       const tomlPath = path.join(
         repoRoot,
-        "packages/cli/src/templates/codex/agents",
+        "packages/templates/assets/codex/agents",
         `${name}.toml`,
       );
       const content = fs.readFileSync(tomlPath, "utf-8");
@@ -157,7 +157,7 @@ describe("codex two-channel sub-agent context (native SubagentStart)", () => {
     it(`${name}.toml uses a marker-gated active-task fallback without legacy collaboration disables`, () => {
       const tomlPath = path.join(
         repoRoot,
-        "packages/cli/src/templates/codex/agents",
+        "packages/templates/assets/codex/agents",
         `${name}.toml`,
       );
       const content = fs.readFileSync(tomlPath, "utf-8");
@@ -189,7 +189,7 @@ describe("codex two-channel sub-agent context (native SubagentStart)", () => {
     ] as const) {
       const tomlPath = path.join(
         repoRoot,
-        "packages/cli/src/templates/codex/agents",
+        "packages/templates/assets/codex/agents",
         `${name}.toml`,
       );
       const content = fs.readFileSync(tomlPath, "utf-8");
@@ -204,7 +204,7 @@ describe("codex two-channel sub-agent context (native SubagentStart)", () => {
   it("keeps research task resolution role-isolated from implement/check manifests", () => {
     const researchPath = path.join(
       repoRoot,
-      "packages/cli/src/templates/codex/agents/memerig-research.toml",
+      "packages/templates/assets/codex/agents/memerig-research.toml",
     );
     const content = fs.readFileSync(researchPath, "utf-8");
 
@@ -218,7 +218,7 @@ describe("codex two-channel sub-agent context (native SubagentStart)", () => {
 describe("codex session-start.py compact SessionStart context", () => {
   const hookPath = path.join(
     repoRoot,
-    "packages/cli/src/templates/codex/hooks/session-start.py",
+    "packages/templates/assets/codex/hooks/session-start.py",
   );
 
   it("uses compact task artifact guidance instead of sub-agent dispatch prose", () => {

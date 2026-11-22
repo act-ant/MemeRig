@@ -6,6 +6,7 @@ on:
     paths:
       - 'packages/cli/**'
       - 'packages/core/**'
+      - 'packages/templates/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - 'package.json'
@@ -17,6 +18,7 @@ on:
     paths:
       - 'packages/cli/**'
       - 'packages/core/**'
+      - 'packages/templates/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - 'package.json'

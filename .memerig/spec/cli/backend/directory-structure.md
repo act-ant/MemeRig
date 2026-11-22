@@ -21,6 +21,9 @@ packages/
 │   │   ├── testing/     # test helpers intended for package consumers
 │   │   └── index.ts     # package public API
 │   └── package.json     # explicit public exports
+├── templates/           # Private template asset package
+│   ├── assets/          # Shared and platform-specific installation assets
+│   └── package.json
 └── cli/                 # memerig: user-facing CLI
     ├── src/
     │   ├── cli/         # CLI entry point and argument parsing
@@ -33,7 +36,7 @@ packages/
     │   │   └── channel/ # Channel command renderers and CLI orchestration
     │   ├── configurators/
     │   ├── constants/
-    │   ├── templates/
+    │   ├── templates/   # Asset readers
     │   ├── types/
     │   ├── utils/
     │   └── index.ts     # CLI package public API
@@ -43,7 +46,7 @@ packages/
 
 ### Dogfooding Directories (Project Root)
 
-The CLI generates managed files in these directories from `packages/cli/src/templates/`. Project-specific specs, tasks, and journals live alongside the generated files in `.memerig/`.
+The CLI generates managed files in these directories from `packages/templates/assets/`. Project-specific specs, tasks, and journals live alongside the generated files in `.memerig/`.
 
 ```
 .cursor/                 # Cursor configuration (dogfooded)
@@ -86,12 +89,13 @@ Use these commands from the repository root to prepare the local CLI and refresh
 | Command | Input | Output |
 | --- | --- | --- |
 | `pnpm build` | Core and CLI TypeScript, shipped templates, migration manifests | Clean build of both packages in their `dist/` directories |
-| `pnpm sync:templates` | `packages/cli/src/templates/` and `packages/cli/src/migrations/manifests/` | Copies non-TypeScript templates and migration manifests into `packages/cli/dist/` |
+| `pnpm sync:templates` | `packages/templates/assets/`, `marketplace/`, and CLI migration manifests | Copies assets, offline presets, the market index, and migration manifests into `packages/cli/dist/` |
 | `pnpm update:self [flags]` | Built CLI and `packages/cli/dist/templates/` | Refreshes the current checkout using `memerig update` |
 
 ### Contracts
 
-- The CLI loads assets from `dist/templates/` at runtime. Edit the shipped sources under `packages/cli/src/templates/` and regenerate the repository's managed copies through `update:self`.
+- The CLI loads assets from `dist/templates/` at runtime. Edit the shipped sources under `packages/templates/assets/` and regenerate the repository's managed copies through `update:self`.
+- `marketplace/index.json` selects offline spec presets with `"bundled": true`. The build requires a unique spec ID, the matching `specs/<id>` path, and an `index.md`. The packed CLI reads the copied index for its offline preset list.
 - `sync:templates` copies and overwrites assets. It does not compile TypeScript, remove deleted assets from `dist/`, or update managed project files.
 - `update:self` forwards flags to the local CLI, inherits terminal I/O and `MEMERIG_PYTHON_CMD`, and returns the child CLI's exit status. Without an override, the CLI renders `python` on Windows and `python3` elsewhere. The usual update prompts protect custom files such as `.memerig/config.yaml`.
 
@@ -112,11 +116,11 @@ Use these commands from the repository root to prepare the local CLI and refresh
 
 ### Verification
 
-Run `pnpm sync:templates` and compare the changed asset in `src/templates/` and `dist/templates/`. Run `pnpm update:self --dry-run` and check that it reports the expected managed change. A checkout already in sync should not report any automatic template updates.
+Run `pnpm sync:templates` and compare the changed asset in `packages/templates/assets/` and `dist/templates/`. Run `pnpm update:self --dry-run` and check that it reports the expected managed change. A checkout already in sync should not report any automatic template updates.
 
 ### Wrong vs correct
 
-Editing `.claude/skills/` in the checkout changes only the local copy. To change what new projects get, edit `packages/cli/src/templates/`, run `pnpm sync:templates`, then run `pnpm update:self`.
+Editing `.claude/skills/` in the checkout changes only the local copy. To change what new projects get, edit `packages/templates/assets/`, run `pnpm sync:templates`, then run `pnpm update:self`.
 
 ---
 
@@ -130,7 +134,8 @@ Editing `.claude/skills/` in the checkout changes only the local copy. To change
 | CLI | `packages/cli/src/cli/` | Parse arguments, display help, call commands |
 | Commands | `packages/cli/src/commands/` | Implement CLI commands, orchestrate actions |
 | Configurators | `packages/cli/src/configurators/` | Copy/generate configuration for tools |
-| Templates | `packages/cli/src/templates/` | Extract template content, provide utilities |
+| Template readers | `packages/cli/src/templates/` | Read source assets in development and packaged assets at runtime |
+| Template assets | `packages/templates/assets/` | Store original skills, commands, platform files, and scaffolding |
 | Types | `packages/cli/src/types/` | CLI-specific TypeScript type definitions |
 | Utils | `packages/cli/src/utils/` | CLI-specific utility functions |
 | Constants | `packages/cli/src/constants/` | CLI constants (paths, names) |
@@ -213,20 +218,20 @@ Templates use `.txt` extension to:
 | Path | Purpose |
 |------|---------|
 | `.memerig/spec/<pkg>/<layer>/*.md` | This repo's dogfood spec (MemeRig documenting its own code) |
-| `packages/cli/src/templates/markdown/spec/<layer>/*.md.txt` | User-facing placeholder templates (ship to new projects via `memerig init`) |
+| `packages/templates/assets/markdown/spec/<layer>/*.md.txt` | User-facing placeholder templates (ship to new projects via `memerig init`) |
 
 If you open-and-edit the wrong one, nothing fails at build / test / lint time — `markdown/index.ts` silently ignores your new file because it only reads the `.md.txt` variants. The drift can persist for years (caught in 2026-04 after ~3 months).
 
 **Prevention checklist** (apply whenever you add or edit a spec-layer file):
 
 1. Write spec content to `.memerig/spec/<pkg>/<layer>/<file>.md` — this is the dogfood location.
-2. Template stubs for users live in `packages/cli/src/templates/markdown/spec/<layer>/<file>.md.txt` — write the user-facing placeholder, NOT the real content.
-3. If the new file is not imported by `packages/cli/src/templates/markdown/index.ts`, it shouldn't exist in that directory. `ls packages/cli/src/templates/markdown/spec/**/*.md` must return empty.
+2. Template stubs for users live in `packages/templates/assets/markdown/spec/<layer>/<file>.md.txt` — write the user-facing placeholder, NOT the real content.
+3. If the new file is not imported by `packages/cli/src/templates/markdown/index.ts`, it shouldn't exist in that directory. `ls packages/templates/assets/markdown/spec/**/*.md` must return empty.
 
 **Audit command**:
 ```bash
 # Every file here must end in .md.txt
-find packages/cli/src/templates/markdown/spec -type f -name "*.md" ! -name "*.md.txt"
+find packages/templates/assets/markdown/spec -type f -name "*.md" ! -name "*.md.txt"
 # (empty output = clean)
 ```
 
@@ -400,9 +405,9 @@ Packages that received a remote template download (tracked via `remoteSpecPackag
 
 - Use the built CLI to refresh this checkout's managed configuration.
 - Describe a platform's file set exactly once, in its `collect<Platform>Templates()`
-- Keep generic templates in `src/templates/markdown/`
+- Keep generic templates in `packages/templates/assets/markdown/`
 - Use `.md.txt` or `.yaml.txt` for template files
-- Edit shipped templates under `packages/cli/src/templates/` and regenerate the managed copies.
+- Edit shipped templates under `packages/templates/assets/` and regenerate the managed copies.
 - When documenting Python commands, identify the host-specific alias or use the template's `{{PYTHON_CMD}}` placeholder.
 
 ### DON'T
@@ -421,7 +426,7 @@ files there behave differently on merge, and this is intentional:
 
 - **`journal-N.md` auto-resolves.** The project ships `.gitattributes` with
   `.memerig/workspace/*/journal-*.md merge=union` (project root; both the
-  bundled template at `packages/cli/src/templates/memerig/gitattributes.txt`
+  bundled template at `packages/templates/assets/memerig/gitattributes.txt`
   and this repo's own dogfooded copy carry the rule). Each session only
   appends a new session block, so a union merge keeps both sides' blocks with
   no conflict markers — there is nothing semantically to resolve.

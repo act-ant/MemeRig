@@ -149,8 +149,7 @@ describe("UserPromptSubmit hook wiring", () => {
       const templatesRoot = join(
         dirname(__filename),
         "..",
-        "src",
-        "templates",
+        "../templates/assets",
       );
       const raw = fs.readFileSync(join(templatesRoot, path), "utf-8");
       const parsed = JSON.parse(raw) as {
@@ -173,8 +172,7 @@ describe("UserPromptSubmit hook wiring", () => {
     const kiroAgentsDir = join(
       dirname(__filename),
       "..",
-      "src",
-      "templates",
+      "../templates/assets",
       "kiro",
       "agents",
     );
@@ -213,12 +211,11 @@ describe("every platform resolves to a marker label workflow.md uses", () => {
     const { fileURLToPath } = await import("node:url");
 
     const testDir = dirname(fileURLToPath(import.meta.url));
-    const scriptsDir = join(testDir, "..", "src", "templates", "memerig", "scripts");
+    const scriptsDir = join(testDir, "..", "..", "templates", "assets", "memerig", "scripts");
     const workflowPath = join(
       testDir,
       "..",
-      "src",
-      "templates",
+      "../templates/assets",
       "memerig",
       "workflow.md",
     );

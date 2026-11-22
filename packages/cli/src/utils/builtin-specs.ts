@@ -11,20 +11,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-/**
- * Preset ids offered by the installer and listed in CLI help.
- *
- * Keep this list in sync with `marketplace/index.json` entries whose
- * `type` is `"spec"` and whose `path` is `specs/<id>`.
- */
-export const BUILTIN_SPEC_IDS = [
-  "learn-harness",
-  "trellis",
-  "game-dev",
-] as const;
-
-export type BuiltinSpecId = (typeof BUILTIN_SPEC_IDS)[number];
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
@@ -48,6 +34,19 @@ const isRepoCheckout =
 const repoSpecRoot = isRepoCheckout
   ? path.join(repoRoot, "marketplace", "specs")
   : undefined;
+
+const catalogPath = repoSpecRoot
+  ? path.join(repoRoot, "marketplace", "index.json")
+  : path.resolve(__dirname, "../templates/marketplace-index.json");
+const catalog = JSON.parse(fs.readFileSync(catalogPath, "utf-8")) as {
+  templates: { id: string; type: string; bundled?: boolean }[];
+};
+
+export const BUILTIN_SPEC_IDS: readonly string[] = catalog.templates
+  .filter((entry) => entry.type === "spec" && entry.bundled === true)
+  .map((entry) => entry.id);
+
+export type BuiltinSpecId = (typeof BUILTIN_SPEC_IDS)[number];
 
 const BUILTIN_SPEC_ROOTS = [
   path.resolve(__dirname, "../templates/starter-specs"),

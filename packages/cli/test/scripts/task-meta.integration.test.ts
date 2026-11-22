@@ -2,8 +2,8 @@
  * Integration tests for `task.py create --meta` and `task.py set-meta`.
  *
  * The python code lives under
- * `src/templates/memerig/scripts/task.py` (subcommand wiring) and
- * `src/templates/memerig/scripts/common/task_store.py` (`cmd_create` /
+ * `../templates/assets/memerig/scripts/task.py` (subcommand wiring) and
+ * `../templates/assets/memerig/scripts/common/task_store.py` (`cmd_create` /
  * `cmd_set_meta`); this test stamps the real templates into a fresh
  * `.memerig/` tree and exercises the actual CLI paths.
  */
@@ -16,7 +16,7 @@ import path from "node:path";
 
 const TEMPLATE_SCRIPTS = path.resolve(
   __dirname,
-  "../../src/templates/memerig/scripts",
+  "../../../templates/assets/memerig/scripts",
 );
 
 const DEVELOPER = "tester";

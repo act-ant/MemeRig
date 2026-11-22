@@ -68,7 +68,7 @@ import {
   workspaceIndexContent,
 } from "../src/templates/markdown/index.js";
 import * as markdownExports from "../src/templates/markdown/index.js";
-import { MemerigContext } from "../src/templates/opencode/lib/memerig-context.js";
+import { MemerigContext } from "../../templates/assets/opencode/lib/memerig-context.js";
 
 afterEach(() => {
   clearManifestCache();
@@ -2247,7 +2247,7 @@ describe("regression: shell to Python migration (beta.0)", () => {
     // getAllScripts() itself stays in sync with the filesystem.
     const scriptsDir = path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
-      "../src/templates/memerig/scripts",
+      "../../templates/assets/memerig/scripts",
     );
     const fsFiles = new Set<string>();
     function walk(dir: string, prefix: string) {
@@ -6536,7 +6536,7 @@ print(json.dumps({
 
   it("[workflow-state-r5] opencode inject-workflow-state.js contains no FALLBACK_BREADCRUMBS dict", () => {
     const jsURL = new URL(
-      "../src/templates/opencode/plugins/inject-workflow-state.js",
+      "../../templates/assets/opencode/plugins/inject-workflow-state.js",
       import.meta.url,
     );
     const js = fs.readFileSync(jsURL, "utf-8");
@@ -6732,8 +6732,7 @@ print(json.dumps({
       path.join(
         __dirname,
         "..",
-        "src",
-        "templates",
+        "../templates/assets",
         "shared-hooks",
         "inject-workflow-state.py",
       ),
@@ -6750,8 +6749,7 @@ print(json.dumps({
         path.join(
           __dirname,
           "..",
-          "src",
-          "templates",
+          "../templates/assets",
           "shared-hooks",
           "inject-workflow-state.py",
         ),
@@ -7379,8 +7377,7 @@ print(len(entries))
     const templatePath = pathJoin(
       dirname(fileURLToPath(import.meta.url)),
       "..",
-      "src",
-      "templates",
+      "../templates/assets",
       "memerig",
       "workflow.md",
     );
@@ -7401,8 +7398,7 @@ print(len(entries))
     const templateRoot = path.join(
       path.dirname(fileURLToPath(import.meta.url)),
       "..",
-      "src",
-      "templates",
+      "../templates/assets",
     );
     const agentFiles = [
       "claude/agents/memerig-implement.md",
@@ -7472,8 +7468,7 @@ print(len(entries))
     const templateRoot = path.join(
       path.dirname(fileURLToPath(import.meta.url)),
       "..",
-      "src",
-      "templates",
+      "../templates/assets",
     );
     const codexAgentFiles = [
       "codex/agents/memerig-implement.toml",
@@ -7534,8 +7529,7 @@ print(len(entries))
     const templateRoot = path.join(
       path.dirname(fileURLToPath(import.meta.url)),
       "..",
-      "src",
-      "templates",
+      "../templates/assets",
     );
     const brainstormFiles = [
       "common/skills/brainstorm.md",
@@ -7557,8 +7551,7 @@ print(len(entries))
     const templateRoot = path.join(
       path.dirname(fileURLToPath(import.meta.url)),
       "..",
-      "src",
-      "templates",
+      "../templates/assets",
     );
     const brainstormFiles = [
       "common/skills/brainstorm.md",
@@ -9156,7 +9149,7 @@ describe("regression: cli_adapter platform support (beta.9, beta.13, beta.16)", 
   // etc.) produces paths that don't resolve.
   it("[migrate-flow-bugs] get_memerig_command_path resolves to generated skill files", () => {
     const pythonCmd = process.platform === "win32" ? "python" : "python3";
-    const scriptsDir = path.join(path.resolve(__dirname, ".."), "src", "templates", "memerig", "scripts");
+    const scriptsDir = path.join(path.resolve(__dirname, ".."), "..", "templates", "assets", "memerig", "scripts");
     const probe = [
       "import json, sys",
       "sys.path.insert(0, sys.argv[1])",
@@ -9198,7 +9191,7 @@ describe("regression: cli_adapter platform support (beta.9, beta.13, beta.16)", 
     // for other agents) and must not trigger codex in that case. Skill dirs
     // carry no brand prefix, so a foreign `meta` skill must not match either.
     const pythonCmd = process.platform === "win32" ? "python" : "python3";
-    const scriptsDir = path.join(path.resolve(__dirname, ".."), "src", "templates", "memerig", "scripts");
+    const scriptsDir = path.join(path.resolve(__dirname, ".."), "..", "templates", "assets", "memerig", "scripts");
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "memerig-detect-"));
     try {
       const skill = (frontmatterName: string) => {
@@ -9356,7 +9349,7 @@ describe("regression: cli_adapter platform support (beta.9, beta.13, beta.16)", 
     // reference the deleted subcommand.
     const pkgRoot = path.resolve(__dirname, "..");
     const copilotStart = fs.readFileSync(
-      path.join(pkgRoot, "src/templates/copilot/prompts/start.prompt.md"),
+      path.join(pkgRoot, "../templates/assets/copilot/prompts/start.prompt.md"),
       "utf-8",
     );
     expect(copilotStart).not.toContain("task.py init-context");
@@ -10291,11 +10284,11 @@ describe("regression: research agent persists findings to task dir", () => {
   // Before 0.5, research agents were read-only and only emitted chat
   // replies, which got compacted away.
   const markdownPlatforms = [
-    "packages/cli/src/templates/claude/agents/memerig-research.md",
-    "packages/cli/src/templates/cursor/agents/memerig-research.md",
-    "packages/cli/src/templates/qoder/agents/memerig-research.md",
-    "packages/cli/src/templates/codebuddy/agents/memerig-research.md",
-    "packages/cli/src/templates/droid/droids/memerig-research.md",
+    "packages/templates/assets/claude/agents/memerig-research.md",
+    "packages/templates/assets/cursor/agents/memerig-research.md",
+    "packages/templates/assets/qoder/agents/memerig-research.md",
+    "packages/templates/assets/codebuddy/agents/memerig-research.md",
+    "packages/templates/assets/droid/droids/memerig-research.md",
   ];
 
   const __dirname2 = path.dirname(fileURLToPath(import.meta.url));
@@ -10320,8 +10313,8 @@ describe("regression: research agent persists findings to task dir", () => {
   // line entirely so the sub-agent inherits parent tools — see issue #224
   // and research/agent-tools-frontmatter.md. The persist contract still
   // applies (body references {TASK_DIR}/research/ and the PERSIST keyword).
-  it("[packages/cli/src/templates/gemini/agents/memerig-research.md] omits tools line + has persist instruction", () => {
-    const rel = "packages/cli/src/templates/gemini/agents/memerig-research.md";
+  it("[packages/templates/assets/gemini/agents/memerig-research.md] omits tools line + has persist instruction", () => {
+    const rel = "packages/templates/assets/gemini/agents/memerig-research.md";
     const content = fs.readFileSync(path.join(repoRoot, rel), "utf-8");
     const fm = content.split("---\n")[1] ?? "";
     expect(fm).not.toMatch(/^tools:/m);
@@ -10334,7 +10327,7 @@ describe("regression: research agent persists findings to task dir", () => {
     const content = fs.readFileSync(
       path.join(
         repoRoot,
-        "packages/cli/src/templates/codex/agents/memerig-research.toml",
+        "packages/templates/assets/codex/agents/memerig-research.toml",
       ),
       "utf-8",
     );
@@ -10347,7 +10340,7 @@ describe("regression: research agent persists findings to task dir", () => {
     const content = fs.readFileSync(
       path.join(
         repoRoot,
-        "packages/cli/src/templates/kiro/agents/memerig-research.json",
+        "packages/templates/assets/kiro/agents/memerig-research.json",
       ),
       "utf-8",
     );
@@ -10364,7 +10357,7 @@ describe("regression: research agent persists findings to task dir", () => {
     const content = fs.readFileSync(
       path.join(
         repoRoot,
-        "packages/cli/src/templates/opencode/agents/memerig-research.md",
+        "packages/templates/assets/opencode/agents/memerig-research.md",
       ),
       "utf-8",
     );
@@ -10382,7 +10375,7 @@ describe("regression: research agent persists findings to task dir", () => {
 });
 
 describe("regression: templates/markdown/spec contains only .md.txt files (0.5.0-beta.9)", () => {
-  // Invariant: packages/cli/src/templates/markdown/spec/ is for user-facing
+  // Invariant: packages/templates/assets/markdown/spec/ is for user-facing
   // placeholder templates only — markdown/index.ts reads .md.txt via
   // readLocalTemplate, so bare .md files there are orphans (ship to dist as
   // dead weight, never land on user disks). Documented in
@@ -10403,7 +10396,7 @@ describe("regression: templates/markdown/spec contains only .md.txt files (0.5.0
     const repoRoot = path.resolve(__dirname3, "../../..");
     const specRoot = path.join(
       repoRoot,
-      "packages/cli/src/templates/markdown/spec",
+      "packages/templates/assets/markdown/spec",
     );
     const files = walk(specRoot);
     const orphans = files.filter((f) => !f.endsWith(".md.txt"));
@@ -10427,7 +10420,7 @@ describe("regression: opencode plugin files have only export default (#212)", ()
   const repoRoot = path.resolve(__dirname2, "../../..");
   const pluginsDir = path.join(
     repoRoot,
-    "packages/cli/src/templates/opencode/plugins",
+    "packages/templates/assets/opencode/plugins",
   );
   const pluginFiles = fs
     .readdirSync(pluginsDir)
@@ -10458,7 +10451,7 @@ describe("regression: Gemini CLI 0.40.x template compatibility (#224)", () => {
   const repoRoot = path.resolve(__dirname2, "../../..");
   const geminiAgentsDir = path.resolve(
     __dirname2,
-    "../src/templates/gemini/agents",
+    "../../templates/assets/gemini/agents",
   );
 
   it("[#224] gemini agent .md files do NOT carry a comma-separated tools line", () => {
@@ -10482,7 +10475,7 @@ describe("regression: Gemini CLI 0.40.x template compatibility (#224)", () => {
   it("[#224] gemini settings.json uses BeforeAgent (not UserPromptSubmit)", () => {
     const settingsPath = path.resolve(
       repoRoot,
-      "packages/cli/src/templates/gemini/settings.json",
+      "packages/templates/assets/gemini/settings.json",
     );
     const raw = fs.readFileSync(settingsPath, "utf-8");
     const parsed = JSON.parse(raw) as { hooks?: Record<string, unknown> };
@@ -10494,7 +10487,7 @@ describe("regression: Gemini CLI 0.40.x template compatibility (#224)", () => {
   it("[#224] inject-workflow-state.py emits BeforeAgent for gemini, UserPromptSubmit otherwise", () => {
     const hookPath = path.resolve(
       repoRoot,
-      "packages/cli/src/templates/shared-hooks/inject-workflow-state.py",
+      "packages/templates/assets/shared-hooks/inject-workflow-state.py",
     );
     const content = fs.readFileSync(hookPath, "utf-8");
     // The platform branch: `"BeforeAgent" if platform == "gemini"`
@@ -10582,7 +10575,7 @@ describe("regression: Gemini CLI 0.40.x template compatibility (#224)", () => {
     // OpenCode JS plugins (no TS export — read from disk)
     const openCodePluginDir = path.resolve(
       repoRoot,
-      "packages/cli/src/templates/opencode/plugins",
+      "packages/templates/assets/opencode/plugins",
     );
     const jsPlugins = [
       "session-start.js",
@@ -10644,9 +10637,9 @@ describe("regression: session-start.py f-string Python <=3.11 compat (0.5.2)", (
   const __dirname2 = path.dirname(fileURLToPath(import.meta.url));
   const repoRoot = path.resolve(__dirname2, "../../..");
   const HOOK_FILES = [
-    "packages/cli/src/templates/codex/hooks/session-start.py",
-    "packages/cli/src/templates/copilot/hooks/session-start.py",
-    "packages/cli/src/templates/shared-hooks/session-start.py",
+    "packages/templates/assets/codex/hooks/session-start.py",
+    "packages/templates/assets/copilot/hooks/session-start.py",
+    "packages/templates/assets/shared-hooks/session-start.py",
   ];
   // Match an f-string (f"..." or f'...') whose `{...}` body contains a `\`.
   // Backslash inside expression part is illegal under PEP 498.
@@ -10728,62 +10721,62 @@ describe("regression: sub-agent context injection fallback (0.5.3)", () => {
   }[] = [
     {
       platform: "claude",
-      rel: "packages/cli/src/templates/claude/agents/memerig-implement.md",
+      rel: "packages/templates/assets/claude/agents/memerig-implement.md",
       agent: "implement",
     },
     {
       platform: "claude",
-      rel: "packages/cli/src/templates/claude/agents/memerig-check.md",
+      rel: "packages/templates/assets/claude/agents/memerig-check.md",
       agent: "check",
     },
     {
       platform: "cursor",
-      rel: "packages/cli/src/templates/cursor/agents/memerig-implement.md",
+      rel: "packages/templates/assets/cursor/agents/memerig-implement.md",
       agent: "implement",
     },
     {
       platform: "cursor",
-      rel: "packages/cli/src/templates/cursor/agents/memerig-check.md",
+      rel: "packages/templates/assets/cursor/agents/memerig-check.md",
       agent: "check",
     },
     {
       platform: "codebuddy",
-      rel: "packages/cli/src/templates/codebuddy/agents/memerig-implement.md",
+      rel: "packages/templates/assets/codebuddy/agents/memerig-implement.md",
       agent: "implement",
     },
     {
       platform: "codebuddy",
-      rel: "packages/cli/src/templates/codebuddy/agents/memerig-check.md",
+      rel: "packages/templates/assets/codebuddy/agents/memerig-check.md",
       agent: "check",
     },
     {
       platform: "opencode",
-      rel: "packages/cli/src/templates/opencode/agents/memerig-implement.md",
+      rel: "packages/templates/assets/opencode/agents/memerig-implement.md",
       agent: "implement",
     },
     {
       platform: "opencode",
-      rel: "packages/cli/src/templates/opencode/agents/memerig-check.md",
+      rel: "packages/templates/assets/opencode/agents/memerig-check.md",
       agent: "check",
     },
     {
       platform: "droid",
-      rel: "packages/cli/src/templates/droid/droids/memerig-implement.md",
+      rel: "packages/templates/assets/droid/droids/memerig-implement.md",
       agent: "implement",
     },
     {
       platform: "droid",
-      rel: "packages/cli/src/templates/droid/droids/memerig-check.md",
+      rel: "packages/templates/assets/droid/droids/memerig-check.md",
       agent: "check",
     },
     {
       platform: "zcode",
-      rel: "packages/cli/src/templates/zcode/agents/memerig-implement.md",
+      rel: "packages/templates/assets/zcode/agents/memerig-implement.md",
       agent: "implement",
     },
     {
       platform: "zcode",
-      rel: "packages/cli/src/templates/zcode/agents/memerig-check.md",
+      rel: "packages/templates/assets/zcode/agents/memerig-check.md",
       agent: "check",
     },
   ];
@@ -10822,7 +10815,7 @@ describe("regression: sub-agent context injection fallback (0.5.3)", () => {
       // 0.5.7 (#247): Kiro CLI renamed `instructions` → `prompt` in agent JSON.
       const filePath = path.join(
         repoRootFb,
-        `packages/cli/src/templates/kiro/agents/memerig-${agent}.json`,
+        `packages/templates/assets/kiro/agents/memerig-${agent}.json`,
       );
       const json = JSON.parse(fs.readFileSync(filePath, "utf-8"));
       const prompt: string = json.prompt ?? "";
@@ -10837,10 +10830,10 @@ describe("regression: sub-agent context injection fallback (0.5.3)", () => {
   }
 
   const GEMINI_QODER_AGENT_FILES = [
-    "packages/cli/src/templates/gemini/agents/memerig-implement.md",
-    "packages/cli/src/templates/gemini/agents/memerig-check.md",
-    "packages/cli/src/templates/qoder/agents/memerig-implement.md",
-    "packages/cli/src/templates/qoder/agents/memerig-check.md",
+    "packages/templates/assets/gemini/agents/memerig-implement.md",
+    "packages/templates/assets/gemini/agents/memerig-check.md",
+    "packages/templates/assets/qoder/agents/memerig-implement.md",
+    "packages/templates/assets/qoder/agents/memerig-check.md",
   ];
 
   for (const rel of GEMINI_QODER_AGENT_FILES) {
@@ -10855,7 +10848,7 @@ describe("regression: sub-agent context injection fallback (0.5.3)", () => {
       const content = fs.readFileSync(
         path.join(
           repoRootFb,
-          `packages/cli/src/templates/pi/agents/memerig-${agent}.md`,
+          `packages/templates/assets/pi/agents/memerig-${agent}.md`,
         ),
         "utf-8",
       );
@@ -10872,7 +10865,7 @@ describe("regression: sub-agent context injection fallback (0.5.3)", () => {
     for (const agent of ["implement", "check", "research"] as const) {
       const filePath = path.join(
         repoRootFb,
-        `packages/cli/src/templates/kiro/agents/memerig-${agent}.json`,
+        `packages/templates/assets/kiro/agents/memerig-${agent}.json`,
       );
       const data = JSON.parse(fs.readFileSync(filePath, "utf-8")) as {
         prompt?: unknown;
@@ -10908,7 +10901,7 @@ describe("regression: sub-agent context injection fallback (0.5.3)", () => {
   it("workflow.md dispatch protocol covers all platforms (not class-2 only)", () => {
     const workflowPath = path.join(
       repoRootFb,
-      "packages/cli/src/templates/memerig/workflow.md",
+      "packages/templates/assets/memerig/workflow.md",
     );
     const wf = fs.readFileSync(workflowPath, "utf-8");
     // The protocol enforces `Active task: <path>` for ALL sub-agents (no
@@ -11076,8 +11069,7 @@ describe("regression: configSectionsAdded (issue-codex-dispatch-mode)", () => {
     const tmplPath = path.join(
       path.dirname(fileURLToPath(import.meta.url)),
       "..",
-      "src",
-      "templates",
+      "../templates/assets",
       "memerig",
       "config.yaml",
     );
@@ -11769,7 +11761,7 @@ print(json.dumps({
 
 describe("regression: .memerig/scripts stays byte-identical to templates/memerig/scripts", () => {
   // `.memerig/scripts/` is MemeRig's own dogfood copy;
-  // `packages/cli/src/templates/memerig/scripts/` is what ships to users.
+  // `packages/templates/assets/memerig/scripts/` is what ships to users.
   // They are two physical copies of the same 28 files and nothing enforced
   // parity, so one-sided edits landed silently — PR #390 changed the template's
   // `common/session_context.py` upgrade hint and left the dogfood copy on the
@@ -11780,7 +11772,7 @@ describe("regression: .memerig/scripts stays byte-identical to templates/memerig
   const dogfoodScriptsRoot = path.join(parityRepoRoot, ".memerig", "scripts");
   const templateScriptsRoot = path.join(
     parityRepoRoot,
-    "packages/cli/src/templates/memerig/scripts",
+    "packages/templates/assets/memerig/scripts",
   );
 
   function listPyFiles(root: string): string[] {
@@ -11805,7 +11797,7 @@ describe("regression: .memerig/scripts stays byte-identical to templates/memerig
     const dogfoodFiles = listPyFiles(dogfoodScriptsRoot);
     expect(
       dogfoodFiles,
-      "`.memerig/scripts/` and `packages/cli/src/templates/memerig/scripts/` " +
+      "`.memerig/scripts/` and `packages/templates/assets/memerig/scripts/` " +
         "must hold the same .py files — a script added to (or deleted from) " +
         "one tree must be mirrored in the other.",
     ).toEqual(templateFiles);
@@ -11825,7 +11817,7 @@ describe("regression: .memerig/scripts stays byte-identical to templates/memerig
       expect(
         dogfoodBytes.equals(templateBytes),
         `.memerig/scripts/${relativePath} has drifted from ` +
-          `packages/cli/src/templates/memerig/scripts/${relativePath}. ` +
+          `packages/templates/assets/memerig/scripts/${relativePath}. ` +
           `Edit both copies, never one.`,
       ).toBe(true);
     });
@@ -11851,7 +11843,7 @@ describe("regression: compat alias must not win platform detection", () => {
       const source = fs.readFileSync(
         path.join(
           path.resolve(__dirname, ".."),
-          "src/templates/shared-hooks",
+          "../templates/assets/shared-hooks",
           hook,
         ),
         "utf-8",

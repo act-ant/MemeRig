@@ -4,8 +4,20 @@
  */
 
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+
+const loaderRoot = dirname(fileURLToPath(import.meta.url));
+const assetRoot = import.meta.url.endsWith(".ts")
+  ? join(loaderRoot, "../../../templates/assets")
+  : loaderRoot;
+
+export function templateDirectory(moduleUrl: string): string {
+  return join(
+    assetRoot,
+    relative(loaderRoot, dirname(fileURLToPath(moduleUrl))),
+  );
+}
 
 export interface AgentTemplate {
   name: string;
@@ -31,7 +43,7 @@ export interface TemplateReader {
  * Usage: `const { readTemplate, listMdAgents, getSettings } = createTemplateReader(import.meta.url);`
  */
 export function createTemplateReader(importMetaUrl: string): TemplateReader {
-  const __dirname = dirname(fileURLToPath(importMetaUrl));
+  const __dirname = templateDirectory(importMetaUrl);
 
   function readTemplate(relativePath: string): string {
     return readFileSync(join(__dirname, relativePath), "utf-8");
