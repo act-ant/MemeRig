@@ -64,7 +64,6 @@ import {
 } from "../src/configurators/index.js";
 import { setWriteMode } from "../src/utils/file-writer.js";
 import {
-  guidesIndexContent,
   workspaceIndexContent,
 } from "../src/templates/markdown/index.js";
 import * as markdownExports from "../src/templates/markdown/index.js";
@@ -9976,10 +9975,6 @@ describe("regression: cross-platform-thinking-guide dead code removed (0.3.1)", 
     );
   });
 
-  it("[0.3.1] guides index.md does not reference cross-platform-thinking-guide", () => {
-    expect(guidesIndexContent).not.toContain("cross-platform-thinking-guide");
-    expect(guidesIndexContent).not.toContain("Cross-Platform Thinking Guide");
-  });
 });
 
 // =============================================================================

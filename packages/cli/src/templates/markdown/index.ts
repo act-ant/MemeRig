@@ -37,60 +37,13 @@ export const workflowGitignoreContent: string =
   readLocalTemplate("gitignore.txt");
 
 // =============================================================================
-// Structure templates (generic templates from .txt files)
-// These are NOT dogfooded - they are generic templates for new projects
+// Starter spec (generic template for new projects, not dogfooded)
+//
+// A new project starts with an EMPTY spec. `from scratch` seeds only this
+// README, which explains the layout; placeholder guideline files were removed
+// because they read as approved conventions that nobody had approved.
 // =============================================================================
 
-// Backend structure (multi-doc format)
-export const backendIndexContent: string = readLocalTemplate(
-  "spec/backend/index.md.txt",
-);
-export const backendDirectoryStructureContent: string = readLocalTemplate(
-  "spec/backend/directory-structure.md.txt",
-);
-export const backendDatabaseGuidelinesContent: string = readLocalTemplate(
-  "spec/backend/database-guidelines.md.txt",
-);
-export const backendLoggingGuidelinesContent: string = readLocalTemplate(
-  "spec/backend/logging-guidelines.md.txt",
-);
-export const backendQualityGuidelinesContent: string = readLocalTemplate(
-  "spec/backend/quality-guidelines.md.txt",
-);
-export const backendErrorHandlingContent: string = readLocalTemplate(
-  "spec/backend/error-handling.md.txt",
-);
-
-// Frontend structure (multi-doc format)
-export const frontendIndexContent: string = readLocalTemplate(
-  "spec/frontend/index.md.txt",
-);
-export const frontendDirectoryStructureContent: string = readLocalTemplate(
-  "spec/frontend/directory-structure.md.txt",
-);
-export const frontendTypeSafetyContent: string = readLocalTemplate(
-  "spec/frontend/type-safety.md.txt",
-);
-export const frontendHookGuidelinesContent: string = readLocalTemplate(
-  "spec/frontend/hook-guidelines.md.txt",
-);
-export const frontendComponentGuidelinesContent: string = readLocalTemplate(
-  "spec/frontend/component-guidelines.md.txt",
-);
-export const frontendQualityGuidelinesContent: string = readLocalTemplate(
-  "spec/frontend/quality-guidelines.md.txt",
-);
-export const frontendStateManagementContent: string = readLocalTemplate(
-  "spec/frontend/state-management.md.txt",
-);
-
-// Guides structure
-export const guidesIndexContent: string = readLocalTemplate(
-  "spec/guides/index.md.txt",
-);
-export const guidesCrossLayerThinkingGuideContent: string = readLocalTemplate(
-  "spec/guides/cross-layer-thinking-guide.md.txt",
-);
-export const guidesCodeReuseThinkingGuideContent: string = readLocalTemplate(
-  "spec/guides/code-reuse-thinking-guide.md.txt",
+export const specReadmeContent: string = readLocalTemplate(
+  "spec/README.md.txt",
 );

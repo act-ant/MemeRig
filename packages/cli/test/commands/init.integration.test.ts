@@ -1131,19 +1131,24 @@ describe("init() integration", () => {
     expect(taskJson.current_phase).toBeUndefined();
     expect(taskJson.next_action).toBeUndefined();
 
-    // relatedFiles point to spec/<name>/
-    expect(taskJson.relatedFiles).toContain(".memerig/spec/core/");
-    expect(taskJson.relatedFiles).toContain(".memerig/spec/ui/");
+    // The spec starts empty: relatedFiles point at the layout README, not at
+    // per-package directories that no longer get scaffolded.
+    expect(taskJson.relatedFiles).toEqual([".memerig/spec/README.md"]);
 
-    // prd.md mentions packages + renders per-package checklist items
+    // ...and no per-package spec directory is created for a blank init.
+    expect(fs.existsSync(path.join(tmpDir, ".memerig/spec/core"))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, ".memerig/spec/ui"))).toBe(false);
+
+    // prd.md keeps the monorepo context but describes the empty spec instead
+    // of per-package "Fill guidelines for <pkg>" placeholders.
     const prd = fs.readFileSync(path.join(taskDir, "prd.md"), "utf-8");
     const expectedPythonCmd =
       process.platform === "win32" ? "python" : "python3";
     expect(prd).toContain("core");
     expect(prd).toContain("ui");
     expect(prd).toContain("spec/");
-    expect(prd).toContain("- [ ] Fill guidelines for core");
-    expect(prd).toContain("- [ ] Fill guidelines for ui");
+    expect(prd).not.toContain("Fill guidelines for core");
+    expect(prd).toContain(".memerig/spec/README.md");
     expect(prd).toContain(
       `${expectedPythonCmd} ./.memerig/scripts/task.py complete 00-bootstrap-guidelines`,
     );

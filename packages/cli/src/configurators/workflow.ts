@@ -16,39 +16,15 @@ import {
 // Import markdown templates
 import {
   agentProgressIndexContent,
-  // Backend structure (multi-doc)
-  backendIndexContent,
-  backendDirectoryStructureContent,
-  backendDatabaseGuidelinesContent,
-  backendLoggingGuidelinesContent,
-  backendQualityGuidelinesContent,
-  backendErrorHandlingContent,
-  // Frontend structure (multi-doc)
-  frontendIndexContent,
-  frontendDirectoryStructureContent,
-  frontendTypeSafetyContent,
-  frontendHookGuidelinesContent,
-  frontendComponentGuidelinesContent,
-  frontendQualityGuidelinesContent,
-  frontendStateManagementContent,
-  // Guides structure
-  guidesIndexContent,
-  guidesCrossLayerThinkingGuideContent,
-  guidesCodeReuseThinkingGuideContent,
+  specReadmeContent,
 } from "../templates/markdown/index.js";
 
 import { writeFile, ensureDir } from "../utils/file-writer.js";
 import { replacePythonCommandLiterals } from "./shared.js";
 import {
-  sanitizePkgName,
   type ProjectType,
   type DetectedPackage,
 } from "../utils/project-detector.js";
-
-interface DocDefinition {
-  name: string;
-  content: string;
-}
 
 /**
  * Options for creating workflow structure
@@ -126,10 +102,7 @@ export async function createWorkflowStructure(
   cwd: string,
   options?: WorkflowOptions,
 ): Promise<void> {
-  const projectType = options?.projectType ?? "fullstack";
   const skipSpecTemplates = options?.skipSpecTemplates ?? false;
-  const packages = options?.packages;
-  const remoteSpecPackages = options?.remoteSpecPackages;
   const workflowMd = options?.workflowMdOverride ?? workflowMdTemplate;
 
   // Create base .memerig directory
@@ -180,125 +153,24 @@ export async function createWorkflowStructure(
     replacePythonCommandLiterals(agentProgressIndexContent),
   );
 
-  // Create spec templates based on project type
-  // These are NOT dogfooded - they are generic templates for new projects
-  if (packages && packages.length > 0) {
-    // Monorepo mode: create per-package spec directories
-    await createSpecTemplates(cwd, projectType, packages, remoteSpecPackages);
-  } else if (!skipSpecTemplates) {
-    // Single-repo mode: create global spec (skip if using remote template)
-    await createSpecTemplates(cwd, projectType);
+  // Seed the spec directory. A project starts with an EMPTY spec: seeding is
+  // only the layout README, never placeholder guideline files that would read
+  // as approved conventions. Marketplace/builtin presets install their own
+  // spec tree, so they skip this entirely.
+  if (!skipSpecTemplates) {
+    await createSpecTemplates(cwd);
   }
 }
 
 /**
- * Write backend spec docs into a target spec directory.
+ * Seed an empty `.memerig/spec/` with the layout README.
+ *
+ * Deliberately does not scaffold `backend/`, `frontend/` or `guides/`
+ * documents: placeholder guidelines carry no authority, and generated files
+ * that look reviewable are worse than a directory that is visibly empty.
  */
-async function writeBackendDocs(specBase: string): Promise<void> {
-  const backendDir = path.join(specBase, "backend");
-  ensureDir(backendDir);
-  const docs: DocDefinition[] = [
-    { name: "index.md", content: backendIndexContent },
-    {
-      name: "directory-structure.md",
-      content: backendDirectoryStructureContent,
-    },
-    {
-      name: "database-guidelines.md",
-      content: backendDatabaseGuidelinesContent,
-    },
-    { name: "logging-guidelines.md", content: backendLoggingGuidelinesContent },
-    { name: "quality-guidelines.md", content: backendQualityGuidelinesContent },
-    { name: "error-handling.md", content: backendErrorHandlingContent },
-  ];
-  for (const doc of docs) {
-    await writeFile(path.join(backendDir, doc.name), doc.content);
-  }
-}
-
-/**
- * Write frontend spec docs into a target spec directory.
- */
-async function writeFrontendDocs(specBase: string): Promise<void> {
-  const frontendDir = path.join(specBase, "frontend");
-  ensureDir(frontendDir);
-  const docs: DocDefinition[] = [
-    { name: "index.md", content: frontendIndexContent },
-    {
-      name: "directory-structure.md",
-      content: frontendDirectoryStructureContent,
-    },
-    { name: "type-safety.md", content: frontendTypeSafetyContent },
-    { name: "hook-guidelines.md", content: frontendHookGuidelinesContent },
-    {
-      name: "component-guidelines.md",
-      content: frontendComponentGuidelinesContent,
-    },
-    {
-      name: "quality-guidelines.md",
-      content: frontendQualityGuidelinesContent,
-    },
-    { name: "state-management.md", content: frontendStateManagementContent },
-  ];
-  for (const doc of docs) {
-    await writeFile(path.join(frontendDir, doc.name), doc.content);
-  }
-}
-
-/**
- * Write spec docs for a given project type into a target spec directory.
- */
-async function writeSpecForType(
-  specBase: string,
-  projectType: ProjectType,
-): Promise<void> {
-  if (projectType !== "frontend") {
-    await writeBackendDocs(specBase);
-  }
-  if (projectType !== "backend") {
-    await writeFrontendDocs(specBase);
-  }
-}
-
-async function createSpecTemplates(
-  cwd: string,
-  projectType: ProjectType,
-  packages?: DetectedPackage[],
-  remoteSpecPackages?: Set<string>,
-): Promise<void> {
-  // Ensure spec directory exists
-  ensureDir(path.join(cwd, PATHS.SPEC));
-
-  // Guides - always created regardless of mode
-  const guidesDir = path.join(cwd, `${PATHS.SPEC}/guides`);
-  ensureDir(guidesDir);
-  const guidesDocs: DocDefinition[] = [
-    { name: "index.md", content: guidesIndexContent },
-    {
-      name: "cross-layer-thinking-guide.md",
-      content: guidesCrossLayerThinkingGuideContent,
-    },
-    {
-      name: "code-reuse-thinking-guide.md",
-      content: guidesCodeReuseThinkingGuideContent,
-    },
-  ];
-  for (const doc of guidesDocs) {
-    await writeFile(path.join(guidesDir, doc.name), doc.content);
-  }
-
-  if (packages && packages.length > 0) {
-    // Monorepo mode: create spec/<name>/ for each package
-    for (const pkg of packages) {
-      const dirName = sanitizePkgName(pkg.name);
-      if (remoteSpecPackages?.has(dirName)) continue;
-      const pkgSpecBase = path.join(cwd, `${PATHS.SPEC}/${dirName}`);
-      ensureDir(pkgSpecBase);
-      const pkgType = pkg.type === "unknown" ? "fullstack" : pkg.type;
-      await writeSpecForType(pkgSpecBase, pkgType);
-    }
-  } else {
-    // Single-repo mode
-    await writeSpecForType(path.join(cwd, PATHS.SPEC), projectType);
-  }
+async function createSpecTemplates(cwd: string): Promise<void> {
+  const specDir = path.join(cwd, PATHS.SPEC);
+  ensureDir(specDir);
+  await writeFile(path.join(specDir, "README.md"), specReadmeContent);
 }

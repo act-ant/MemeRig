@@ -358,42 +358,18 @@ function writeTaskSkeleton(
  * stays canonical with `subtasks: string[]` (child task dir names, same as
  * task_store.py).
  */
-function getBootstrapChecklistItems(
-  projectType: ProjectType,
-  packages?: DetectedPackage[],
-): string[] {
-  if (packages && packages.length > 0) {
-    const items = packages.map((pkg) => `Fill guidelines for ${pkg.name}`);
-    items.push("Add code examples");
-    return items;
-  }
-  if (projectType === "frontend") {
-    return ["Fill frontend guidelines", "Add code examples"];
-  }
-  if (projectType === "backend") {
-    return ["Fill backend guidelines", "Add code examples"];
-  }
+function getBootstrapChecklistItems(): string[] {
+  // The spec starts empty, so the checklist describes the work in terms of
+  // layers the project actually has rather than a fixed backend/frontend split.
   return [
-    "Fill backend guidelines",
-    "Fill frontend guidelines",
-    "Add code examples",
+    "Create .memerig/spec/<package>/<layer>/ for the layers this project has",
+    "Document the conventions each layer actually follows, with real file paths",
+    "Wire the spec files into a task with task.py add-context",
   ];
 }
 
-function getBootstrapRelatedFiles(
-  projectType: ProjectType,
-  packages?: DetectedPackage[],
-): string[] {
-  if (packages && packages.length > 0) {
-    return packages.map((pkg) => `.memerig/spec/${sanitizePkgName(pkg.name)}/`);
-  }
-  if (projectType === "frontend") {
-    return [".memerig/spec/frontend/"];
-  }
-  if (projectType === "backend") {
-    return [".memerig/spec/backend/"];
-  }
-  return [".memerig/spec/backend/", ".memerig/spec/frontend/"];
+function getBootstrapRelatedFiles(): string[] {
+  return [".memerig/spec/README.md"];
 }
 
 function getBootstrapPrdContent(
@@ -401,7 +377,7 @@ function getBootstrapPrdContent(
   pythonCmd: string,
   packages?: DetectedPackage[],
 ): string {
-  const checklistItems = getBootstrapChecklistItems(projectType, packages);
+  const checklistItems = getBootstrapChecklistItems();
   const checklistMarkdown = checklistItems
     .map((item) => `- [ ] ${item}`)
     .join("\n");
@@ -436,39 +412,25 @@ ${checklistMarkdown}
 ## Spec files to populate
 `;
 
-  const backendSection = `
+  const specSection = `
 
-### Backend guidelines
+### Where the spec lives
 
-| File | What to document |
-|------|------------------|
-| \`.memerig/spec/backend/directory-structure.md\` | Where different file types go (routes, services, utils) |
-| \`.memerig/spec/backend/database-guidelines.md\` | ORM, migrations, query patterns, naming conventions |
-| \`.memerig/spec/backend/error-handling.md\` | How errors are caught, logged, and returned |
-| \`.memerig/spec/backend/logging-guidelines.md\` | Log levels, format, what to log |
-| \`.memerig/spec/backend/quality-guidelines.md\` | Code review standards, testing requirements |
+\`.memerig/spec/\` starts empty apart from \`.memerig/spec/README.md\`.\nThere are no
+placeholder guideline files to fill in — create the documents this project
+actually needs:
+
+| Path | Scope |
+|------|-------|
+| \`.memerig/spec/&lt;package&gt;/&lt;layer&gt;/index.md\` | Entry point for one package + layer: a **Pre-Development Checklist**, the rules, and a **Quality Check** |
+| \`.memerig/spec/&lt;package&gt;/&lt;layer&gt;/&lt;topic&gt;.md\` | One document per real convention (naming, errors, data access, tests, …) |
+| \`.memerig/spec/guides/index.md\` | Cross-package thinking guides |
+
+A single-package repository can drop the package level
+(\`.memerig/spec/<layer>/\`). Layer and topic names are yours — they only
+have to match what \`task.py add-context\` records in the task manifests.
 `;
-
-  const frontendSection = `
-
-### Frontend guidelines
-
-| File | What to document |
-|------|------------------|
-| \`.memerig/spec/frontend/directory-structure.md\` | Component/page/hook organization |
-| \`.memerig/spec/frontend/component-guidelines.md\` | Component patterns, props conventions |
-| \`.memerig/spec/frontend/hook-guidelines.md\` | Custom hook naming, patterns |
-| \`.memerig/spec/frontend/state-management.md\` | State library, patterns, what goes where |
-| \`.memerig/spec/frontend/type-safety.md\` | TypeScript conventions, type organization |
-| \`.memerig/spec/frontend/quality-guidelines.md\` | Linting, testing, accessibility |
-`;
-
   const footer = `
-
-### Thinking guides (already populated)
-
-\`.memerig/spec/guides/\` contains general thinking guides pre-filled with
-best practices. Customize only if something clearly doesn't fit this project.
 
 ---
 
@@ -551,28 +513,18 @@ etc.) I can pull from, or should I scan the codebase from scratch?"
 `;
 
   let content = header;
-
+  content += specSection;
   if (packages && packages.length > 0) {
-    // Monorepo: generate per-package sections
-    for (const pkg of packages) {
-      const pkgType = pkg.type === "unknown" ? "fullstack" : pkg.type;
-      const specName = sanitizePkgName(pkg.name);
-      content += `\n### Package: ${pkg.name} (\`spec/${specName}/\`)\n`;
-      if (pkgType !== "frontend") {
-        content += `\n- Backend guidelines: \`.memerig/spec/${specName}/backend/\`\n`;
-      }
-      if (pkgType !== "backend") {
-        content += `\n- Frontend guidelines: \`.memerig/spec/${specName}/frontend/\`\n`;
-      }
-    }
-  } else if (projectType === "frontend") {
-    content += frontendSection;
-  } else if (projectType === "backend") {
-    content += backendSection;
-  } else {
-    // fullstack
-    content += backendSection;
-    content += frontendSection;
+    content += `
+### Detected packages
+
+${packages
+  .map(
+    (pkg) =>
+      `- \`${pkg.name}\` → suggested home \`.memerig/spec/${sanitizePkgName(pkg.name)}/\``,
+  )
+  .join("\n")}
+`;
   }
   content += footer;
 
@@ -582,10 +534,9 @@ etc.) I can pull from, or should I scan the codebase from scratch?"
 function getBootstrapTaskJson(
   developer: string,
   projectType: ProjectType,
-  packages?: DetectedPackage[],
 ): TaskJson {
   const today = new Date().toISOString().split("T")[0];
-  const relatedFiles = getBootstrapRelatedFiles(projectType, packages);
+  const relatedFiles = getBootstrapRelatedFiles();
 
   // Canonical 24-field shape via emptyTaskJson factory.
   // Checklist items (previously stored as structured `subtasks`) are now
@@ -617,7 +568,7 @@ function createBootstrapTask(
   projectType: ProjectType,
   packages?: DetectedPackage[],
 ): boolean {
-  const taskJson = getBootstrapTaskJson(developer, projectType, packages);
+  const taskJson = getBootstrapTaskJson(developer, projectType);
   const prdContent = getBootstrapPrdContent(projectType, pythonCmd, packages);
   return writeTaskSkeleton(cwd, BOOTSTRAP_TASK_NAME, taskJson, prdContent);
 }
