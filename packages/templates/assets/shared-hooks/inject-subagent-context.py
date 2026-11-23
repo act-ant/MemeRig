@@ -28,6 +28,7 @@ warnings.filterwarnings("ignore")
 
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -1099,6 +1100,27 @@ def main():
         sys.exit(0)
     if not isinstance(input_data, dict):
         sys.exit(0)
+    event = _hook_event_name(input_data)
+    owner = os.environ.get("MEMERIG_TASK_OWNER")
+    if owner and os.environ.get("MEMERIG_RUN_ID") and event in {"SubagentStart", "Stop"}:
+        reference = _string_value(input_data.get("agent_id" if event == "SubagentStart" else "session_id"))
+        args = []
+        if reference and event == "SubagentStart":
+            args = ["session", "codex", reference, "--role", "subagent"]
+        elif reference:
+            turn = _string_value(input_data.get("turn_id"))
+            args = ["evidence", "progress", f"Codex turn {turn or 'ended'} in session {reference}"]
+        if args:
+            try:
+                subprocess.run(
+                    [sys.executable, str(Path(owner) / ".memerig/scripts/task.py"), "execution", *args],
+                    cwd=input_data.get("cwd") or os.getcwd(), timeout=5, capture_output=True,
+                )
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+    if event == "Stop":
+        return
+
 
     if _hook_event_name(input_data) == "SubagentStart":
         try:

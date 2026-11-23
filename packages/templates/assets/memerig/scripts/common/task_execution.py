@@ -27,24 +27,46 @@ def git(root, *args):
     return result.stdout.strip()
 
 
+RECEIPT_FIELDS = {
+    "runs": ("runId", "outcome", "finishedAt", "sessions", "artifacts", "checks"),
+    "reviews": ("reviewId", "runId", "decision", "reviewedAt", "reviewer", "commit", "checks"),
+    "deliveries": ("deliveryId", "runId", "reviewId", "reviewedCommit", "commit", "target", "deliveredAt"),
+}
+ARRAY_FIELDS = {"sessions", "artifacts", "checks"}
+OUTCOMES = ("succeeded", "failed", "interrupted")
+DECISIONS = ("approved", "rejected")
+
+
+def receipt_schema(kind):
+    fields = RECEIPT_FIELDS[kind]
+    properties = {field: {"type": "array" if field in ARRAY_FIELDS else "string"} for field in fields}
+    properties.update(schemaVersion={"const": 1}, taskId={"type": "string"})
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object", "required": list(properties), "properties": properties,
+    }
+    if kind == "runs":
+        properties["outcome"]["enum"] = list(OUTCOMES)
+        schema.update({"if": {"properties": {"outcome": {"const": "succeeded"}}},
+                       "then": {"required": ["commit"], "properties": {"commit": {"type": "string"}}}})
+    elif kind == "reviews":
+        properties["decision"]["enum"] = list(DECISIONS)
+    return schema
+
+
 def validate_receipt(path, record):
     kind = path.parent.name
-    fields = {
-        "runs": ("runId", "outcome", "finishedAt", "sessions", "artifacts", "checks"),
-        "reviews": ("reviewId", "runId", "decision", "reviewedAt", "reviewer", "commit", "checks"),
-        "deliveries": ("deliveryId", "runId", "reviewId", "reviewedCommit", "commit", "target", "deliveredAt"),
-    }.get(kind)
+    fields = RECEIPT_FIELDS.get(kind)
     if fields is None:
         return
     task = json.loads((path.parent.parent / "task.json").read_text(encoding="utf-8"))
     if (
         not isinstance(record, dict) or record.get("schemaVersion") != 1
         or record.get("taskId") != task.get("id") or record.get(fields[0]) != path.stem
-        or any(not isinstance(record.get(field), list if field in {"sessions", "artifacts", "checks"} else str)
-               for field in fields)
-        or (kind == "runs" and record.get("outcome") not in {"succeeded", "failed", "interrupted"})
+        or any(not isinstance(record.get(field), list if field in ARRAY_FIELDS else str) for field in fields)
+        or (kind == "runs" and record.get("outcome") not in OUTCOMES)
         or (kind == "runs" and record.get("outcome") == "succeeded" and not isinstance(record.get("commit"), str))
-        or (kind == "reviews" and record.get("decision") not in {"approved", "rejected"})
+        or (kind == "reviews" and record.get("decision") not in DECISIONS)
     ):
         raise ValueError(f"Invalid {kind} receipt: {path}")
 
@@ -260,6 +282,17 @@ def deliver(owner, args):
         record = load(receipt(location.directory, "reviews", execution["reviewId"]))
         if record["runId"] != run_id or record["decision"] != "approved":
             raise ValueError("Current execution has not been approved")
+        run = load(receipt(location.directory, "runs", run_id))
+        required_checks = location.data.get("meta", {}).get("requiredChecks", "")
+        if not isinstance(required_checks, str):
+            raise ValueError("meta.requiredChecks must be a comma-separated string")
+        required = {name.strip() for name in required_checks.split(",") if name.strip()}
+        checks = record["checks"]
+        if (run["outcome"] != "succeeded" or run["commit"] != record["commit"] or not checks
+                or any(not isinstance(check, dict) or check.get("status") != "passed"
+                       or not isinstance(check.get("name"), str) for check in checks)
+                or not required.issubset({check["name"] for check in checks})):
+            raise ValueError("Review no longer covers the current candidate and required checks")
         target = location.data.get("base_branch")
         if not target:
             raise ValueError("Task must declare its target branch")
@@ -347,7 +380,12 @@ def main(argv):
     evidence = commands.add_parser("evidence")
     evidence.add_argument("kind", choices=["check", "artifact", "progress"])
     evidence.add_argument("value")
+    schema = commands.add_parser("schema")
+    schema.add_argument("kind", choices=tuple(RECEIPT_FIELDS))
     args = parser.parse_args(argv)
+    if args.action == "schema":
+        print(json.dumps(receipt_schema(args.kind), indent=2))
+        return 0
     try:
         owner = protocol.resolve_owner()
         if args.action in {"session", "evidence"}:
