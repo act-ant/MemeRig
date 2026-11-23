@@ -75,6 +75,31 @@ jobs:
         id: plan
         run: node packages/cli/scripts/release-preflight.js publish-plan --github
 
+      # BOOTSTRAP ONLY (delete with the publish-step env blocks once trusted
+      # publishing is live). Verifies the token up front so an invalid secret
+      # fails here with a clear message instead of a 404 from the registry.
+      - name: Verify npm credential
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $NODE_AUTH_TOKEN" \
+            https://registry.npmjs.org/-/whoami)
+          echo "npm whoami status: $code"
+          if [ "$code" != "200" ]; then
+            echo "::error::NPM_TOKEN is invalid or expired (whoami=$code). Generate a new token."
+            exit 1
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # pnpm reads credentials from .npmrc; setup-node no longer writes one for
+      # us (no registry-url, since that would also inject a token line).
+      - name: Configure npm auth for pnpm
+        run: |
+          printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" > "$HOME/.npmrc"
+          echo "wrote $(wc -l < "$HOME/.npmrc") auth line(s) to ~/.npmrc"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish memerig-core
         if: steps.plan.outputs.core_publish == 'true'
         run: pnpm publish --access public --no-git-checks --tag ${{ steps.plan.outputs.tag }}
