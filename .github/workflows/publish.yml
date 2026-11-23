@@ -5,6 +5,9 @@ name: Publish to npm
 # makes reruns idempotent: if a package version is already on npm it is
 # skipped, so duplicate triggers do not produce duplicate publishes.
 on:
+  # Manual dispatch is the escape hatch when tag pushes do not start a run;
+  # dispatch against the release tag ref so check-versions --require-tag works.
+  workflow_dispatch:
   release:
     types: [published]
   push:
@@ -76,6 +79,14 @@ jobs:
         if: steps.plan.outputs.core_publish == 'true'
         run: pnpm publish --access public --no-git-checks --tag ${{ steps.plan.outputs.tag }}
         working-directory: packages/core
+        env:
+          # BOOTSTRAP ONLY. npm cannot hold a trusted publisher for a package
+          # that does not exist yet, so the very first release of each package
+          # authenticates with a short-lived token. Delete this env block (and
+          # the NPM_TOKEN secret) once both packages exist and their trusted
+          # publishers are configured; OIDC takes over from then on.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
 
       - name: Skip memerig-core (already on npm)
         if: steps.plan.outputs.core_publish != 'true'
@@ -85,6 +96,10 @@ jobs:
         if: steps.plan.outputs.cli_publish == 'true'
         run: pnpm publish --access public --no-git-checks --tag ${{ steps.plan.outputs.tag }}
         working-directory: packages/cli
+        env:
+          # BOOTSTRAP ONLY — see the memerig-core step above.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
 
       - name: Skip memerig (already on npm)
         if: steps.plan.outputs.cli_publish != 'true'
