@@ -185,7 +185,18 @@ The release script does not publish locally. The pushed tag is what starts offic
 
 ## Publish workflow sequence
 
-`.github/workflows/publish.yml` runs on `v*` tag push and GitHub Release publication. It is idempotent for reruns on the same tag.
+`.github/workflows/publish.yml` runs on `v*` tag push, GitHub Release publication, and manual `workflow_dispatch`. It is idempotent for reruns on the same tag.
+
+This fork does not start runs for `push` events (both workflows report `active`, yet `push` produces zero runs while `workflow_dispatch` works). Until that is fixed upstream of us, publish with:
+
+```bash
+git push origin v<version>
+gh workflow run publish.yml --ref v<version>      # ref must be the tag
+```
+
+Dispatch against the tag ref, not `main`: `check-versions --require-tag` reads `GITHUB_REF_NAME`.
+
+The same applies to CI: `gh workflow run ci.yml --ref main`. `ci.yml` is pinned to `ubuntu-24.04` because `ubuntu-latest` (26.04) has no Python 3.9 build for the minimum-supported-Python gate.
 
 Required order:
 
