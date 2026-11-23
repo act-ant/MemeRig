@@ -1,0 +1,3 @@
+{"file":".memerig/spec/cli/backend/task-protocol.md","reason":"核对旧任务兼容、状态写入和并发更新"}
+{"file":".memerig/spec/cli/backend/workflow-state-contract.md","reason":"核对并发会话指针清理与状态传播"}
+{"file":".memerig/spec/cli/backend/filesystem-safety.md","reason":"核对原子替换和异常恢复边界"}
