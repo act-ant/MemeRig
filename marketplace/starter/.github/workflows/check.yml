@@ -1,0 +1,35 @@
+name: Validate marketplace
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/check-registry.mjs
+      - name: Check pinned source configuration
+        env:
+          SOURCE_REPO: ${{ vars.MEMERIG_SOURCE_REPO }}
+          SOURCE_REF: ${{ vars.MEMERIG_SOURCE_REF }}
+        run: |
+          test -n "$SOURCE_REPO" || { echo 'Set MEMERIG_SOURCE_REPO to OWNER/REPO'; exit 1; }
+          [[ "$SOURCE_REF" =~ ^[a-f0-9]{40}$ ]] || { echo 'Set MEMERIG_SOURCE_REF to a full commit SHA'; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.MEMERIG_SOURCE_REPO }}
+          ref: ${{ vars.MEMERIG_SOURCE_REF }}
+          path: .cli-source
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: .cli-source/package.json
+      - working-directory: .cli-source
+        run: pnpm install --frozen-lockfile && pnpm build
+      - run: node scripts/smoke-registry.mjs .cli-source/packages/cli/bin/memerig.js

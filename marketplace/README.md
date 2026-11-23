@@ -71,10 +71,12 @@ of the pinned/manual paths below.
 
 ### Install from a standalone registry
 
+For a copyable repository with examples and GitHub Actions validation, use the
+[standalone marketplace starter](./starter/README.md).
+
 Put `index.json`, `specs/`, and `workflows/` in your registry repository and
 publish a Git tag. For a registry with the spec `team-spec` and workflow
 `team-flow`, run these commands from the target project:
-
 ```bash
 memerig init --template team-spec --registry gh:myorg/memerig-marketplace#v1.0.0
 memerig workflow --template team-flow --marketplace gh:myorg/memerig-marketplace#v1.0.0

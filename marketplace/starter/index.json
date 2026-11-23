@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "team-backend",
+      "type": "spec",
+      "name": "Team Backend",
+      "path": "specs/team-backend"
+    },
+    {
+      "id": "team-review",
+      "type": "workflow",
+      "name": "Team Review",
+      "path": "workflows/team-review/workflow.md"
+    }
+  ]
+}
