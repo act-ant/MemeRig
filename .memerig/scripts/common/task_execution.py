@@ -90,7 +90,10 @@ def recover(location, claim_path):
             "schemaVersion": 1, "taskId": location.data["id"], "runId": run_id,
             "outcome": "interrupted", "startedAt": claim["startedAt"] if claim else None,
             "finishedAt": protocol.utc_now(), "sessions": claim["sessions"] if claim else [],
-            "commit": None, "artifacts": [], "checks": [],
+            "commit": None,
+            "artifacts": claim.get("artifacts", []) if claim else [],
+            "checks": list(claim.get("checks", {}).values()) if claim else [],
+            "progress": claim.get("progress", []) if claim else [],
         })
     run = load(path)
     candidate = run_id if run["outcome"] == "succeeded" else None
@@ -176,7 +179,9 @@ def execute(owner, selector, command):
             "finishedAt": protocol.utc_now(), "sessions": current["sessions"], "exitCode": code,
             "outcome": "succeeded" if code == 0 else "failed", "commit": commit,
             "baseCommit": base,
-            "artifacts": [], "checks": [], "error": error,
+            "artifacts": current.get("artifacts", []),
+            "checks": list(current.get("checks", {}).values()),
+            "progress": current.get("progress", []), "error": error,
         }
         save(receipt(location.directory, "runs", run_id), record)
         recover(location, claim_path)
@@ -274,10 +279,21 @@ def record_session(owner, args):
         claim = load(path)
         if claim["runId"] != run_id or claim["leaseExpiresAt"] <= time.time():
             raise ValueError("Execution lease lost")
-        session = {"provider": args.provider, "ref": args.ref, "role": args.role}
-        if session not in claim["sessions"]:
-            claim["sessions"].append(session)
-            save(path, claim)
+        if args.action == "session":
+            session = {"provider": args.provider, "ref": args.ref, "role": args.role}
+            if session not in claim["sessions"]:
+                claim["sessions"].append(session)
+        elif args.kind == "check":
+            name, separator, status = args.value.rpartition("=")
+            if not separator or not name or status not in {"passed", "failed", "not_run"}:
+                raise ValueError("Use NAME=passed|failed|not_run")
+            claim.setdefault("checks", {})[name] = {"name": name, "status": status}
+        else:
+            key = "artifacts" if args.kind == "artifact" else "progress"
+            values = claim.setdefault(key, [])
+            if args.value not in values:
+                values.append(args.value)
+        save(path, claim)
     return 0
 
 
@@ -303,10 +319,13 @@ def main(argv):
     session.add_argument("provider")
     session.add_argument("ref")
     session.add_argument("--role", choices=["implementation", "subagent"], required=True)
+    evidence = commands.add_parser("evidence")
+    evidence.add_argument("kind", choices=["check", "artifact", "progress"])
+    evidence.add_argument("value")
     args = parser.parse_args(argv)
     try:
         owner = protocol.resolve_owner()
-        if args.action == "session":
+        if args.action in {"session", "evidence"}:
             owner = Path(os.environ.get("MEMERIG_TASK_OWNER", str(owner))).resolve()
             if git(Path.cwd(), "rev-parse", "--path-format=absolute", "--git-common-dir") != git(
                 owner, "rev-parse", "--path-format=absolute", "--git-common-dir"
