@@ -1,0 +1,9 @@
+{
+  "version": "0.7.2",
+  "description": "Channel worker agents are provider-agnostic; spawn inherits the host agent's runtime",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- `memerig channel spawn` / `memerig channel run` now default the worker runtime to the host agent's: a Codex session spawns Codex workers, a Claude Code session spawns Claude workers. Precedence is `--provider` > `MEMERIG_CHANNEL_PROVIDER` > host env markers > `MEMERIG_PLATFORM` > the repository's single configured worker platform > legacy frontmatter `provider:`.\n- `memerig init` pre-checks Codex only; Claude Code, Cursor and the rest stay opt-in.\n- `.memerig/spec/` starts empty apart from a README that explains the layout.",
+  "migrations": [],
+  "notes": "Existing agent files that still carry `provider:` keep working as a last-resort fallback. Run `memerig update` to pick up the new agent templates."
+}
