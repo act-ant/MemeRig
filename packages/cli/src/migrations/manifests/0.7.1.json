@@ -1,0 +1,9 @@
+{
+  "version": "0.7.1",
+  "description": "First MemeRig release: rebranded packages, task protocol, Codex-first init, empty spec, provenance-backed publishing",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Highlights:**\n- Packages are `memerig` (CLI) and `memerig-core` (SDK).\n- `memerig-core` exposes the task protocol (`schema`, `protocol`, `records`, `paths`) that MemeRig's own project workflow uses.\n- `memerig init` pre-checks Codex only; Claude Code, Cursor and the rest are opt-in.\n- `.memerig/spec/` starts empty apart from a README that explains the layout. The 16 placeholder guideline files are gone, so nothing generated reads as an approved convention.\n- Releases publish through npm trusted publishing (OIDC) with provenance attestations once the first release exists.",
+  "migrations": [],
+  "notes": "Package name is `memerig`; install with `npm install -g memerig`. Run `memerig update` to refresh templates and hooks."
+}
