@@ -82,6 +82,14 @@ pnpm update:self
 
 改 hook 或工作流会影响你当前正在使用的 Agent 会话，所以先在临时项目里验证（在临时目录运行 `memerig init`），再在本仓库使用。
 
+想让本仓库的 CLI 全局可用：
+
+```bash
+pnpm install:global
+```
+
+它先构建 `packages/cli`，再在其目录内执行 `npm link`，于是 PATH 上的 `memerig` / `mrig` 指向本仓库。从仓库外部做普通全局安装行不通：`packages/cli` 依赖 `memerig-core: workspace:*`，只有 workspace 内能解析。symlink 被替换后重跑一次即可；链接状态下不要执行 `memerig upgrade`——它会用 registry 上的包覆盖这个 symlink。
+
 ## 许可证
 
 MemeRig 使用 [GNU Affero General Public License v3.0](./LICENSE)，与 Trellis 相同。原 Trellis 版权声明和修改说明见 [COPYRIGHT](./COPYRIGHT)。

@@ -82,6 +82,14 @@ On a fresh checkout, after a TypeScript change, or after deleting or renaming a 
 
 Hook and workflow changes affect the agent session you are working in, so try them in a scratch project (`memerig init` in a temp directory) before relying on them here.
 
+To use this checkout's CLI anywhere on your machine, link it globally:
+
+```bash
+pnpm install:global
+```
+
+That builds `packages/cli` and then runs `npm link` inside it, so `memerig` and `mrig` on PATH resolve to this repository. A plain global install cannot work from here: `packages/cli` depends on `memerig-core: workspace:*`, which only resolves inside the workspace. Re-run it after a rebuild if you ever replace the symlink, and never run `memerig upgrade` while linked — it installs the registry package over the symlink.
+
 ## License
 
 MemeRig is licensed under the [GNU Affero General Public License v3.0](./LICENSE), the same license as Trellis. See [COPYRIGHT](./COPYRIGHT) for the original Trellis copyright notice and the modification notice.
