@@ -27,14 +27,39 @@ def git(root, *args):
     return result.stdout.strip()
 
 
+def validate_receipt(path, record):
+    kind = path.parent.name
+    fields = {
+        "runs": ("runId", "outcome", "finishedAt", "sessions", "artifacts", "checks"),
+        "reviews": ("reviewId", "runId", "decision", "reviewedAt", "reviewer", "commit", "checks"),
+        "deliveries": ("deliveryId", "runId", "reviewId", "reviewedCommit", "commit", "target", "deliveredAt"),
+    }.get(kind)
+    if fields is None:
+        return
+    task = json.loads((path.parent.parent / "task.json").read_text(encoding="utf-8"))
+    if (
+        not isinstance(record, dict) or record.get("schemaVersion") != 1
+        or record.get("taskId") != task.get("id") or record.get(fields[0]) != path.stem
+        or any(not isinstance(record.get(field), list if field in {"sessions", "artifacts", "checks"} else str)
+               for field in fields)
+        or (kind == "runs" and record.get("outcome") not in {"succeeded", "failed", "interrupted"})
+        or (kind == "runs" and record.get("outcome") == "succeeded" and not isinstance(record.get("commit"), str))
+        or (kind == "reviews" and record.get("decision") not in {"approved", "rejected"})
+    ):
+        raise ValueError(f"Invalid {kind} receipt: {path}")
+
+
 def save(path, record):
+    validate_receipt(path, record)
     path.parent.mkdir(parents=True, exist_ok=True)
     if not write_json(path, record):
         raise OSError(f"Could not persist {path}")
 
 
 def load(path):
-    return json.loads(path.read_text(encoding="utf-8"))
+    record = json.loads(path.read_text(encoding="utf-8"))
+    validate_receipt(path, record)
+    return record
 
 
 def state(location):
