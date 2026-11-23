@@ -293,6 +293,8 @@ def deliver(owner, args):
                        or not isinstance(check.get("name"), str) for check in checks)
                 or not required.issubset({check["name"] for check in checks})):
             raise ValueError("Review no longer covers the current candidate and required checks")
+        if args.artifact_file:
+            return deliver_document(owner, location, execution, record, run, args)
         target = location.data.get("base_branch")
         if not target:
             raise ValueError("Task must declare its target branch")
@@ -324,6 +326,34 @@ def deliver(owner, args):
             git(owner, "worktree", "remove", str(worktree))
         except ValueError as exc:
             print(f"Preserving worktree: {exc}", file=sys.stderr)
+    return 0
+
+
+def deliver_document(owner, location, execution, review, run, args):
+    if args.landed_commit or not args.artifact_path or not args.artifact_ref:
+        raise ValueError("External delivery requires --artifact-path and --artifact-ref")
+    reference = args.artifact_ref
+    relative = args.artifact_path
+    if relative not in run["artifacts"] or Path(relative).is_absolute() or ".." in Path(relative).parts:
+        raise ValueError("Artifact path must be registered by the reviewed run")
+    reviewed_blob = git(owner, "rev-parse", "--verify", f"{review['commit']}:{relative}")
+    actual_blob = git(owner, "hash-object", "--no-filters", "--", str(Path(args.artifact_file).resolve()))
+    if actual_blob != reviewed_blob:
+        raise ValueError("External document differs from the reviewed artifact")
+    run_id = run["runId"]
+    path = receipt(location.directory, "deliveries", run_id)
+    evidence = {"schemaVersion": 1, "taskId": location.task_id, "runId": run_id,
+                "deliveryId": run_id, "reviewId": execution["reviewId"],
+                "reviewedCommit": review["commit"], "commit": review["commit"],
+                "target": reference, "artifactPath": relative, "artifactBlob": actual_blob}
+    if path.exists():
+        existing = load(path)
+        if any(existing.get(key) != value for key, value in evidence.items()):
+            raise ValueError("Existing delivery receipt does not match this document")
+    else:
+        save(path, {**evidence, "deliveredAt": protocol.utc_now()})
+    update(location, {**execution, "deliveryId": run_id}, "completed")
+    protocol.clear_task_from_sessions(location.relative_path, owner)
     return 0
 
 
@@ -371,6 +401,9 @@ def main(argv):
     close = commands.add_parser("deliver")
     close.add_argument("task")
     close.add_argument("--landed-commit", help="Equivalent rewritten delivery commit")
+    close.add_argument("--artifact-file", help="Published document file to verify")
+    close.add_argument("--artifact-path", help="Registered path in the reviewed commit")
+    close.add_argument("--artifact-ref", help="Stable publication reference for the receipt")
     retry = commands.add_parser("recover")
     retry.add_argument("task")
     session = commands.add_parser("session")
