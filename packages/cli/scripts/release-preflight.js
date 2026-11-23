@@ -118,7 +118,12 @@ async function sleep(ms) {
 }
 
 async function retry(label, fn) {
-  const attempts = 6;
+  // npm's publish path is not always read-after-write: on 2026-11-23 the CLI
+  // tarball answered 200 and `/-/package/memerig/dist-tags` already showed the
+  // new version while `/memerig` still served the previous document, so a
+  // 60-second budget false-failed a successful release. Wait up to ~5 minutes.
+  const attempts = 20;
+  const intervalMs = 15_000;
   let lastError;
   for (let i = 1; i <= attempts; i += 1) {
     try {
@@ -129,7 +134,7 @@ async function retry(label, fn) {
       console.error(
         `${YELLOW}! ${label} not visible yet; retrying (${i}/${attempts})${RESET}`,
       );
-      await sleep(10_000);
+      await sleep(intervalMs);
     }
   }
   throw lastError;
