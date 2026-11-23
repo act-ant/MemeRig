@@ -117,6 +117,7 @@ export function getAllScripts(): Map<string, string> {
   for (const module of [
     "file_lock",
     "project",
+    "task_execution",
     "task_migration",
     "task_protocol",
     "task_schema",

@@ -857,6 +857,10 @@ def update_task_record(
     with file_lock(lock_path_for(tasks_root)):
         scan = scan_task_locations(tasks_root, owner, include_archive=True)
         location = _select_location(scan, selector, owner)
+        if "memerig.execution" in (changes.get("extensions") or {}) or (
+            "status" in changes and "memerig.execution" in (location.data.get("extensions") or {})
+        ):
+            raise TaskValidationError(["Managed execution owns its state; use task.py execution"])
         if location.archived:
             raise TaskArchivedError(
                 "archived tasks are read-only; move the directory back into "
@@ -933,6 +937,8 @@ def complete_task_record(
         if current == STATUS_COMPLETED:
             clear_task_from_sessions(location.relative_path, owner)
             return location, False, ["task was already completed; nothing changed"]
+        if "memerig.execution" in (location.data.get("extensions") or {}):
+            raise TaskValidationError(["Managed task: use task.py execution deliver"])
         if current == STATUS_CANCELED:
             raise TaskValidationError(
                 ["status: canceled task cannot be completed; reopen it first"]

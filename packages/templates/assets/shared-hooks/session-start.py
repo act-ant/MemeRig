@@ -851,6 +851,17 @@ def main():
             break
     if project_dir is None:
         project_dir = Path(_normalize_windows_shell_path(hook_input.get("cwd", "."))).resolve()
+    owner = os.environ.get("MEMERIG_TASK_OWNER")
+    session_id = hook_input.get("session_id")
+    if owner and isinstance(session_id, str) and session_id and os.environ.get("MEMERIG_RUN_ID"):
+        registered = subprocess.run(
+            [sys.executable, str(Path(owner) / ".memerig/scripts/task.py"), "execution",
+             "session", str(hook_input.get("platform") or "shared"), session_id,
+             "--role", "implementation"], cwd=project_dir, capture_output=True,
+        )
+        if registered.returncode == 0:
+            project_dir = Path(owner)
+
 
     memerig_dir = project_dir / ".memerig"
     context_key = _resolve_context_key(memerig_dir, hook_input)

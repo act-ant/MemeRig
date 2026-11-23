@@ -485,6 +485,17 @@ def main() -> None:
     except (json.JSONDecodeError, KeyError):
         hook_input = {}
         project_dir = Path(".").resolve()
+    owner = os.environ.get("MEMERIG_TASK_OWNER")
+    session_id = hook_input.get("session_id")
+    if owner and isinstance(session_id, str) and session_id and os.environ.get("MEMERIG_RUN_ID"):
+        registered = subprocess.run(
+            [sys.executable, str(Path(owner) / ".memerig/scripts/task.py"), "execution",
+             "session", "codex", session_id, "--role", "implementation"], cwd=project_dir,
+            capture_output=True,
+        )
+        if registered.returncode == 0:
+            project_dir = Path(owner)
+
 
     configure_project_encoding(project_dir)
 

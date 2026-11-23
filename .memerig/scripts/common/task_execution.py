@@ -1,0 +1,330 @@
+"""Local managed execution and delivery for the repository task store."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+from uuid import uuid4
+
+from . import task_protocol as protocol
+from .file_lock import file_lock
+from .active_task import _context_path
+from .io import write_json
+
+KEY = "memerig.execution"
+LEASE_SECONDS = 60
+
+
+def git(root, *args):
+    result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True)
+    if result.returncode:
+        raise ValueError(result.stderr.strip() or "Git command failed")
+    return result.stdout.strip()
+
+
+def save(path, record):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not write_json(path, record):
+        raise OSError(f"Could not persist {path}")
+
+
+def load(path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def state(location):
+    return location.data.get("extensions", {}).get(KEY)
+
+
+def update(location, execution, status):
+    record = dict(location.data)
+    record["extensions"] = {**record.get("extensions", {}), KEY: execution}
+    record["status"] = status
+    stamp = protocol.utc_now()
+    record["updatedAt"] = stamp
+    if status == "completed":
+        record.update(closedAt=stamp, completedAt=stamp)
+    protocol.write_record_file(location.directory, record)
+
+
+def locate(owner, selector):
+    return protocol._select_location(
+        protocol.scan_task_locations(protocol.tasks_root_for(owner), owner, include_archive=False),
+        selector, owner,
+    )
+
+
+def lock(owner):
+    return file_lock(protocol.lock_path_for(protocol.tasks_root_for(owner)))
+
+
+def receipt(directory, kind, identifier):
+    from uuid import UUID
+
+    if str(UUID(identifier)) != identifier:
+        raise ValueError("Invalid receipt ID")
+    return directory / kind / f"{identifier}.json"
+
+
+def recover(location, claim_path):
+    execution = state(location)
+    if not execution or not execution.get("activeRunId"):
+        if claim_path.exists():
+            claim = load(claim_path)
+            receipt(location.directory, "runs", claim["runId"])
+            _context_path(claim_path.parents[3], claim["runId"]).unlink(missing_ok=True)
+            claim_path.unlink()
+        return
+    run_id = execution["activeRunId"]
+    path = receipt(location.directory, "runs", run_id)
+    claim = load(claim_path) if claim_path.exists() else None
+    if not path.exists():
+        if claim and claim["runId"] == run_id and claim["leaseExpiresAt"] > time.time():
+            raise ValueError("Task already has an active execution")
+        save(path, {
+            "schemaVersion": 1, "taskId": location.data["id"], "runId": run_id,
+            "outcome": "interrupted", "startedAt": claim["startedAt"] if claim else None,
+            "finishedAt": protocol.utc_now(), "sessions": claim["sessions"] if claim else [],
+            "commit": None, "artifacts": [], "checks": [],
+        })
+    run = load(path)
+    candidate = run_id if run["outcome"] == "succeeded" else None
+    update(location, {"candidateRunId": candidate}, "review" if candidate else "in_progress")
+    claim_path.unlink(missing_ok=True)
+    _context_path(claim_path.parents[3], run_id).unlink(missing_ok=True)
+
+
+def execute(owner, selector, command):
+    if not command:
+        raise ValueError("An execution command is required")
+    run_id = str(uuid4())
+    task_id = None
+    runtime = owner / ".memerig" / ".runtime"
+    worktree = owner / ".memerig" / "worktrees" / run_id
+    base = git(owner, "rev-parse", "HEAD")
+    started = protocol.utc_now()
+    sessions = [{"provider": Path(command[0]).name, "role": "implementation"}]
+    with lock(owner):
+        location = locate(owner, selector)
+        task_id = location.data["id"]
+        claim_path = receipt(runtime, "claims", task_id)
+        recover(location, claim_path)
+        location = locate(owner, task_id)
+        if location.closed:
+            raise ValueError("Cannot execute a closed task")
+        claim = {"taskId": task_id, "runId": run_id, "contextId": run_id,
+                 "startedAt": started, "sessions": sessions,
+                 "worktree": str(worktree), "leaseExpiresAt": time.time() + LEASE_SECONDS}
+        save(claim_path, claim)
+        update(location, {"activeRunId": run_id}, "in_progress")
+        save(_context_path(owner, run_id), {
+            "current_task": location.relative_path, "current_run": run_id,
+            "platform": sessions[0]["provider"], "last_seen_at": started,
+        })
+
+    environment = {**os.environ, "MEMERIG_CONTEXT_ID": run_id, "MEMERIG_TASK_OWNER": str(owner),
+                   "MEMERIG_TASK_ID": task_id, "MEMERIG_RUN_ID": run_id}
+    process = None
+    commit = None
+    error = None
+    code = 1
+    try:
+        worktree.parent.mkdir(parents=True, exist_ok=True)
+        # Git setup runs under the same renewable lease as the agent command.
+        for argv, cwd in (
+            (["git", "worktree", "add", "-b", f"memerig/run/{run_id}", str(worktree), base], owner),
+            (command, worktree),
+        ):
+            process = subprocess.Popen(argv, cwd=cwd, env=environment)
+            while True:
+                try:
+                    code = process.wait(timeout=LEASE_SECONDS / 4)
+                    break
+                except subprocess.TimeoutExpired:
+                    with lock(owner):
+                        current = load(claim_path)
+                        if current["runId"] != run_id or current["leaseExpiresAt"] <= time.time():
+                            raise ValueError("Execution lease lost")
+                        current["leaseExpiresAt"] = time.time() + LEASE_SECONDS
+                        save(claim_path, current)
+            if code:
+                break
+        if code == 0:
+            commit = git(worktree, "rev-parse", "HEAD")
+            if commit == base or git(worktree, "status", "--porcelain"):
+                raise ValueError("Execution must leave a committed delivery and a clean worktree")
+    except (OSError, ValueError, KeyboardInterrupt) as exc:
+        error = str(exc) or type(exc).__name__
+        code = 1
+    finally:
+        if process is not None and process.poll() is None:
+            process.kill()
+            process.wait()
+
+    with lock(owner):
+        location = locate(owner, task_id)
+        current = load(claim_path)
+        if current["runId"] != run_id or current["leaseExpiresAt"] <= time.time():
+            raise ValueError("Execution lease lost before settlement")
+        record = {
+            "schemaVersion": 1, "taskId": task_id, "runId": run_id, "startedAt": started,
+            "finishedAt": protocol.utc_now(), "sessions": current["sessions"], "exitCode": code,
+            "outcome": "succeeded" if code == 0 else "failed", "commit": commit,
+            "baseCommit": base,
+            "artifacts": [], "checks": [], "error": error,
+        }
+        save(receipt(location.directory, "runs", run_id), record)
+        recover(location, claim_path)
+    print(json.dumps(record))
+    return 0 if code == 0 else 1
+
+
+def review(owner, args):
+    with lock(owner):
+        location = locate(owner, args.task)
+        execution = state(location)
+        if location.closed or not execution or execution.get("candidateRunId") != args.run:
+            raise ValueError("Run is not the current review candidate")
+        run = load(receipt(location.directory, "runs", args.run))
+        checks = []
+        for item in args.check:
+            name, separator, status = item.rpartition("=")
+            if not separator or not name or status not in {"passed", "failed", "not_run"}:
+                raise ValueError("Use --check NAME=passed|failed|not_run")
+            checks.append({"name": name, "status": status})
+        required_checks = location.data.get("meta", {}).get("requiredChecks", "")
+        if not isinstance(required_checks, str):
+            raise ValueError("meta.requiredChecks must be a comma-separated string")
+        required = {name.strip() for name in required_checks.split(",") if name.strip()}
+        passed = {check["name"] for check in checks if check["status"] == "passed"}
+        if args.decision == "approved" and (
+            not passed or not required.issubset(passed) or any(c["status"] != "passed" for c in checks)
+        ):
+            raise ValueError("Approval requires passing evidence for every required check")
+        review_id = str(uuid4())
+        record = {"schemaVersion": 1, "taskId": location.data["id"], "runId": args.run,
+                  "reviewId": review_id, "reviewer": args.reviewer, "decision": args.decision,
+                  "commit": run["commit"], "checks": checks, "evidence": args.evidence,
+                  "reviewedAt": protocol.utc_now()}
+        save(receipt(location.directory, "reviews", review_id), record)
+        update(location, {**execution, "reviewId": review_id}, "review")
+        print(json.dumps(record))
+    return 0
+
+
+def deliver(owner, args):
+    with lock(owner):
+        location = locate(owner, args.task)
+        execution = state(location)
+        if location.status == "completed" and execution and execution.get("deliveryId"):
+            protocol.clear_task_from_sessions(location.relative_path, owner)
+            return 0
+        if location.closed or not execution or not execution.get("reviewId"):
+            raise ValueError("Task has no pending approved delivery")
+        run_id = execution["candidateRunId"]
+        record = load(receipt(location.directory, "reviews", execution["reviewId"]))
+        if record["runId"] != run_id or record["decision"] != "approved":
+            raise ValueError("Current execution has not been approved")
+        target = location.data.get("base_branch")
+        if not target:
+            raise ValueError("Task must declare its target branch")
+        commit = record["commit"]
+        target_head = git(owner, "rev-parse", "--verify", f"refs/heads/{target}^{{commit}}")
+        landed = commit
+        if args.landed_commit:
+            landed = git(owner, "rev-parse", "--verify", "--end-of-options", args.landed_commit + "^{commit}")
+            run = load(receipt(location.directory, "runs", run_id))
+            options = ("diff", "--raw", "--no-abbrev", "--no-renames")
+            reviewed = git(owner, *options, run["baseCommit"], commit)
+            if not reviewed or reviewed != git(owner, *options, landed + "^", landed):
+                raise ValueError("Landed commit does not preserve the reviewed file changes")
+        git(owner, "merge-base", "--is-ancestor", landed, target_head)
+        delivery_id = run_id
+        path = receipt(location.directory, "deliveries", delivery_id)
+        if not path.exists():
+            save(path, {"schemaVersion": 1, "taskId": location.data["id"], "runId": run_id,
+                        "deliveryId": delivery_id, "reviewId": execution["reviewId"],
+                        "reviewedCommit": commit, "commit": landed, "target": target,
+                        "targetHead": target_head, "deliveredAt": protocol.utc_now()})
+        update(location, {**execution, "deliveryId": delivery_id}, "completed")
+        protocol.clear_task_from_sessions(location.relative_path, owner)
+    worktree = owner / ".memerig" / "worktrees" / run_id
+    if worktree.is_dir():
+        try:
+            head = git(worktree, "rev-parse", "HEAD")
+            git(owner, "merge-base", "--is-ancestor", head, target_head)
+            git(owner, "worktree", "remove", str(worktree))
+        except ValueError as exc:
+            print(f"Preserving worktree: {exc}", file=sys.stderr)
+    return 0
+
+
+def record_session(owner, args):
+    task_id = os.environ.get("MEMERIG_TASK_ID", "")
+    run_id = os.environ.get("MEMERIG_RUN_ID", "")
+    runtime = owner / ".memerig" / ".runtime"
+    with lock(owner):
+        location = locate(owner, task_id)
+        path = receipt(runtime, "claims", task_id)
+        claim = load(path)
+        if claim["runId"] != run_id or claim["leaseExpiresAt"] <= time.time():
+            raise ValueError("Execution lease lost")
+        session = {"provider": args.provider, "ref": args.ref, "role": args.role}
+        if session not in claim["sessions"]:
+            claim["sessions"].append(session)
+            save(path, claim)
+    return 0
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(prog="task.py execution")
+    commands = parser.add_subparsers(dest="action", required=True)
+    run = commands.add_parser("run")
+    run.add_argument("task")
+    run.add_argument("command", nargs=argparse.REMAINDER)
+    check = commands.add_parser("review")
+    check.add_argument("task")
+    check.add_argument("run")
+    check.add_argument("--decision", choices=["approved", "rejected"], required=True)
+    check.add_argument("--reviewer", required=True)
+    check.add_argument("--evidence", required=True)
+    check.add_argument("--check", action="append", default=[])
+    close = commands.add_parser("deliver")
+    close.add_argument("task")
+    close.add_argument("--landed-commit", help="Equivalent rewritten delivery commit")
+    retry = commands.add_parser("recover")
+    retry.add_argument("task")
+    session = commands.add_parser("session")
+    session.add_argument("provider")
+    session.add_argument("ref")
+    session.add_argument("--role", choices=["implementation", "subagent"], required=True)
+    args = parser.parse_args(argv)
+    try:
+        owner = protocol.resolve_owner()
+        if args.action == "session":
+            owner = Path(os.environ.get("MEMERIG_TASK_OWNER", str(owner))).resolve()
+            if git(Path.cwd(), "rev-parse", "--path-format=absolute", "--git-common-dir") != git(
+                owner, "rev-parse", "--path-format=absolute", "--git-common-dir"
+            ):
+                raise ValueError("Execution directory and task owner belong to different repositories")
+            return record_session(owner, args)
+        if args.action == "run":
+            command = args.command
+            return execute(owner, args.task, command[1:] if command[:1] == ["--"] else command)
+        if args.action == "review":
+            return review(owner, args)
+        if args.action == "recover":
+            with lock(owner):
+                location = locate(owner, args.task)
+                runtime = owner / ".memerig" / ".runtime"
+                recover(location, receipt(runtime, "claims", location.data["id"]))
+            return 0
+        return deliver(owner, args)
+    except (OSError, ValueError, protocol.TaskProtocolError) as exc:
+        print(f"Execution error: {exc}", file=sys.stderr)
+        return 1

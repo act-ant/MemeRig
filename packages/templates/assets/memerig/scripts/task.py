@@ -266,6 +266,9 @@ def cmd_start(args: argparse.Namespace) -> int:
             # Re-read under the same lock as complete/update. A close may
             # have landed while the task's context manifests were checked.
             data, reason = read_json_checked(task_json_path)
+            if data and "memerig.execution" in (data.get("extensions") or {}):
+                print("Managed task: use task.py execution run", file=sys.stderr)
+                return 1
             if data is not None and normalize_status(data.get("status")) in CLOSED_STATUSES:
                 print(colored(f"Error: Task is closed: {task_input}", Colors.RED), file=sys.stderr)
                 return 1
@@ -677,6 +680,10 @@ Examples:
 
 def main() -> int:
     """CLI entry point."""
+    if sys.argv[1:2] == ["execution"]:
+        from common.task_execution import main as execution_main
+
+        return execution_main(sys.argv[2:])
     # Deprecation guard: `init-context` was removed in v0.5.0-beta.12.
     # Detect early so argparse doesn't mask the real reason with a generic
     # "invalid choice" error.

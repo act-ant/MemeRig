@@ -268,3 +268,20 @@ python3 task.py complete demo --json
 
 Use `task.py archive demo` only when the project intentionally wants the
 legacy archive layout.
+
+## 11. Managed local execution
+
+Use the following commands from the task owner's checkout. The execution command must leave a clean worktree containing a delivery commit.
+
+```sh
+python .memerig/scripts/task.py execution run <task-id> -- <agent-command> [args]
+python .memerig/scripts/task.py execution review <task-id> <run-id> --decision approved --reviewer <actor> --check tests=passed --evidence <reference>
+python .memerig/scripts/task.py execution deliver <task-id>
+python .memerig/scripts/task.py execution recover <task-id>
+```
+
+Run uses the store lock to serialize claims, renews the claim while a subprocess runs, and writes a versioned receipt under `runs/` before changing the task state. A successful run becomes the candidate for review. Recover reconciles a persisted receipt or records an expired run as interrupted. It refuses to displace an active claim.
+
+Host hooks may call `task.py execution session <provider> <ref> --role implementation|subagent` with the inherited `MEMERIG_TASK_OWNER`, `MEMERIG_TASK_ID`, and `MEMERIG_RUN_ID`. Registration requires the same Git repository and a live claim. The default runtime binding uses the run UUID as its context key. Review requires named passing checks and any checks declared in the comma-separated task metadata key `requiredChecks`.
+
+Deliver verifies the approved commit is reachable from the local target branch before writing a delivery receipt and closing the task in place. Direct `complete` and status updates reject managed tasks. Preserve failed worktrees and worktrees that Git cannot safely remove. To verify the contract, exercise competing claims in separate processes, review with a missing required check, and delivery before and after the approved commit reaches the target branch.

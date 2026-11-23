@@ -200,21 +200,19 @@ describe("getConfiguredPlatforms", () => {
     expect(result.has("devin")).toBe(true);
   });
 
-  it("detects every platform from the files MemeRig tracked for it", async () => {
-    for (const id of PLATFORM_IDS) {
-      const platformRoot = path.join(tmpDir, id);
-      fs.mkdirSync(platformRoot, { recursive: true });
-      const written = startRecordingWrites(platformRoot);
-      try {
-        await configurePlatform(id, platformRoot);
-      } finally {
-        stopRecordingWrites();
-      }
-      fs.mkdirSync(path.join(platformRoot, ".memerig"), { recursive: true });
-      initializeHashes(platformRoot, { trackedPaths: written });
-
-      expect([...getConfiguredPlatforms(platformRoot)]).toEqual([id]);
+  it.each(PLATFORM_IDS)("detects %s from its tracked files", async (id) => {
+    const platformRoot = path.join(tmpDir, id);
+    fs.mkdirSync(platformRoot, { recursive: true });
+    const written = startRecordingWrites(platformRoot);
+    try {
+      await configurePlatform(id, platformRoot);
+    } finally {
+      stopRecordingWrites();
     }
+    fs.mkdirSync(path.join(platformRoot, ".memerig"), { recursive: true });
+    initializeHashes(platformRoot, { trackedPaths: written });
+
+    expect([...getConfiguredPlatforms(platformRoot)]).toEqual([id]);
   });
 
   it("ignores unrelated directories", () => {
