@@ -1362,7 +1362,10 @@ describe("regression: JSON read/write failure reporting", () => {
           "--force",
         ]);
         expect(r.status).not.toBe(0);
-        expect(r.stderr).toContain("Failed to write");
+        // The failure is reported by task_protocol.py as "failed to write"
+        // while task_store.py uses "Failed to write". Assert the fact, not
+        // the casing, so the test survives either code path.
+        expect(r.stderr.toLowerCase()).toContain("failed to write");
         expect(r.stderr).toContain("No task was created");
         expect(r.stderr).not.toContain("Created task");
         // Nothing on stdout means nothing for a script to chain onto.
