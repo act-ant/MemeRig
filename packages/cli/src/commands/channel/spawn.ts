@@ -7,8 +7,9 @@ import type { InboxPolicy } from "memerig-core/channel";
 
 import { loadAgent } from "./agent-loader.js";
 import type { CodexSandboxMode } from "./adapters/codex.js";
-import type { Provider } from "./adapters/index.js";
+import { listProviders, type Provider } from "./adapters/index.js";
 import { assembleContext } from "./context-loader.js";
+import { detectHostProvider } from "./host-provider.js";
 import { resolveTrustedRoots } from "./context-trust.js";
 import {
   enforceSpawnBudget,
@@ -74,13 +75,19 @@ function resolveSpawn(channelName: string, opts: SpawnOptions): ResolvedSpawn {
   const cwd = opts.cwd ?? process.cwd();
   const trustedRoots = resolveTrustedRoots(cwd);
   let agentBody: string | undefined;
-  let provider = opts.provider;
+  // Role definitions are provider-agnostic: the runtime defaults to the host
+  // agent's, so a Codex session spawns Codex workers and a Claude Code session
+  // spawns Claude workers unless the caller overrides it. See host-provider.ts
+  // for the full precedence chain.
+  let provider = opts.provider ?? detectHostProvider({ cwd });
   let model = opts.model;
   let as = opts.as;
 
   if (opts.agent) {
     const agent = loadAgent(opts.agent, cwd, trustedRoots);
     agentBody = agent.systemPrompt || undefined;
+    // `provider:` in frontmatter is a legacy fallback for definitions pinned
+    // before roles became provider-agnostic.
     provider = provider ?? agent.provider;
     model = model ?? agent.model;
     as = as ?? agent.name;
@@ -88,7 +95,8 @@ function resolveSpawn(channelName: string, opts: SpawnOptions): ResolvedSpawn {
 
   if (!provider) {
     throw new Error(
-      "Missing --provider (and the agent definition has no `provider:` frontmatter)",
+      `Cannot determine the worker runtime. Pass --provider <${listProviders().join("|")}>, ` +
+        "set MEMERIG_CHANNEL_PROVIDER, or configure exactly one MemeRig platform in this repository.",
     );
   }
   if (!as) {

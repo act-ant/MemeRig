@@ -280,11 +280,11 @@ export function registerChannelCommand(program: Command): void {
     .option("--scope <scope>", "channel scope: project | global")
     .option(
       "--agent <agent-name>",
-      "load .memerig/agents/<name>.md (sets default --provider / --model / system prompt)",
+      "load .memerig/agents/<name>.md (sets --as, model hint, and system prompt; provider follows the host agent)",
     )
     .option(
       "--provider <provider>",
-      "worker provider: claude | codex (overrides agent)",
+      "worker provider: claude | codex (default: the host agent's runtime)",
     )
     .option(
       "--as <name>",
@@ -396,11 +396,11 @@ export function registerChannelCommand(program: Command): void {
     )
     .option(
       "--agent <agent-name>",
-      "load .memerig/agents/<name>.md (sets default --provider / --as / system prompt)",
+      "load .memerig/agents/<name>.md (sets --as, model hint, and system prompt; provider follows the host agent)",
     )
     .option(
       "--provider <provider>",
-      "worker provider: claude | codex (overrides agent)",
+      "worker provider: claude | codex (default: the host agent's runtime)",
     )
     .option("--as <name>", "worker name (default: agent name if --agent set)")
     .option("--cwd <path>", "worker working directory")

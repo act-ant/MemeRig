@@ -345,6 +345,37 @@ interface ShutdownController {
 
 ## 3. Contracts
 
+### Agent definitions are provider-agnostic; the host decides the runtime
+
+`.memerig/agents/<name>.md` describes a **role** (description, labels, system
+prompt). It must not pin a runtime: `provider:` in frontmatter is a legacy
+fallback only, and `model:` must not be written unless the value is valid for
+every provider a caller may use.
+
+`memerig channel spawn` / `channel run` resolve the provider in
+`commands/channel/host-provider.ts` with this precedence:
+
+| # | Source | Notes |
+|---|---|---|
+| 1 | `--provider` | explicit, wins over everything |
+| 2 | `MEMERIG_CHANNEL_PROVIDER` | project/CI override |
+| 3 | host agent env markers | `CLAUDECODE` / `CLAUDE_CODE_*` → `claude`; `CODEX_HOME` / `CODEX_THREAD_ID` / `CODEX_SANDBOX` / `CODEX_SESSION_ID` → `codex` |
+| 4 | `MEMERIG_PLATFORM` | same override the Python scripts honour |
+| 5 | configured platforms | only when exactly one of them has a worker adapter |
+| 6 | agent frontmatter `provider:` | legacy definitions only |
+
+Consequences:
+
+- A subagent spawned from a Codex session runs on Codex; from Claude Code, on
+  Claude. Nobody has to repeat `--provider` per call site.
+- Resolution failure throws (`Cannot determine the worker runtime. …`) instead
+  of guessing — starting the wrong CLI silently is worse than an error.
+- Platforms without a worker adapter (`cursor`, `gemini`, …) never resolve to a
+  provider; they fall through to the next source.
+- Adding a provider means adding an adapter to `adapters/index.ts` REGISTRY;
+  `Provider` and the resolution chain widen automatically.
+
+
 ### Event payload contracts (events.jsonl)
 
 All events carry: `seq: number` (monotonic ≥ 1), `ts: string` (ISO 8601),
