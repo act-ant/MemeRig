@@ -1,0 +1,9 @@
+{
+  "version": "0.7.4",
+  "description": "User-level Rules injection from the local user directory",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- `~/.memerig/rules/*.md` adds a user-level Rules source: `load: always` bodies are injected into SessionStart and hook-built sub-agent prompts, while missing, `load: index`, or unknown values are listed by path for on-demand reading.\n- Text and JSON session context share one parser; JSON exposes `userRules` metadata, and the pull-based sub-agent prelude routes user rules without adding them to task manifests.\n**Boundaries:**\n- Only Rules support a user-level source; Spec, Tasks, and Skills stay project-scoped. `init`, `update`, and `uninstall` never create, overwrite, or delete `~/.memerig/rules/`.",
+  "migrations": [],
+  "notes": "Create Markdown files under `~/.memerig/rules/`. Use `load: always` only for short personal rules; long reference material should stay `load: index`. User rules are peers of project rules and are never added to task manifests."
+}
