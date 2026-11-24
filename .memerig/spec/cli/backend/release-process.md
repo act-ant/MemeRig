@@ -44,28 +44,50 @@ node packages/cli/scripts/release-preflight.js verify-npm --package all
 
 ---
 
-## Trusted publishing (OIDC), no npm token
+## Publishing credential
 
-Publishing authenticates with npm [trusted publishing](https://docs.npmjs.com/trusted-publishers): GitHub Actions mints an OIDC token (`permissions: id-token: write`) and npm exchanges it for a short-lived publish credential. There is **no `NPM_TOKEN` secret** in the repository, and it must not be re-added as a workaround.
+**Current mode: npm token.** `publish.yml` authenticates with the
+`NPM_TOKEN` secret (organization secret on `act-ant`, visibility `all`). It
+mints nothing and requires no npm-side configuration per package.
 
-Prerequisites, in order:
-
-1. **The package must already exist on the public registry.** Trusted publishing can only be configured for a package that is already published, so the *first* publish of a new package name is token-based or manual (one-off bootstrap). Revoke that token / disallow token publishing immediately afterwards.
-2. On `npmjs.com` → package → Settings → Trusted Publisher → GitHub Actions: owner `blackplume233`, repository `MemeRig`, workflow filename `publish.yml`, environment blank, allowed action "`npm publish`". Configure it for **both** `memerig` and `memerig-core`.
-3. A newly created trusted-publisher configuration must complete a successful publish within **2 days** or it expires and has to be recreated.
-4. After the first OIDC publish succeeds, set package Settings → Publishing access to "Require two-factor authentication and disallow tokens".
-
-CI constraints implied by the above:
-
-| Requirement | Value | Why |
+| Piece | Value | Why |
 |---|---|---|
-| Job permission | `id-token: write` | OIDC token for npm |
-| Node | 24 | trusted publishing needs Node >= 22.14 |
-| npm | >= 11.5.1 | bundled with Node 24 |
-| pnpm | 12.x | `pnpm publish` on pnpm 10 has no OIDC support (10.x implements publish natively and never delegates to the npm CLI) |
-| `NODE_AUTH_TOKEN` | absent | a token must not shadow the OIDC exchange |
+| Job permissions | `contents: read` only | no `id-token: write`, so pnpm does not attempt an OIDC exchange that would 404 against packages without a trusted publisher |
+| `NODE_AUTH_TOKEN` | `secrets.NPM_TOKEN` | read by the "Verify npm credential" and "Configure npm auth for pnpm" steps, then by `pnpm publish` |
+| `.npmrc` | written by the workflow | pnpm reads credentials from `.npmrc`; setup-node does not write one (no `registry-url`) |
+| Provenance | **not generated** | sigstore attestations need an OIDC identity; `NPM_CONFIG_PROVENANCE` is deliberately absent because with a token npm reports no attestation anyway |
+| Node / pnpm | 24 / 12.21.0 | pnpm 12 for the workspace rewrite (`workspace:*` → exact version) |
 
-Provenance is generated automatically under trusted publishing for a public package from a public repository. Do not set `NPM_CONFIG_PROVENANCE` by hand.
+Token requirements, learned the hard way: a token that cannot bypass 2FA makes
+`pnpm publish` fail with `ERR_PNPM_OTP_NON_INTERACTIVE` even though `whoami`
+returns 200. Use a granular token with **Bypass 2FA** or a classic
+**Automation** token.
+
+Rotating the credential: regenerate on npm, then
+`gh secret set NPM_TOKEN --org act-ant --visibility all --body "$TOKEN"`.
+
+### Switching to OIDC trusted publishing (deferred, not abandoned)
+
+Trusted publishing removes the token and adds provenance. It is deferred
+because the packages only just came into existence, and it is optional, not a
+prerequisite for releasing.
+
+To switch:
+
+1. On `npmjs.com` → package → Settings → Trusted Publisher → GitHub Actions:
+   owner `act-ant`, repository `MemeRig`, workflow filename `publish.yml`,
+   environment blank, allowed action "`npm publish`". Do it for **both**
+   `memerig` and `memerig-core`.
+2. A new trusted-publisher configuration must complete a successful publish
+   within **2 days** or it expires; create it when a release is imminent.
+3. In `publish.yml`: add `id-token: write` back to the job permissions and
+   delete the `NODE_AUTH_TOKEN` env blocks plus the two credential steps.
+4. After the first OIDC publish succeeds, set package Settings → Publishing
+   access to "Require two-factor authentication and disallow tokens".
+5. Rotate/revoke the token and drop the `NPM_TOKEN` secret.
+
+Node >= 22.14 / npm >= 11.5.1 / pnpm >= 12 are already satisfied by the
+current workflow, so no toolchain change is needed.
 
 ---
 
@@ -269,7 +291,7 @@ git -C "$tmpdir" init -q
 - [ ] Worktree is clean except intentional release changes.
 - [ ] Relevant coding specs have been read.
 - [ ] Manifest exists for the target version.
-- [ ] Trusted publisher configured on npmjs.com for **both** `memerig` and `memerig-core` (owner `blackplume233`, repo `MemeRig`, workflow `publish.yml`), or — for the first publish of a new package name — the one-off bootstrap publish is done and its token revoked.
+- [ ] `NPM_TOKEN` (org `act-ant`, visibility `all`) is present and can bypass 2FA (`ERR_PNPM_OTP_NON_INTERACTIVE` means it cannot). While OIDC is deferred this is the publishing credential; see "Publishing credential" above.
 - [ ] Release notes for the target version are written (the manifest `changelog`).
 - [ ] `node packages/cli/scripts/release-preflight.js check-versions` passes.
 - [ ] `node packages/cli/scripts/release-preflight.js verify-packed-cli` passes.

@@ -23,22 +23,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # Trusted publishing (OIDC) to npm: no long-lived NPM_TOKEN secret is
-      # used. npm exchanges this token for a short-lived publish credential
-      # and attaches provenance automatically. Prerequisite: each package
-      # (memerig, memerig-core) must have a Trusted Publisher configured on
-      # npmjs.com for this repo + workflow file `publish.yml`.
-      id-token: write
+      # Token mode: publishing authenticates with secrets.NPM_TOKEN. No
+      # `id-token: write` on purpose — with no OIDC token available pnpm skips
+      # its trusted-publishing attempt instead of failing an exchange against a
+      # package that has no trusted publisher yet. See release-process.md
+      # "Publishing credential" for the switch back to OIDC.
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Node 24 + npm 11 are required by npm trusted publishing (npm >= 11.5.1,
-      # Node >= 22.14). No `registry-url` here: it would write an .npmrc with
-      # `_authToken=${NODE_AUTH_TOKEN}` and there is no token any more. The
-      # default registry is already https://registry.npmjs.org.
+      # Node 24 for pnpm 12. No `registry-url`: it would write an .npmrc with
+      # `_authToken=${NODE_AUTH_TOKEN}` pointing at an env var that only some
+      # steps define; the token line is written explicitly below instead.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -75,9 +73,8 @@ jobs:
         id: plan
         run: node packages/cli/scripts/release-preflight.js publish-plan --github
 
-      # BOOTSTRAP ONLY (delete with the publish-step env blocks once trusted
-      # publishing is live). Verifies the token up front so an invalid secret
-      # fails here with a clear message instead of a 404 from the registry.
+      # Verifies the token up front so an invalid or expired secret fails here
+      # with a clear message instead of a 404 from the registry publish call.
       - name: Verify npm credential
         run: |
           code=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -91,8 +88,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # pnpm reads credentials from .npmrc; setup-node no longer writes one for
-      # us (no registry-url, since that would also inject a token line).
+      # pnpm reads credentials from .npmrc, and nothing else writes one now that
+      # setup-node has no registry-url.
       - name: Configure npm auth for pnpm
         run: |
           printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" > "$HOME/.npmrc"
@@ -105,13 +102,9 @@ jobs:
         run: pnpm publish --access public --no-git-checks --tag ${{ steps.plan.outputs.tag }}
         working-directory: packages/core
         env:
-          # BOOTSTRAP ONLY. npm cannot hold a trusted publisher for a package
-          # that does not exist yet, so the very first release of each package
-          # authenticates with a short-lived token. Delete this env block (and
-          # the NPM_TOKEN secret) once both packages exist and their trusted
-          # publishers are configured; OIDC takes over from then on.
+          # Token mode. Provenance is NOT requested: sigstore attestations need
+          # an OIDC identity, so with a token npm reports none anyway.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "true"
 
       - name: Skip memerig-core (already on npm)
         if: steps.plan.outputs.core_publish != 'true'
@@ -122,9 +115,8 @@ jobs:
         run: pnpm publish --access public --no-git-checks --tag ${{ steps.plan.outputs.tag }}
         working-directory: packages/cli
         env:
-          # BOOTSTRAP ONLY — see the memerig-core step above.
+          # Token mode — see the memerig-core step above.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "true"
 
       - name: Skip memerig (already on npm)
         if: steps.plan.outputs.cli_publish != 'true'
