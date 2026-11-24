@@ -1,0 +1,9 @@
+{
+  "version": "0.0.0-stage",
+  "description": "Historical npm staged-publishing holding version",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "Historical npm holding version containing only package metadata and a temporary holding README; it shipped no CLI, templates, or file migrations.",
+  "migrations": [],
+  "notes": "Continuity record based on the published memerig-0.0.0-stage.tgz archive (SHA1 881fc7606c6e2ab8f90da07a709aaa54dab11321). Its package.json declares stub: true; no project files were installed by this version."
+}

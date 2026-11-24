@@ -3,7 +3,7 @@
   "name": "reusable-template-rules",
   "title": "通用默认规范与可选 Rules 模板",
   "description": "实现与 Spec 并列的默认 Rules、四份可选声明及手动采用方式，复用既有模板更新和上下文机制。",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": "cli",
@@ -11,7 +11,7 @@
   "creator": "codex",
   "assignee": "codex",
   "createdAt": "2026-11-23T15:29:19Z",
-  "completedAt": null,
+  "completedAt": "2026-11-24T03:05:01Z",
   "branch": "main",
   "base_branch": "main",
   "worktree_path": null,
@@ -24,5 +24,6 @@
   "notes": "",
   "meta": {},
   "schemaVersion": 1,
-  "updatedAt": "2026-11-23T15:29:19Z"
+  "updatedAt": "2026-11-24T03:05:01Z",
+  "closedAt": "2026-11-24T03:05:01Z"
 }

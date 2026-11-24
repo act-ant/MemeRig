@@ -7,8 +7,11 @@ This project is managed by MemeRig. The working knowledge you need lives under `
 
 - `.memerig/workflow.md` — development phases, when to create tasks, skill routing
 - `.memerig/spec/` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
+- `.memerig/rules/` — adopted behavioral rules; read `rules/index.md`, then every applicable body (`core.md` always applies)
 - `.memerig/workspace/` — per-developer journals and session traces
 - `.memerig/tasks/` — active and archived tasks (PRDs, research, jsonl context)
+
+Before changing code or specs, read the applicable Rules alongside the project Specs. Include their actual files in implement/check task manifests; links are not loaded content. Do not load unadopted catalog rules.
 
 If a MemeRig command is available on your platform (e.g. `/memerig:finish-work`, `/memerig:continue`), prefer it over manual steps. Not every platform exposes every command.
 

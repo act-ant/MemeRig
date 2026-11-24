@@ -1,0 +1,9 @@
+{
+  "version": "0.7.3",
+  "description": "Default engineering Rules and a manually adopted optional rules catalog",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- `memerig init` and `memerig update` deliver `.memerig/rules/index.md` and `core.md` alongside project Specs. Main-session, hook, pull-based, and channel agent instructions route to applicable rule bodies through existing context mechanisms.\n- `marketplace/rules/` provides four optional declarations: clean cutover, production compatibility, dependency governance, and architecture research, with English and Chinese manual adoption guides. Optional declarations are not installed automatically.\n**Bug Fixes:**\n- Rules use write receipts instead of recursive hash tracking, preserving the original baseline of locally edited defaults during skip-existing re-init and leaving manually adopted documents project-owned.",
+  "migrations": [],
+  "notes": "Run `memerig update` to receive default Rules and context guidance. Review conflicts for edited core/index files instead of forcing an overwrite. Adopt optional rules individually and include applicable bodies in task manifests; no new Rules engine or enable/disable command is introduced."
+}

@@ -1,0 +1,4 @@
+{"file": ".memerig/spec/cli/backend/release-process.md", "reason": "CI-only release and version invariants"}
+{"file": ".memerig/spec/cli/backend/project-setup.md", "reason": "Rules declaration and adoption contract"}
+{"file": ".memerig/rules/index.md", "reason": "Project adopted rules and applicability"}
+{"file": ".memerig/rules/core.md", "reason": "Default engineering constraints"}

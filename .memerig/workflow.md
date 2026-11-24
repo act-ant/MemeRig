@@ -37,6 +37,14 @@ python3 ./.memerig/scripts/get_context.py --mode packages   # list packages / la
 
 **When to update spec**: new pattern/convention found · bug-fix prevention to codify · new technical decision.
 
+### Rules System
+
+`.memerig/rules/` contains this project's adopted behavioral constraints, alongside project-specific conventions in `.memerig/spec/`. The directory distinction creates no automatic precedence.
+
+Read `.memerig/rules/index.md`, then each applicable rule body before changing code or specs. This repository adopts the default `core.md` for all work; optional catalog rules are not adopted automatically.
+
+For delegated work, include the index and applicable bodies in both task context manifests. Markdown links do not expand into injected context; list individual files rather than broad-loading the Rules directory.
+
 ### Task System
 
 Every task has its own directory under `.memerig/tasks/{MM-DD-name}/` holding `task.json`, `prd.md`, optional `design.md`, optional `implement.md`, optional `research/`, and context manifests (`implement.jsonl`, `check.jsonl`) for sub-agent-capable platforms.
@@ -393,6 +401,7 @@ Curate `implement.jsonl` and `check.jsonl` so the Phase 2 sub-agents get the rig
 **Format**: one JSON object per line — `{"file": "<path>", "reason": "<why>"}`. Paths are repo-root relative.
 
 **What to put in**:
+- **Rule files** — `.memerig/rules/index.md`, `.memerig/rules/core.md`, and any other adopted body applicable to this task; list individual files, not the whole directory
 - **Spec files** — `.memerig/spec/<package>/<layer>/index.md` and any specific guideline files (`error-handling.md`, `conventions.md`, etc.) relevant to this task
 - **Research files** — `{TASK_DIR}/research/*.md` that the sub-agent will need to consult
 
@@ -425,7 +434,7 @@ python3 ./.memerig/scripts/task.py add-context "$TASK_DIR" check "<path>" "<reas
 
 Delete the seed `_example` line once real entries exist (optional — it's skipped automatically by consumers).
 
-Ready gate: both `implement.jsonl` and `check.jsonl` must contain at least one real `{"file": "...", "reason": "..."}` entry before `task.py start`. The seed `_example` row alone is not ready.
+Ready gate: both `implement.jsonl` and `check.jsonl` must contain at least one real `{"file": "...", "reason": "..."}` entry before `task.py start`. Include `.memerig/rules/index.md` and `core.md` in both, plus applicable adopted rule bodies. The seed `_example` row alone is not ready.
 
 Skip this step only when both files already have real curated entries.
 

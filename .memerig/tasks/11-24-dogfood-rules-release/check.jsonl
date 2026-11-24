@@ -1,0 +1,4 @@
+{"file": ".memerig/spec/cli/backend/release-process.md", "reason": "Verify packed assets and official publication"}
+{"file": ".memerig/spec/cli/backend/project-setup.md", "reason": "Verify scoped rule adoption"}
+{"file": ".memerig/rules/index.md", "reason": "Verify adopted scope"}
+{"file": ".memerig/rules/core.md", "reason": "Verify default engineering constraints"}
