@@ -80,7 +80,7 @@ publish:
     - node packages/cli/scripts/release-preflight.js verify-packed-cli
     - node packages/cli/scripts/release-preflight.js publish-plan --dotenv publish-plan.env
     - set -a; . ./publish-plan.env; set +a
-    - echo "plan: version=$version tag=$tag core_publish=$core_publish cli_publish=$cli_publish"
+    - 'echo "plan: version=$version tag=$tag core_publish=$core_publish cli_publish=$cli_publish"'
     - printf '//registry.npmjs.org/:_authToken=%s\n' "$NPM_TOKEN" > "$HOME/.npmrc"
     # Subshells: every script line shares one shell, so a bare `cd` would leak
     # into the next step.
