@@ -42,6 +42,10 @@ GitHub stays a mirror that runs the same gates.
 - [x] Integration test covers GitHub tag, GitLab tag, branch pipeline, and
       mismatched tag.
 - [x] README documents the topology and required project settings.
-- [ ] GitLab project exists, remote `origin` points at it, a tag pipeline ran
-      green on platgit. **Blocked**: platgit unreachable from this machine
-      (SSH 22 timeout, HTTPS handshake failure) while the work was done.
+- [x] GitLab project `exp/kl/aift/memerig` (id 34193) exists, `origin` points at
+      it, and the `main` pipeline is green (`test` + `python-3.9-syntax` on
+      `plat-ci` runners).
+- [ ] A tag pipeline ran green on platgit. Pushing `v0.7.3` creates no pipeline
+      because that commit predates `.gitlab-ci.yml`; the publish job's command
+      sequence was rehearsed locally instead (versions, packed-CLI pin, plan,
+      skips, `verify-npm`) and first runs for the next release tag.

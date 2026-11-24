@@ -3,7 +3,7 @@
   "name": "gitlab-upstream",
   "title": "Migrate CI and release upstream to GitLab",
   "description": "Platgit (self-hosted GitLab) becomes the primary upstream: add .gitlab-ci.yml parity with .github/workflows/{ci,publish}.yml, teach release-preflight GitLab tag/dotenv env, keep GitHub as mirror.",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": "cli",
@@ -11,7 +11,7 @@
   "creator": "codex",
   "assignee": "codex",
   "createdAt": "2026-11-24T07:12:39Z",
-  "completedAt": null,
+  "completedAt": "2026-11-24T09:09:26Z",
   "branch": null,
   "base_branch": "main",
   "worktree_path": null,
@@ -24,5 +24,6 @@
   "notes": "",
   "meta": {},
   "schemaVersion": 1,
-  "updatedAt": "2026-11-24T07:12:39Z"
+  "updatedAt": "2026-11-24T09:09:26Z",
+  "closedAt": "2026-11-24T09:09:26Z"
 }
