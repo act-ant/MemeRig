@@ -72,9 +72,14 @@ function readVersions() {
 }
 
 function tagVersionFromEnv() {
-  // GITHUB_REF for `push: tags: v*` looks like `refs/tags/v0.6.0-beta.12`.
-  // GITHUB_REF_NAME on `release.published` is the tag name.
-  const ref = process.env.GITHUB_REF_NAME || process.env.GITHUB_REF || "";
+  // GitHub: GITHUB_REF for `push: tags: v*` looks like `refs/tags/v0.6.0-beta.12`,
+  // and GITHUB_REF_NAME on `release.published` is the tag name. GitLab: tag
+  // pipelines export CI_COMMIT_TAG, branch pipelines export nothing.
+  const ref =
+    process.env.CI_COMMIT_TAG ||
+    process.env.GITHUB_REF_NAME ||
+    process.env.GITHUB_REF ||
+    "";
   const m = ref.match(/(?:refs\/tags\/)?v(\d+\.\d+\.\d+(?:-[A-Za-z0-9.+-]+)?)$/);
   return m ? m[1] : null;
 }
@@ -160,9 +165,13 @@ function checkVersions({ requireTag, quiet = false }) {
   if (requireTag) {
     if (!tagVersion) {
       fail(
-        `Expected a git tag like v${v.cliVersion} via GITHUB_REF / GITHUB_REF_NAME but found "${
-          process.env.GITHUB_REF_NAME || process.env.GITHUB_REF || ""
-        }".`,
+        `Expected a git tag like v${v.cliVersion} via CI_COMMIT_TAG (GitLab) or ` +
+          `GITHUB_REF / GITHUB_REF_NAME (GitHub) but found "${
+            process.env.CI_COMMIT_TAG ||
+            process.env.GITHUB_REF_NAME ||
+            process.env.GITHUB_REF ||
+            ""
+          }".`,
       );
     }
     if (tagVersion !== v.cliVersion) {
@@ -185,7 +194,20 @@ function checkVersions({ requireTag, quiet = false }) {
   return { ...v, tagVersion };
 }
 
-function publishPlan({ output }) {
+// One `key=value` block for every consumer: GitHub appends it to $GITHUB_OUTPUT,
+// GitLab sources it from the dotenv file declared in `.gitlab-ci.yml`.
+function planEnvLines(plan) {
+  return [
+    `version=${plan.version}`,
+    `tag=${plan.tag}`,
+    `core_publish=${plan.core.publish}`,
+    `cli_publish=${plan.cli.publish}`,
+    `core_already_on_npm=${plan.core.alreadyOnNpm}`,
+    `cli_already_on_npm=${plan.cli.alreadyOnNpm}`,
+  ];
+}
+
+function publishPlan({ output, envFile }) {
   const v = checkVersions({ requireTag: false, quiet: output === "json" });
   const tag = computeNpmTag(v.cliVersion);
   const coreExists = npmVersionExists(v.coreName, v.coreVersion);
@@ -203,17 +225,11 @@ function publishPlan({ output }) {
   if (output === "github") {
     const gh = process.env.GITHUB_OUTPUT;
     if (!gh) fail(`--github requested but GITHUB_OUTPUT is not set.`);
-    fs.appendFileSync(
-      gh,
-      [
-        `version=${plan.version}`,
-        `tag=${plan.tag}`,
-        `core_publish=${plan.core.publish}`,
-        `cli_publish=${plan.cli.publish}`,
-        `core_already_on_npm=${plan.core.alreadyOnNpm}`,
-        `cli_already_on_npm=${plan.cli.alreadyOnNpm}`,
-      ].join("\n") + "\n",
-    );
+    fs.appendFileSync(gh, planEnvLines(plan).join("\n") + "\n");
+  }
+  if (output === "dotenv") {
+    if (!envFile) fail(`--dotenv needs a file path: publish-plan --dotenv <file>`);
+    fs.writeFileSync(envFile, planEnvLines(plan).join("\n") + "\n");
   }
   const status = (pkg) =>
     pkg.publish
@@ -307,7 +323,7 @@ async function main() {
         `commands:\n` +
         `  check-versions [--require-tag]\n` +
         `  npm-tag\n` +
-        `  publish-plan [--json|--github]\n` +
+        `  publish-plan [--json|--github|--dotenv <file>]\n` +
         `  verify-packed-cli\n` +
         `  verify-npm [--package all|core|cli]\n`,
     );
@@ -323,12 +339,17 @@ async function main() {
     return;
   }
   if (cmd === "publish-plan") {
+    const dotenvIndex = rest.indexOf("--dotenv");
+    const envFile = dotenvIndex >= 0 ? rest[dotenvIndex + 1] : undefined;
+    if (dotenvIndex >= 0 && !envFile) fail(`--dotenv needs a file path.`);
     const output = rest.includes("--json")
       ? "json"
       : rest.includes("--github")
         ? "github"
-        : "text";
-    publishPlan({ output });
+        : dotenvIndex >= 0
+          ? "dotenv"
+          : "text";
+    publishPlan({ output, envFile });
     return;
   }
   if (cmd === "verify-packed-cli") {

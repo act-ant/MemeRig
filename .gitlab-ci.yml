@@ -1,0 +1,102 @@
+# Primary CI for MemeRig. GitLab (platgit) is the release upstream; the GitHub
+# Actions workflows under .github/workflows/ stay as the mirror path. The gate
+# order is duplicated on purpose, so change both files together.
+#
+# Publish prerequisites on the GitLab project (see README -> "CI and releases"):
+#   * `v*` tags marked Protected, otherwise protected CI/CD variables are not
+#     exposed and the publish job cannot authenticate;
+#   * a masked, protected NPM_TOKEN CI/CD variable;
+#   * npm trusted publishing covers GitLab.com shared runners only, not
+#     self-hosted instances like platgit, so the token is the only path here.
+stages:
+  - test
+  - publish
+
+# Branch pipelines already cover merge requests; avoid a second MR pipeline.
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH'
+
+variables:
+  NODE_IMAGE: "node:24"
+  PNPM_VERSION: "12.21.0"
+
+default:
+  image: $NODE_IMAGE
+  before_script:
+    - npm install -g pnpm@$PNPM_VERSION
+    - pnpm install --frozen-lockfile
+
+# Minimum-supported Python (3.9) syntax gate. python:3.9 is Debian-based and
+# ships git, which the file list needs; it also has no npm, so no before_script.
+python-3.9-syntax:
+  stage: test
+  image: python:3.9
+  before_script: []
+  script:
+    - export PYTHONPYCACHEPREFIX="$CI_PROJECT_DIR/.pycache"
+    - git ls-files -z '*.py' | xargs -0 python -m py_compile
+
+test:
+  stage: test
+  interruptible: true
+  script:
+    - pnpm typecheck
+    - pnpm --filter memerig lint:py
+    - pnpm lint
+    - pnpm build
+    - pnpm test
+    # Build before test: integration tests spawn the real CLI via
+    # bin/memerig.js, which imports dist/ and needs build output to exist.
+    - |
+      set -euo pipefail
+      test -d packages/core/dist
+      test -f packages/core/dist/index.js
+      test -f packages/core/dist/channel/index.js
+      test -f packages/core/dist/task/index.js
+      test -d packages/cli/dist
+      test -f packages/cli/dist/index.js
+      echo "Build verification passed"
+
+# Tag pipelines only. Every step below is idempotent: release-preflight skips a
+# package whose version is already on npm, so re-running a tag pipeline is safe.
+publish:
+  stage: publish
+  interruptible: false
+  resource_group: publish-$CI_COMMIT_TAG
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+/'
+  variables:
+    # Provenance needs a supported public hosting provider; platgit is a
+    # self-hosted, private instance, so attestations are off.
+    NPM_CONFIG_PROVENANCE: "false"
+  script:
+    - node packages/cli/scripts/release-preflight.js check-versions --require-tag
+    - pnpm build
+    - node packages/cli/scripts/release-preflight.js verify-packed-cli
+    - node packages/cli/scripts/release-preflight.js publish-plan --dotenv publish-plan.env
+    - set -a; . ./publish-plan.env; set +a
+    - echo "plan: version=$version tag=$tag core_publish=$core_publish cli_publish=$cli_publish"
+    - printf '//registry.npmjs.org/:_authToken=%s\n' "$NPM_TOKEN" > "$HOME/.npmrc"
+    # Subshells: every script line shares one shell, so a bare `cd` would leak
+    # into the next step.
+    - |
+      if [ "$core_publish" = "true" ]; then
+        ( cd packages/core && pnpm publish --access public --no-git-checks --tag "$tag" )
+      else
+        echo "memerig-core@$version already published; skipping."
+      fi
+    - |
+      if [ "$cli_publish" = "true" ]; then
+        ( cd packages/cli && pnpm publish --access public --no-git-checks --tag "$tag" )
+      else
+        echo "memerig@$version already published; skipping."
+      fi
+    - node packages/cli/scripts/release-preflight.js verify-npm --package all
+  artifacts:
+    reports:
+      dotenv: publish-plan.env

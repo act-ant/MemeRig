@@ -90,6 +90,29 @@ pnpm install:global
 
 That builds `packages/cli` and then runs `npm link` inside it, so `memerig` and `mrig` on PATH resolve to this repository. A plain global install cannot work from here: `packages/cli` depends on `memerig-core: workspace:*`, which only resolves inside the workspace. Re-run it after a rebuild if you ever replace the symlink, and never run `memerig upgrade` while linked — it installs the registry package over the symlink.
 
+## CI and releases
+
+GitLab (`platgit.mihoyo.com`) is the release upstream: branches and tags land there first. GitHub stays a mirror — `.github/workflows/ci.yml` and `publish.yml` still run the same gates there, and `.gitlab-ci.yml` carries the primary pipeline. The gate order is duplicated on purpose; change both files together.
+
+| Trigger | GitLab (`.gitlab-ci.yml`) | GitHub (`.github/workflows/`) |
+| --- | --- | --- |
+| Push to `main`, merge request | `python-3.9-syntax`, `test` | `CI` |
+| Tag `v*` | `test`, then `publish` | `Publish to npm` |
+
+Publish prerequisites on the GitLab project:
+
+- `v*` tags marked **Protected** — protected CI/CD variables are only exposed to protected refs.
+- `NPM_TOKEN` CI/CD variable, **masked** and **protected**. npm's trusted publishing covers GitLab.com shared runners only, so a self-hosted instance authenticates with this token.
+- Runners able to pull `node:24` and `python:3.9`, or point `NODE_IMAGE` (and the Python job's image) at internal mirrors.
+
+Cutting a release:
+
+```bash
+pnpm release        # or release:minor / release:major / release:beta / release:rc
+```
+
+The release script runs the pre-release gates, bumps both packages, commits `chore(release): <version>`, tags `v<version>`, and pushes the branch plus tags to `origin`. The tag pipeline then publishes. Re-running a tag pipeline is safe: `release-preflight` skips any package version already on npm.
+
 ## License
 
 MemeRig is licensed under the [GNU Affero General Public License v3.0](./LICENSE), the same license as Trellis. See [COPYRIGHT](./COPYRIGHT) for the original Trellis copyright notice and the modification notice.
