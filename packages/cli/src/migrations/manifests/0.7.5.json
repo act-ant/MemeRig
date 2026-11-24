@@ -1,0 +1,9 @@
+{
+  "version": "0.7.5",
+  "description": "Optional repository attractor construction and maintenance",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- The bundled `attractor` skill defines enduring design qualities and tradeoffs, distinguishes implementation progress, divergence, changed intent, and local exceptions, and routes construction through the project's selected method.\n- The default Spec guidance adopts `.memerig/attractor-guide.md`; adopted projects can record confirmed direction and open proposals in `.memerig/spec/attractor.md`. Silent or non-adopting templates receive no attractor-specific questions, tasks, or completion gates.\n- Initialization, onboarding, and shared workflow guidance respect template adoption and custom methods. Normal init/update preservation keeps user-authored direction.\n**Bug Fixes:**\n- The synchronized package-version bump script now executes correctly when invoked directly on Windows.",
+  "notes": "Run `memerig update` to receive the bundled skill and guide. Installed resources or an existing attractor file do not opt a project in; follow the selected template's explicit adoption and method. No migration is required.",
+  "migrations": []
+}

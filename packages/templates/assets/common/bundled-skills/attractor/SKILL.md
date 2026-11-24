@@ -1,13 +1,57 @@
 ---
 name: attractor
-description: "Use only when the current project or template explicitly adopts repository-attractor construction, or when the user explicitly asks to construct or update the project's long-term design direction. Not for ordinary task goals, acceptance criteria, or generic architecture questions."
+description: "Guide construction and maintenance of repository attractors: enduring design qualities and tradeoffs that future changes should approach and preserve. Use only when the current project or template explicitly adopts this practice, or when the user explicitly asks to construct or update the project's long-term design direction. Not for ordinary task goals, acceptance criteria, or generic architecture questions."
 ---
 
 # Repository Attractor
 
-This skill is an entry point to an **adoptable** project practice. The method
-itself lives in project-owned instructions; this skill must not invent policy
-or run a parallel interview.
+Help users construct and maintain a repository's desired long-term design
+direction. Use the concept and maintenance judgments below to understand what
+belongs in an attractor. Project-owned instructions select the method; this
+skill must not invent policy or run a parallel interview.
+
+## What a repository attractor is
+
+A repository attractor is the user-endorsed design direction that successive
+changes should move toward and sustain. It describes a coherent family of
+future designs through enduring qualities and tradeoff preferences, rather
+than prescribing one frozen implementation. These qualities may concern
+frameworks and architecture, code design, UI and interaction, or product
+properties; include only dimensions relevant to the project.
+
+The name borrows from dynamical systems, where an attractor is an invariant set
+of states approached by trajectories in its basin. Here the analogy concerns
+how repeated design choices should reinforce a desired
+direction. Writing that direction down does not prove that the repository
+actually converges toward it. Existing code may reflect historical accidents
+or unwanted patterns, so it cannot establish the desired attractor by itself.
+
+The attractor is represented as a special Spec, normally
+`.memerig/spec/attractor.md`. It explains what the project should become, which
+qualities should persist as implementations change, and which tradeoffs should
+guide future decisions. Express these through observable properties and
+concrete examples, not slogans. For example, "core workflows remain usable
+offline" expresses direction; "we currently use twelve services" reports the
+implementation; "fix this button today" defines task scope. A roadmap, a list
+of tasks, and current executable contracts each serve different purposes.
+
+### Judging what maintenance requires
+
+- **Implementation progress:** a change realizes an existing quality. Keep the
+  direction; achieving it does not make it a completed task to remove.
+- **Implementation divergence:** code differs from the intended direction.
+  Surface the gap or scoped exception; do not rewrite the attractor to bless
+  the current code or assume the gap authorizes a refactor.
+- **Changed durable intent:** the user revises a desired quality, priority, or
+  tradeoff. Amend the affected statement and retain the rationale. Explicit
+  intent is sufficient; a broader AI inference remains a proposal until endorsed.
+- **Local work or uncertainty:** a task detail, temporary exception, or vague
+  preference does not establish repository-wide direction. Keep its scope or
+  ask a focused question under the selected method.
+
+These definitions and judgments are part of the skill itself. The selected
+guide supplies the detailed construction and amendment procedure; it is not
+the only place the skill learns what an attractor means.
 
 ## 1. Confirm adoption or an explicit request
 

@@ -149,6 +149,10 @@ configuration flag, or capability registry.
   installed at `.memerig/attractor-guide.md`, independently of Spec/workflow
   selection. The bundled `attractor` skill owns its frontmatter and is discovered
   through the existing shared platform template map.
+- The `attractor` skill itself defines the concept and distinguishes durable
+  intent, implementation progress, divergence, and task-local exceptions. It
+  must remain understandable without loading the optional detailed guide;
+  selecting and following a project method still uses the adoption rules below.
 - Only the default Spec README adopts the default method automatically. Other
   templates own their adoption, method, documents, and timing; silence means no
   attractor procedure. Shared routes read existing root Spec entries and actual
