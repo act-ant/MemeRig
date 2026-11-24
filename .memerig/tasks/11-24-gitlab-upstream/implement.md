@@ -32,29 +32,41 @@ Explicitly not changed: `.github/workflows/*` (still the mirror path),
 - `python -c "yaml.safe_load(...)"` on `.gitlab-ci.yml` → parses; stages and
   jobs as intended. `glab ci lint` was not available (platgit unreachable).
 
-## Not done — blocked on platgit being unreachable
+## Cutover (done)
 
-From this machine: `ssh git@platgit.mihoyo.com` → port 22 timeout;
-`https://platgit.mihoyo.com/...` → TLS handshake failure; `glab api` → no API.
-GitHub SSH works, so the block is specific to platgit (VPN/network).
+Network note: platgit was only unreachable because `HTTPS_PROXY` pointed at a
+local proxy; SSH was fine and API calls succeed with the proxy bypassed
+(`NO_PROXY=platgit.mihoyo.com`, or a per-request no-proxy opener). `glab` still
+reports `Unauthenticated` on that setup, so the API calls below used the stored
+token directly.
 
-Remaining steps, in order:
+- Project created: `exp/kl/aift/memerig` (id 34193, private), default branch
+  `main`.
+- Remotes: `origin` → `git@platgit.mihoyo.com:exp/kl/aift/memerig.git`;
+  the old GitHub origin is now `github`; `upstream` (Trellis) unchanged.
+  The working copy was a shallow clone — `git fetch --unshallow github`
+  (36 → 1403 commits) was required, GitLab rejects shallow pushes.
+- Protected tag `v*` created (creation level: Maintainers).
+- Runners are picked by tag only, so `default.tags: [plat-ci]` was added;
+  without it both jobs sat `pending` with no runner.
 
-```bash
-# 1. Create the GitLab project (namespace TBD, e.g. exp/kl/aift/memerig).
-# 2. Point the working copy at it and push the current main + tags.
-git remote rename origin github
-git remote add origin git@platgit.mihoyo.com:exp/kl/aift/memerig.git
-git push -u origin main
-git push origin --tags
-```
+Two defects surfaced by the first real pipelines, both fixed:
 
-3. Project settings: Settings → Repository → **Protected tags** add `v*`;
-   Settings → CI/CD → **Variables** add `NPM_TOKEN` (masked + protected).
-4. Confirm the runners can pull `node:24` and `python:3.9`; otherwise set
-   `NODE_IMAGE` and the Python job's `image:` to internal mirrors.
-5. Run a pipeline on `main`, then `glab ci lint` / web lint against
-   `.gitlab-ci.yml`.
+1. `jobs:publish:script` was rejected by GitLab lint — `echo "plan: ..."` parsed
+   as a mapping (colon+space in a plain scalar). Quoted the line.
+2. `pnpm --filter memerig lint:py` failed with 8 basedpyright errors that had
+   gone unnoticed because GitHub CI had not run since the change
+   (`properties` inferred as `dict[str, dict[str, str]]` receiving an int const
+   and enum lists; an unused `location` binding in `record_session`).
+
+Verified: `python-3.9-syntax` green on `plat-runner034`; `lint:py` 0 errors
+locally; `test/regression.test.ts` 496 passed / 13 skipped.
+
+Remaining: the `NPM_TOKEN` CI/CD variable (masked + protected) is **not set** —
+the local `~/.npmrc` token for registry.npmjs.org returns 401, so the value has
+to come from whoever owns the npm account. Until it exists, a tag pipeline can
+skip publishing (versions already on npm) and pass verification, but a real new
+release would fail at `pnpm publish`.
 
 Decided: `.github/workflows/publish.yml` keeps only `workflow_dispatch`
 (auto triggers `push: tags` and `release: published` removed), so a mirrored

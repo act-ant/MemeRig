@@ -262,7 +262,10 @@ describe("ablate()/restore() integration", () => {
     expect(inquirer.prompt).not.toHaveBeenCalled();
   });
 
-  it.skipIf(process.platform === "win32")(
+  // Root ignores the 0o500 permission on the parent directory, so the forced
+  // apply failure never happens and the rollback assertions no longer describe
+  // anything. Non-root runners (GitHub Actions, local dev) still run it.
+  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
     "#10 apply failure rolls back exactly and removes the unused transaction",
     async () => {
       await init({ yes: true, codex: true, force: true });
