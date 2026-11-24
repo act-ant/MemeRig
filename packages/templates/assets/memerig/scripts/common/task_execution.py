@@ -39,7 +39,9 @@ DECISIONS = ("approved", "rejected")
 
 def receipt_schema(kind):
     fields = RECEIPT_FIELDS[kind]
-    properties = {field: {"type": "array" if field in ARRAY_FIELDS else "string"} for field in fields}
+    properties: dict[str, dict[str, object]] = {
+        field: {"type": "array" if field in ARRAY_FIELDS else "string"} for field in fields
+    }
     properties.update(schemaVersion={"const": 1}, taskId={"type": "string"})
     schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -362,7 +364,8 @@ def record_session(owner, args):
     run_id = os.environ.get("MEMERIG_RUN_ID", "")
     runtime = owner / ".memerig" / ".runtime"
     with lock(owner):
-        location = locate(owner, task_id)
+        # Validation only: locate() raises when the task does not exist.
+        locate(owner, task_id)
         path = receipt(runtime, "claims", task_id)
         claim = load(path)
         if claim["runId"] != run_id or claim["leaseExpiresAt"] <= time.time():
