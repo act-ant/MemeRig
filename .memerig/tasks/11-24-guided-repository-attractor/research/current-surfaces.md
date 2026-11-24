@@ -202,3 +202,7 @@ and no partial/truncation flag. The mandatory commit hook supplies the final
 full-suite gate. This small supervisor correction was necessary to clear that
 gate; unrelated worktree changes remain outside the selective commit.
 
+The normal commit retry passed all mandatory hooks and produced implementation
+commit `4f4912e283`. No hooks were skipped. The completion record and session
+journal are maintained separately from that implementation commit.
+

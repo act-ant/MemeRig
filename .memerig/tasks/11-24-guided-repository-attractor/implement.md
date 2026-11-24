@@ -82,8 +82,8 @@ pnpm --filter memerig typecheck
 - [x] Update the narrow project contracts affected by the new special Spec and the English/Chinese README entry points. Record the behavior in the repository's existing release-note mechanism when appropriate; do not invent an unrelated documentation structure.
 - [x] Review every acceptance criterion, including default no-platform setup, optional adoption, non-adopting/silent templates, ongoing construction, and preservation without automatic reactivation.
 - [x] Run repository-required graph change analysis before any implementation commit. Resolve incomplete/truncated analysis rather than treating it as a clean result.
-- [ ] Commit only task-owned changes using the session's selective commit mechanism; preserve concurrent user work.
-- [ ] Complete the task and record the session through the existing finish-work process only after implementation and verification are finished.
+- [x] Commit only task-owned changes using the session's selective commit mechanism; preserve concurrent user work. Implementation commit: `4f4912e283`.
+- [x] Complete the task and record the session through the existing finish-work process only after implementation and verification are finished. Task completed in place; session 6 recorded against `4f4912e283`.
 
 ## Rollback boundaries
 

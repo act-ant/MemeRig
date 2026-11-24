@@ -3,7 +3,7 @@
   "name": "guided-repository-attractor",
   "title": "Guided repository attractor construction",
   "description": "Guide users to construct a repository's desired long-term design attractor during initialization and ongoing MemeRig collaboration, recorded as a special Spec.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": "cli",
@@ -11,7 +11,7 @@
   "creator": "codex",
   "assignee": "codex",
   "createdAt": "2026-11-24T10:28:00Z",
-  "completedAt": null,
+  "completedAt": "2026-11-24T14:36:40Z",
   "branch": "main",
   "base_branch": "main",
   "worktree_path": null,
@@ -24,5 +24,6 @@
   "notes": "",
   "meta": {},
   "schemaVersion": 1,
-  "updatedAt": "2026-11-24T10:28:00Z"
+  "updatedAt": "2026-11-24T14:36:40Z",
+  "closedAt": "2026-11-24T14:36:40Z"
 }
