@@ -1975,6 +1975,11 @@ sub-agent context injection, or pull-based preludes.
 orientation over inline reference text. Keep the measured total comfortably
 below host truncation limits.
 
+**Exception**: user-level `~/.memerig/rules/*.md` files marked `load: always`
+are inlined by explicit user opt-in. The default is `load: index` (path only),
+and the workflow guide tells users to keep `always` rules short. Do not extend
+this exception to project specs, task artifacts, or other user-level content.
+
 ---
 
 ## Workflow State Injection: Per-Turn Breadcrumb

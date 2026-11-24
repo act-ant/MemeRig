@@ -23,7 +23,7 @@ Read the current task artifacts in order:
 python3 ./.memerig/scripts/get_context.py --mode packages
 ```
 
-Read `.memerig/rules/index.md` and the body of every rule whose applicability covers this work (`core.md` always applies). A linked rule is not loaded content. Then, for each changed package/layer, read the spec index and follow its **Quality Check** section:
+Read `.memerig/rules/index.md` and the body of every rule whose applicability covers this work (`core.md` always applies). A linked rule is not loaded content. Also read user-level rules from `~/.memerig/rules/*.md` when present: every `load: always` body, and `load: index` rules whose applicability covers this work. Then, for each changed package/layer, read the spec index and follow its **Quality Check** section:
 
 ```bash
 cat .memerig/spec/<package>/<layer>/index.md

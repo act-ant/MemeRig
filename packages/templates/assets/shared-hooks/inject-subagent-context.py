@@ -534,6 +534,24 @@ def _materialize_artifact(
     return _budgeted_block(budget, header_label, file_path, content, reason, size)
 
 
+def _get_user_rules_block(repo_root: str) -> str:
+    """Return user-level Rules text for sub-agent prompts.
+
+    Parsing lives in common.session_context so SessionStart, get_context.py,
+    and hook-injected sub-agent prompts share one contract. Best-effort: an
+    old install without scripts or an import error contributes nothing.
+    """
+    scripts_dir = os.path.join(repo_root, DIR_WORKFLOW, "scripts")
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    try:
+        from common.session_context import get_user_rules_text  # type: ignore[import-not-found]
+
+        return get_user_rules_text()
+    except Exception:
+        return ""
+
+
 def get_implement_context(repo_root: str, task_dir: str) -> str:
     """
     Complete context for Implement Agent
@@ -589,6 +607,10 @@ def get_implement_context(repo_root: str, task_dir: str) -> str:
     if implement_plan_block:
         context_parts.append(implement_plan_block)
 
+    user_rules_block = _get_user_rules_block(repo_root)
+    if user_rules_block:
+        context_parts.append(user_rules_block)
+
     return "\n\n".join(context_parts)
 
 
@@ -637,6 +659,10 @@ def get_check_context(repo_root: str, task_dir: str) -> str:
     if implement_plan_block:
         context_parts.append(implement_plan_block)
 
+    user_rules_block = _get_user_rules_block(repo_root)
+    if user_rules_block:
+        context_parts.append(user_rules_block)
+
     return "\n\n".join(context_parts)
 
 
@@ -652,7 +678,9 @@ def get_finish_context(repo_root: str, task_dir: str) -> str:
 _RULES_ROUTING = (
     "Project rules: read `.memerig/rules/index.md` and every rule body whose "
     "applicability covers this task (`core.md` always applies). Do not assume a "
-    "rule link was expanded into this prompt."
+    "rule link was expanded into this prompt. User-level rules: read "
+    "`~/.memerig/rules/*.md` when present — every `load: always` body, and each "
+    "`load: index` rule whose applicability covers this task."
 )
 
 
@@ -817,6 +845,10 @@ To get structured package info, run: `python3 ./{DIR_WORKFLOW}/scripts/get_conte
 - Tech solutions: Use mcp__exa__web_search_exa or mcp__exa__get_code_context_exa"""
 
     context_parts.append(project_structure)
+
+    user_rules_block = _get_user_rules_block(repo_root)
+    if user_rules_block:
+        context_parts.append(user_rules_block)
 
     return "\n\n".join(context_parts)
 

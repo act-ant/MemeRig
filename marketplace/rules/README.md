@@ -37,6 +37,15 @@ The normal MemeRig template pipeline delivers two default files separately from 
 
 The optional documents in this catalog are not installed by the npm CLI by default: neither `memerig init` nor `memerig update` copies them. They are not listed in `marketplace/index.json` and there is no installer flag or rule registry for them. `memerig init --template` remains for project Spec presets; it does not install these declarations. Adoption is the manual, reviewed copy described below.
 
+## User-level rules (personal, not project adoption)
+
+Keep cross-project personal rules in `~/.memerig/rules/*.md`. They are not part of this catalog and the CLI never installs or modifies them. Each file may set `load` in YAML frontmatter:
+
+- `load: always` — the body is injected into session and sub-agent context.
+- `load: index` or no frontmatter — the path is listed and read on demand.
+
+User rules are peers of project rules, not an override layer. Do not add them to task manifests or treat them as adopted project declarations.
+
 ## Adopt a rule manually
 
 Adoption is a reviewed copy into project-owned files, not an installation.

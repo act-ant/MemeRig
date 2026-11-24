@@ -80,6 +80,15 @@ priority over the other. This is not a separate policy engine or CLI resource.
 - Rules use init write receipts, not the legacy `.memerig/` hash walk.
   Re-init must not rebaseline a skipped modified index/core or claim ownership of
   manually adopted files. A merged receipt retains the previous default hashes.
+- User-level rules live outside the repository in `~/.memerig/rules/*.md`.
+  Only Rules have this user-global source; init, update, and uninstall never
+  create, hash, overwrite, or delete those files.
+- `session_context.get_user_rules_text` reads flat frontmatter `load`:
+  `load: always` inlines the body into SessionStart context; missing,
+  `load: index`, or unknown values produce a path-only index entry. User rules
+  are peers of project rules and never enter `implement.jsonl` / `check.jsonl`.
+  The shared SessionStart and class-1 sub-agent hooks reuse this block, so
+  delegated prompts see the same `always` bodies and index paths.
 - Default files use existing update conflicts (`--skip-all` / `.new` review copies);
   `--force` explicitly authorizes replacing edited default files.
   Optional files are not collected as bundled templates.
@@ -94,6 +103,8 @@ priority over the other. This is not a separate policy engine or CLI resource.
 | User copies an optional declaration | Not claimed by init's directory hash scan |
 | Conflict-safe update | Edited declarations preserved; `.new` contains upstream defaults |
 | Unselected catalog document | Not installed or injected |
+| User rule with `load: always` | Body injected into SessionStart; no repository file written |
+| User rule with `load: index` | Path listed for on-demand reading; body not injected |
 
 ### Cases
 

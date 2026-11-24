@@ -1,0 +1,6 @@
+{"file": ".memerig/spec/cli/backend/project-setup.md", "reason": "Rules ownership and lifecycle"}
+{"file": ".memerig/spec/cli/backend/configurator-shared.md", "reason": "Pull-based prelude contract"}
+{"file": ".memerig/spec/cli/backend/platform-integration.md", "reason": "Class-1/class-2 context injection behavior"}
+{"file": ".memerig/spec/cli/unit-test/integration-patterns.md", "reason": "Python-backed integration test setup"}
+{"file": ".memerig/rules/index.md", "reason": "Project rules routing and adoption"}
+{"file": ".memerig/rules/core.md", "reason": "Core engineering constraints"}

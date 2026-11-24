@@ -13,6 +13,8 @@ This project is managed by MemeRig. The working knowledge you need lives under `
 
 Before changing code or specs, read the applicable Rules alongside the project Specs. Include their actual files in implement/check task manifests; links are not loaded content. Do not load unadopted catalog rules.
 
+User-level personal rules may live in the user's home `~/.memerig/rules/*.md`. `load: always` bodies are injected by SessionStart; read `load: index` rules when their applicability covers the work. They are peers of project rules, not project policy, and must not be added to task manifests.
+
 If a MemeRig command is available on your platform (e.g. `/memerig:finish-work`, `/memerig:continue`), prefer it over manual steps. Not every platform exposes every command.
 
 If you're using Codex or another agent-capable tool, additional project-scoped helpers may live in:

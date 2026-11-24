@@ -668,6 +668,7 @@ If the resolved task path has no \`prd.md\`, ask the user what to work on; do NO
 1. Read \`.memerig/rules/index.md\` when it exists.
 2. Read the body of every rule whose applicability covers this work. \`core.md\` always applies.
 3. Treat the index as a route, not the rule body: a Markdown link is not loaded content. Do not load optional rules that the index does not list.
+4. Read user-level rules from the user's home \`~/.memerig/rules/*.md\` when present. Read every rule whose frontmatter says \`load: always\`; read a \`load: index\` rule only when its applicability covers this work. These are personal rules, not project policy, and they do not override project specs or rules.
 
 ---
 

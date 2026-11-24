@@ -45,6 +45,8 @@ Read `.memerig/rules/index.md`, then each applicable rule body before changing c
 
 For delegated work, include the index and applicable bodies in both task context manifests. Markdown links do not expand into injected context; list individual files rather than broad-loading the Rules directory.
 
+Personal cross-project rules may live in `~/.memerig/rules/*.md`. Only Rules support this user-level source. A file with `load: always` in YAML frontmatter is injected into SessionStart context; otherwise it is listed by path and read when applicable. User rules are peers of project rules, not a priority layer, and are never added to task manifests.
+
 ### Task System
 
 Every task has its own directory under `.memerig/tasks/{MM-DD-name}/` holding `task.json`, `prd.md`, optional `design.md`, optional `implement.md`, optional `research/`, and context manifests (`implement.jsonl`, `check.jsonl`) for sub-agent-capable platforms.

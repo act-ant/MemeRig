@@ -47,6 +47,26 @@ python3 ./.memerig/scripts/get_context.py --mode packages   # list packages / la
 
 Read the index, then open every rule body that applies before changing code or specs. A Markdown link is not loaded content. Do not load optional catalog rules that the index does not list. For delegated work, include the index and each applicable rule body in `implement.jsonl` / `check.jsonl` with `task.py add-context`; hooks and pull-based agents do not expand links for you.
 
+#### User-level rules
+
+Users may keep personal rules in `~/.memerig/rules/*.md`. Only Rules support this
+user-level source; Spec, Tasks, and Skills stay project-scoped. Each file may set
+`load` in YAML frontmatter:
+
+```yaml
+---
+load: always
+---
+```
+
+- `load: always` — the body is injected into SessionStart context. Use it for
+  short, universally applicable rules; long reference material belongs behind
+  `load: index` so it stays out of every session.
+- `load: index` or no frontmatter — the file is listed by path and read when applicable.
+
+User-level rules are peers of project rules, not a priority layer. Do not add
+them to task JSONL manifests: they are local, not shareable project context.
+
 ### Task System
 
 Every task has its own directory under `.memerig/tasks/{MM-DD-name}/` holding `task.json`, `prd.md`, optional `design.md`, optional `implement.md`, optional `research/`, and context manifests (`implement.jsonl`, `check.jsonl`) for sub-agent-capable platforms.

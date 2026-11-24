@@ -23,6 +23,7 @@ Context loading determines when AI reads workflow, task, spec, research, workspa
 | `.memerig/tasks/<task>/implement.jsonl` | Spec/research to read before implementation. |
 | `.memerig/tasks/<task>/check.jsonl` | Spec/research to read during checking. |
 | `.memerig/spec/` | Project specs. |
+| `~/.memerig/rules/` | Personal cross-project rules; `load: always` bodies are injected, other files are indexed by path. |
 | `.memerig/workspace/` | Session records. |
 | git status | Current working tree changes. |
 
@@ -45,7 +46,7 @@ Context loading determines when AI reads workflow, task, spec, research, workspa
 {"file": ".memerig/tasks/04-28-x/research/api.md", "reason": "API research"}
 ```
 
-Include only spec/rule/research files. Do not put code files that will be modified into these manifests; agents read code files themselves during implementation. Rule files are the adopted documents under `.memerig/rules/`, listed individually (never the whole directory).
+Include only spec/rule/research files. Do not put code files that will be modified into these manifests; agents read code files themselves during implementation. Rule files are the adopted documents under `.memerig/rules/`, listed individually (never the whole directory). Do not add `~/.memerig/rules/` entries: user-level rules are local, not project context.
 
 ## Change Session Context
 

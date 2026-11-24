@@ -349,6 +349,24 @@ def _resolve_update_hint(memerig_dir: Path, context_key: str | None) -> str | No
         return None  # Optional reminder; keep session-start non-fatal.
 
 
+def _resolve_user_rules_block(memerig_dir: Path) -> str:
+    """Return the user-level Rules block for SessionStart context.
+
+    Parsing lives in common.session_context so the hook and get_context.py
+    cannot drift. Best-effort: a missing scripts dir or an import error
+    contributes nothing to the payload.
+    """
+    scripts_dir = memerig_dir / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    try:
+        from common.session_context import get_user_rules_text  # type: ignore[import-not-found]
+
+        return get_user_rules_text()
+    except Exception:
+        return ""
+
+
 def _resolve_active_task(memerig_dir: Path, input_data: dict):
     scripts_dir = memerig_dir / "scripts"
     if str(scripts_dir) not in sys.path:
@@ -909,6 +927,10 @@ MemeRig compact SessionStart context. Use it to orient the session; load details
         "Project rules: read `.memerig/rules/index.md` and every applicable rule body "
         "(`core.md` always applies) before changing code or specs.\n\n"
     )
+
+    user_rules_block = _resolve_user_rules_block(memerig_dir)
+    if user_rules_block:
+        output.write(f"{user_rules_block}\n\n")
 
     if spec_index_paths:
         output.write("## Available indexes (read on demand)\n")

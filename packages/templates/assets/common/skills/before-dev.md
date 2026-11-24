@@ -14,6 +14,8 @@ Execute these steps:
    ```
    `core.md` always applies. The index is a route, not the rule body: open the linked files. Do not load optional rules that the index does not list.
 
+   User-level rules: read `~/.memerig/rules/*.md` when present — every `load: always` body, and `load: index` rules whose applicability covers this work. These are personal rules, not project adoptions; do not add them to task manifests.
+
 3. **Discover packages and their spec layers**:
    ```bash
    python3 ./.memerig/scripts/get_context.py --mode packages

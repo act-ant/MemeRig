@@ -15,6 +15,11 @@ not a substitute for those bodies. For delegated work, include each applicable
 rule file in the task's `implement.jsonl` and `check.jsonl` using the existing
 `task.py add-context` command; Markdown links are not automatically expanded.
 
+User-level personal rules are not project adoptions. MemeRig reads
+`~/.memerig/rules/*.md` from the user's home and injects or indexes them through
+SessionStart; they are peers of project rules and must not be listed here or
+added to task manifests.
+
 ## Optional adoption
 
 Only explicitly adopted documents belong in this directory. Choose individual

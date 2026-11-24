@@ -33,7 +33,7 @@ cat .memerig/rules/index.md
 cat .memerig/rules/<rule>.md                   # every applicable rule body; core.md always applies
 ```
 
-Spec index files list the specific guideline docs to read when you actually start coding. Rules are constraints, not routes: open each body whose applicability covers the work. Do not assume a Markdown link was loaded, and do not load unadopted optional rules.
+Spec index files list the specific guideline docs to read when you actually start coding. Rules are constraints, not routes: open each body whose applicability covers the work. Do not assume a Markdown link was loaded, and do not load unadopted optional rules. User-level rules in `~/.memerig/rules/*.md` are personal rather than project adoptions: read every `load: always` body, and `load: index` rules when their applicability covers the work.
 
 ## Step 4: Decide next action
 From Step 1 you know the current task and status. Check the task directory:

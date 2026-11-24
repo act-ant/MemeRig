@@ -8,6 +8,8 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 
 Read `.memerig/rules/index.md` and each applicable rule body before changing code or specs; `.memerig/rules/core.md` applies to all work. Read relevant project Specs alongside these declarations, resolve conflicts explicitly, and do not load unadopted catalog rules. Include applicable rule files in implement/check task manifests rather than assuming Markdown links inject their contents.
 
+User-level personal rules may live in `~/.memerig/rules/*.md`. `load: always` bodies are injected into session and sub-agent context; read `load: index` rules when their applicability covers the work. They are peers of project rules, not project policy, and must not be added to task manifests.
+
 ## 1. Think Before Coding
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**

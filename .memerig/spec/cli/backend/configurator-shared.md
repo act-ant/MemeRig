@@ -80,7 +80,7 @@ These build the `Map<relPath, content>` that a `collect<Platform>Templates()` re
 
 `configurators/shared.ts:SubAgentType` — `"implement" | "check"`. `research` is intentionally excluded — research doesn't depend on an active task; it traverses the spec tree.
 
-`configurators/shared.ts:buildPullBasedPrelude` — returns the standard "Required: Load MemeRig Context First" block. Used by class-2 platforms whose hook can't inject the sub-agent prompt (Gemini, Qoder, Codex, Copilot). The prelude tells the sub-agent to: (1) read `Active task: <path>` from the dispatch prompt; (2) fall back to `task.py current --source`; (3) ask the user. See `platform-integration.md` "Active task discovery on class-2 platforms (issue #225)" for why all three layers are needed.
+`configurators/shared.ts:buildPullBasedPrelude` — returns the standard "Required: Load MemeRig Context First" block. Used by class-2 platforms whose hook can't inject the sub-agent prompt (Gemini, Qoder, Codex, Copilot). The prelude tells the sub-agent to: (1) read `Active task: <path>` from the dispatch prompt; (2) fall back to `task.py current --source`; (3) ask the user. It also routes `.memerig/rules/index.md` plus applicable bodies, then user-level `~/.memerig/rules/*.md` (all `load: always` files, `load: index` files when applicable). See `platform-integration.md` "Active task discovery on class-2 platforms (issue #225)" for why all three layers are needed.
 
 `configurators/shared.ts:detectSubAgentType` — returns `"implement"` / `"check"` / `null` from a filename like `memerig-implement.md`. Strips `.md`, `.toml`, `.prompt.md`. Returns `null` for `memerig-research` and unknown names — they skip the prelude.
 

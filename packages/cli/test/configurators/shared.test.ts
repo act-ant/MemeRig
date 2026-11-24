@@ -1,5 +1,6 @@
 import { describe, expect, it, afterEach } from "vitest";
 import {
+  buildPullBasedPrelude,
   getPythonCommandForPlatform,
   replacePythonCommandLiterals,
   resolveAllAsSkillsNeutral,
@@ -49,6 +50,17 @@ const cursorCtx: TemplateContext = {
 // ---------------------------------------------------------------------------
 // replacePythonCommandLiterals — platform-mocked unit tests
 // ---------------------------------------------------------------------------
+
+describe("buildPullBasedPrelude", () => {
+  it("routes project rules and user-level rules", () => {
+    const prelude = buildPullBasedPrelude("implement");
+
+    expect(prelude).toContain(".memerig/rules/index.md");
+    expect(prelude).toContain("~/.memerig/rules/*.md");
+    expect(prelude).toContain("load: always");
+    expect(prelude).toContain("load: index");
+  });
+});
 
 describe("replacePythonCommandLiterals", () => {
   const originalPlatform = process.platform;

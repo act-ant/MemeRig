@@ -37,6 +37,15 @@ Rules 是声明，不是 Skill 或 Workflow。它们不定义工具调用顺序�
 
 本目录的可选文档默认不会由 npm CLI 安装：`memerig init` 和 `memerig update` 都不会复制它们。它们没有登记在 `marketplace/index.json`，也没有安装参数或规则注册表。`memerig init --template` 仍然只用于项目 Spec 预设，不会安装这些声明。采用方式只能是下面的人工审阅复制。
 
+## 用户级规则（个人规则，不属于项目采用）
+
+跨项目的个人规则放在 `~/.memerig/rules/*.md`。它们不属于本目录，CLI 也不会安装或修改它们。每个文件可在 YAML frontmatter 中设置 `load`：
+
+- `load: always` —— 正文注入会话与子代理上下文。
+- `load: index` 或没有 frontmatter —— 只列出路径，按需读取。
+
+用户级规则与项目规则并列，不是覆盖层。不要把用户级规则加入任务 manifest，也不要当作项目已采用的声明。
+
 ## 手动采用一条规则
 
 采用是把内容审阅后复制进项目自有文件，不是安装。

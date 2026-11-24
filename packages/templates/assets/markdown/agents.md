@@ -13,6 +13,8 @@ This project is managed by MemeRig. The working knowledge you need lives under `
 
 Before changing code or specs, read `.memerig/rules/index.md` and open each rule whose applicability covers the work. The index is a route, not the rule body: a linked file is not loaded content. Treat only the rules listed there as project constraints; do not load unadopted reference material.
 
+User-level personal rules may live in the user's home `~/.memerig/rules/*.md`. `load: always` bodies are injected by SessionStart; read `load: index` rules when their applicability covers the work. They are peers of project rules, not project policy, and must not be added to task manifests.
+
 - List shared work with `python .memerig/scripts/task.py list`. Use the name of your Python 3 executable.
 - Resume by task ID and update the task as you work. After verifying the result, run `python .memerig/scripts/task.py complete <id>`.
 - Inspect effective project configuration with `python .memerig/scripts/project.py doctor`.

@@ -70,6 +70,128 @@ _POLYREPO_SCAN_MAX_DEPTH = 2
 _POLYREPO_SCAN_MAX_REPOS = 8
 _GIT_PROBE_TIMEOUT_SECONDS = 2.0
 
+# =============================================================================
+# User-level Rules
+# =============================================================================
+
+_USER_RULE_FRONTMATTER_RE = re.compile(
+    r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|$)",
+    re.DOTALL,
+)
+_USER_RULE_TITLE_RE = re.compile(r"^#\s+(.+?)\s*$")
+_USER_RULE_LOAD_ALWAYS = "always"
+
+
+def get_user_rules_dir() -> Path:
+    """Return the user-level Rules directory (~/.memerig/rules)."""
+    return Path.home() / DIR_WORKFLOW / DIR_RULES
+
+
+def _split_user_rule_frontmatter(content: str) -> tuple[dict[str, str], str]:
+    """Split leading YAML frontmatter from a user-level rule document.
+
+    Only a flat ``key: value`` block is interpreted, and only ``load`` is
+    consumed. A missing closing fence leaves the whole document as body so a
+    malformed file cannot make the rule silently disappear.
+    """
+    if content.startswith("\ufeff"):
+        content = content[1:]
+
+    match = _USER_RULE_FRONTMATTER_RE.match(content)
+    if not match:
+        return {}, content
+
+    meta: dict[str, str] = {}
+    for line in match.group(1).splitlines():
+        key, sep, value = line.partition(":")
+        if not sep or not key.strip() or key.lstrip().startswith("#"):
+            continue
+        meta[key.strip().lower()] = value.strip().strip("'\"")
+
+    return meta, content[match.end():]
+
+
+def _user_rule_title(body: str, fallback: str) -> str:
+    for line in body.splitlines():
+        match = _USER_RULE_TITLE_RE.match(line)
+        if match:
+            return match.group(1)
+    return fallback
+
+
+def _load_user_rules() -> list[dict[str, str]]:
+    """Read user-level rules, sorted by filename.
+
+    ``load: always`` keeps the body for direct injection. A missing ``load``
+    key, ``load: index``, or any unknown value yields a path-only entry, so
+    the agent reads the body only when its applicability covers the work.
+    Unreadable and non-UTF-8 files are skipped instead of breaking context.
+    """
+    rules_dir = get_user_rules_dir()
+    if not rules_dir.is_dir():
+        return []
+
+    try:
+        candidates = sorted(
+            (path for path in rules_dir.glob("*.md") if path.is_file()),
+            key=lambda path: path.name.lower(),
+        )
+    except OSError:
+        return []
+
+    rules: list[dict[str, str]] = []
+    for path in candidates:
+        try:
+            content = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+
+        meta, body = _split_user_rule_frontmatter(content)
+        load = meta.get("load", "index").strip().lower()
+        if load != _USER_RULE_LOAD_ALWAYS:
+            load = "index"
+        body = body.strip("\r\n")
+        rules.append(
+            {
+                "file": path.name,
+                "path": str(path),
+                "title": _user_rule_title(body, path.stem),
+                "load": load,
+                "content": body if load == _USER_RULE_LOAD_ALWAYS else "",
+            }
+        )
+
+    return rules
+
+
+def get_user_rules_text() -> str:
+    """Render user-level rules for SessionStart context.
+
+    Returns an empty string when no readable rule exists, so callers omit the
+    section entirely instead of emitting an empty heading.
+    """
+    rules = _load_user_rules()
+    if not rules:
+        return ""
+
+    lines = [
+        "## USER RULES",
+        f"Source: {get_user_rules_dir()}",
+        "User-level rules apply across projects. They are peers of project rules,",
+        "not an override layer; resolve any conflict explicitly.",
+        "",
+    ]
+    for rule in rules:
+        lines.append(f"### {rule['file']} — {rule['title']}  [load: {rule['load']}]")
+        if rule["load"] == _USER_RULE_LOAD_ALWAYS:
+            lines.append(rule["content"])
+        else:
+            lines.append(f"Path: {rule['path']}")
+            lines.append("Read this file when its applicability covers the work.")
+        lines.append("")
+
+    return "\n".join(lines).rstrip()
+
 
 def _is_git_worktree(path: Path) -> bool:
     """Return True when path is inside a Git worktree."""
@@ -556,6 +678,23 @@ def get_context_json(repo_root: Path | None = None) -> dict:
         },
     }
 
+    user_rules = _load_user_rules()
+    if user_rules:
+        entries = []
+        for rule in user_rules:
+            entry = {
+                "file": rule["file"],
+                "title": rule["title"],
+                "load": rule["load"],
+            }
+            if rule["load"] == _USER_RULE_LOAD_ALWAYS:
+                entry["content"] = rule["content"]
+            entries.append(entry)
+        result["userRules"] = {
+            "directory": str(get_user_rules_dir()),
+            "rules": entries,
+        }
+
     if pkg_git_info:
         result["packageGit"] = pkg_git_info
 
@@ -618,6 +757,12 @@ def get_context_text(repo_root: Path | None = None) -> str:
             discover_unconfigured=not root_git_info["isRepo"],
         ),
     )
+
+    # User-level rules — only Rules support a user-global source.
+    user_rules_text = get_user_rules_text()
+    if user_rules_text:
+        lines.append(user_rules_text)
+        lines.append("")
 
     # Current task
     lines.append("## CURRENT TASK")

@@ -10,6 +10,7 @@ MemeRig context injection aims to make AI read the right files at the right time
 | workflow context | `.memerig/workflow.md` | Current MemeRig flow and next action. |
 | spec context | `.memerig/spec/` + task JSONL | Specs that must be followed during implementation/checking. |
 | task context | `.memerig/tasks/<task>/prd.md`, `design.md`, `implement.md`, `research/` | Current task requirements, design, execution plan, and research. |
+| user-level rules | `~/.memerig/rules/*.md` | Personal cross-project rules. `load: always` bodies are inlined; `load: index` files are listed by path. |
 | platform context | Platform hooks/settings/agents | Lets different AI tools read the files above through their own mechanisms. |
 
 ## session-start
@@ -21,6 +22,7 @@ Platforms with session-start support inject a MemeRig overview when a session st
 - active tasks.
 - spec index paths.
 - developer identity and git status.
+- user-level rules from `~/.memerig/rules/*.md` (`load: always` bodies plus `load: index` paths).
 
 If the user feels the AI does not know the current task in a new session, first check whether the platform's session-start hook or equivalent mechanism is installed and running.
 
@@ -37,7 +39,7 @@ Implement and check agents need task context. MemeRig has two loading modes:
 1. **hook push**: a platform hook injects jsonl-referenced files plus `prd.md`, `design.md` if present, and `implement.md` if present before the agent starts.
 2. **agent pull**: the agent definition instructs the agent to read the active task, jsonl context, and task artifacts after startup.
 
-In both modes, JSONL files in the task directory are the manifest for spec/rule/research context. Task artifacts are read separately in this order: `prd.md` -> `design.md if present` -> `implement.md if present`.
+In both modes, JSONL files in the task directory are the manifest for spec/rule/research context. Task artifacts are read separately in this order: `prd.md` -> `design.md if present` -> `implement.md if present`. User-level rules are not JSONL entries: hook-push injects the same `~/.memerig/rules/` block, and pull-mode agents read that directory themselves.
 
 ## JSONL Reading Rules
 
@@ -62,6 +64,7 @@ If shell commands cannot see the same context key, `task.py current --source` ma
 | Change session-start injected content | The platform's `session-start` hook or plugin file. |
 | Change per-turn workflow-state rules | `[workflow-state:STATUS]` block in `.memerig/workflow.md`. The platform workflow-state hook parses these blocks verbatim and embeds no fallback text. |
 | Change how sub-agents read context | Platform agent definitions, the `inject-subagent-context` hook, or agent preludes. |
+| Add a personal rule across projects | Create a Markdown file under `~/.memerig/rules/`; `load: always` inlines it, otherwise it is indexed. |
 | Change JSONL validation/display | `.memerig/scripts/common/task_context.py`. |
 | Change active task resolution | `.memerig/scripts/common/active_task.py`. |
 
