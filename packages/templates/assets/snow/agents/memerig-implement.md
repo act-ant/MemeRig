@@ -69,6 +69,7 @@ Active task: <path from task.py current>
 Before implementing, read:
 
 - `.memerig/workflow.md` - Project workflow
+- `.memerig/rules/` - Project rules (read `index.md`, then every applicable body; `core.md` always applies)
 - `.memerig/spec/` - Development guidelines
 - Task `prd.md` - Requirements document
 - Task `design.md` / `implement.md` if present

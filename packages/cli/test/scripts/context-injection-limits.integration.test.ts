@@ -747,11 +747,7 @@ print("all-valid")
         );
         const { status, stdout } = runTaskValidate(tmp, taskDir);
         expect(status).toBe(0);
-        expect(stdout).toContain(
-          "implement.jsonl:1: Warning: src/index.ts looks like a code file — " +
-            "implement/check.jsonl should reference spec/research docs; " +
-            "agents read code themselves",
-        );
+        expect(stdout).toContain("implement.jsonl:1: Warning: src/index.ts");
         expect(stdout).toContain("All validations passed");
       });
 

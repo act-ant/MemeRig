@@ -153,3 +153,11 @@ export function getAllAgents(): Map<string, string> {
   agents.set("check.md", checkAgentTemplate);
   return agents;
 }
+
+/** Default rule documents shared by init and update; optional rules are project-owned. */
+export function getAllRules(): Map<string, string> {
+  return new Map([
+    ["index.md", readTemplate("rules/index.md")],
+    ["core.md", readTemplate("rules/core.md")],
+  ]);
+}

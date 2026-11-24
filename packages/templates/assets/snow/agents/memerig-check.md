@@ -58,6 +58,7 @@ Active task: <path from task.py current>
 
 Before checking, read:
 
+- `.memerig/rules/` - Project rules (read `index.md`, then every applicable body; `core.md` always applies)
 - `.memerig/spec/` - Development guidelines
 - Pre-commit checklist for quality standards
 - Task `prd.md` / `design.md` / `implement.md` if present

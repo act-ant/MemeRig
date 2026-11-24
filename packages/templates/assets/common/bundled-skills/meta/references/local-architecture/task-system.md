@@ -24,8 +24,8 @@ The MemeRig task system is stored entirely under `.memerig/tasks/` in the user p
 | `prd.md` | Requirements, constraints, and acceptance criteria. Lightweight tasks may be PRD-only. |
 | `design.md` | Technical design for complex tasks: boundaries, contracts, data flow, compatibility, tradeoffs. |
 | `implement.md` | Execution plan for complex tasks: ordered checklist, validation commands, review gates, rollback points. |
-| `implement.jsonl` | List of spec/research files the implement agent must read first. |
-| `check.jsonl` | List of spec/research files the check agent must read first. |
+| `implement.jsonl` | List of spec/rule/research files the implement agent must read first. |
+| `check.jsonl` | List of spec/rule/research files the check agent must read first. |
 | `research/` | Research artifacts. Complex findings should not live only in chat. |
 
 ## `task.json`
@@ -98,7 +98,7 @@ Format:
 
 Rules:
 
-- Include spec and research files.
+- Include spec, rule, and research files.
 - Do not include code files that are about to be modified.
 - Do not treat temporary conclusions in chat as the only context.
 - Rows without a `file` field are skipped by readers. Legacy `{"_example": ...}` placeholder rows are rejected by `task.py validate` — delete them.

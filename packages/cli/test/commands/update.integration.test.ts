@@ -259,6 +259,60 @@ describe("update() integration", () => {
     expect(entries.filter((e) => e.startsWith(".backup-")).length).toBe(0);
   });
 
+  it("backfills default rules in an older installation without installing optional rules", async () => {
+    await setupProject();
+    const corePath = `${PATHS.RULES}/core.md`;
+    const indexPath = `${PATHS.RULES}/index.md`;
+    const core = readProjectFile(corePath);
+    const index = readProjectFile(indexPath);
+    fs.rmSync(projectFile(PATHS.RULES), { recursive: true });
+    const hashes = removeHashEntry(
+      removeHashEntry(readHashesV2(hashFilePath()), corePath),
+      indexPath,
+    );
+    writeHashesV2(hashFilePath(), hashes as Record<string, string>);
+
+    await update({ skipAll: true });
+
+    expect(readProjectFile(corePath)).toBe(core);
+    expect(readProjectFile(indexPath)).toBe(index);
+    expect(fs.readdirSync(projectFile(PATHS.RULES)).sort()).toEqual([
+      "core.md",
+      "index.md",
+    ]);
+    expect(fs.readdirSync(projectFile(PATHS.SPEC))).toEqual(["README.md"]);
+  });
+
+  it("preserves adopted rules and edited defaults through re-init and conflict-safe update", async () => {
+    await setupProject();
+    const corePath = `${PATHS.RULES}/core.md`;
+    const indexPath = `${PATHS.RULES}/index.md`;
+    const adoptedPath = `${PATHS.RULES}/team-data.md`;
+    const originalCore = readProjectFile(corePath);
+    const originalIndex = readProjectFile(indexPath);
+    const adopted = "# Team data\nNever drop customer records.\n";
+    const localIndex = originalIndex + "\n[Team data](./team-data.md): persistence changes.\n";
+    const localCore = originalCore + "\nPreserve our team's audit trail.\n";
+    writeProjectFile(adoptedPath, adopted);
+    writeProjectFile(indexPath, localIndex);
+    writeProjectFile(corePath, localCore);
+
+    await init({ yes: true, skipExisting: true });
+    const hashes = readHashesV2(hashFilePath());
+    expect(hashes[indexPath]).toBe(computeHash(originalIndex));
+    expect(hashes[corePath]).toBe(computeHash(originalCore));
+    expect(hashes).not.toHaveProperty(adoptedPath);
+
+    await update({ createNew: true });
+
+    expect(readProjectFile(corePath)).toBe(localCore);
+    expect(readProjectFile(indexPath)).toBe(localIndex);
+    expect(readProjectFile(adoptedPath)).toBe(adopted);
+    expect(readProjectFile(`${corePath}.new`)).toBe(originalCore);
+    expect(readProjectFile(`${indexPath}.new`)).toBe(originalIndex);
+    expect(readHashesV2(hashFilePath())).not.toHaveProperty(adoptedPath);
+  });
+
   it("#1b current OpenCode templates are not classified as deprecated", async () => {
     const startPath = ".opencode/commands/memerig/start.md";
     await init({ yes: true, force: true, opencode: true });
@@ -546,10 +600,29 @@ describe("update() integration", () => {
     const targetRelative = FILE_NAMES.AGENTS;
     const targetFull = path.join(tmpDir, targetRelative);
     const templateContent = fs.readFileSync(targetFull, "utf-8");
-    const oldContent = removeSubagentsSection(templateContent).replace(
-      /- List shared work[\s\S]+?The repository scripts are usable directly\./,
-      "If a MemeRig command is available on your platform (e.g. `/memerig:finish-work`, `/memerig:continue`), prefer it over manual steps. Not every platform exposes every command.",
-    );
+    // A historical template must not inherit new text from today's template.
+    const oldContent = `<!-- MEMERIG:START -->
+# MemeRig Instructions
+
+These instructions are for AI assistants working in this project.
+
+This project is managed by MemeRig. The working knowledge you need lives under \`.memerig/\`:
+
+- \`.memerig/workflow.md\` — development phases, when to create tasks, skill routing
+- \`.memerig/spec/\` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
+- \`.memerig/workspace/\` — per-developer journals and session traces
+- \`.memerig/tasks/\` — active and archived tasks (PRDs, research, jsonl context)
+
+If a MemeRig command is available on your platform (e.g. \`/memerig:finish-work\`, \`/memerig:continue\`), prefer it over manual steps. Not every platform exposes every command.
+
+If you're using Codex or another agent-capable tool, additional project-scoped helpers may live in:
+- \`.agents/skills/\` — reusable MemeRig skills
+- \`.codex/agents/\` — optional custom subagents
+
+Managed by MemeRig. Edits outside this block are preserved; edits inside may be overwritten by a future \`memerig update\`.
+
+<!-- MEMERIG:END -->
+`;
     const existingContent = `# Local instructions\n\n${oldContent}\n\n## Project Notes\n\nKeep this.`;
     const expectedContent = `# Local instructions\n\n${templateContent}\n\n## Project Notes\n\nKeep this.`;
 

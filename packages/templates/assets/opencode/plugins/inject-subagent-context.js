@@ -37,7 +37,7 @@ function extractActiveTaskHint(prompt) {
  * `ctx.resolveTaskDir`.
  *
  * Read order (mirrors Python `get_implement_context`):
- *   1. All files in implement.jsonl (spec/research manifests)
+ *   1. All files in implement.jsonl (spec/rule/research manifests)
  *   2. prd.md (requirements)
  *   3. design.md if present (technical design)
  *   4. implement.md if present (execution plan)
@@ -212,6 +212,9 @@ function getResearchContext(ctx) {
 /**
  * Build enhanced prompt with context
  */
+const RULES_ROUTING =
+  "Project rules: read `.memerig/rules/index.md` and every rule body whose applicability covers this task (`core.md` always applies). Do not assume a rule link was expanded into this prompt."
+
 function buildPrompt(agentType, originalPrompt, context, isFinish = false) {
   const templates = {
     implement: `<!-- memerig-hook-injected -->
@@ -223,6 +226,8 @@ You are the Implement Agent in the Multi-Agent Pipeline.
 
 ${context}
 
+${RULES_ROUTING}
+
 ---
 
 ## Your Task
@@ -233,7 +238,7 @@ ${originalPrompt}
 
 ## Workflow
 
-1. **Understand specs** - All dev specs are injected above
+1. **Understand specs** - All curated dev context is injected above
 2. **Understand task artifacts** - Read requirements, technical design if present, and execution plan if present
 3. **Implement feature** - Follow specs and task artifacts
 4. **Self-check** - Ensure code quality
@@ -241,7 +246,7 @@ ${originalPrompt}
 ## Important Constraints
 
 - Do NOT execute git commit
-- Follow all dev specs injected above
+- Follow all injected dev specs and project rules
 - Report list of modified/created files when done`,
 
     check: isFinish ? `<!-- memerig-hook-injected -->
@@ -252,6 +257,8 @@ You are performing the final check before creating a PR.
 ## Your Context
 
 ${context}
+
+${RULES_ROUTING}
 
 ---
 
@@ -288,6 +295,8 @@ You are the Check Agent in the Multi-Agent Pipeline.
 ## Your Context
 
 ${context}
+
+${RULES_ROUTING}
 
 ---
 

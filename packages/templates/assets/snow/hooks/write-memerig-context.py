@@ -499,6 +499,17 @@ def build_context(
         lines.append("(could not resolve active task directory from task.py output)")
         lines.append("")
 
+    rules_index = repo / ".memerig" / "rules" / "index.md"
+    if rules_index.is_file():
+        lines.extend(
+            [
+                "## Project rules",
+                "- Read `.memerig/rules/index.md` and every applicable rule body (`core.md` always applies).",
+                "- A linked rule is not loaded content; open each applicable file.",
+                "",
+            ]
+        )
+
     if not compact:
         lines.extend(_workflow_phase_summary(repo, stdin_ctx))
 

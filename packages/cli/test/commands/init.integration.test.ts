@@ -105,6 +105,11 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(memerig, "agents"))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".gitattributes"))).toBe(true);
     expect(fs.readdirSync(path.join(tmpDir, PATHS.TASKS))).toEqual([]);
+    expect(fs.readdirSync(path.join(tmpDir, PATHS.RULES)).sort()).toEqual([
+      "core.md",
+      "index.md",
+    ]);
+    expect(fs.readdirSync(path.join(tmpDir, PATHS.SPEC))).toEqual(["README.md"]);
     // No platform directories, and no prompts (stdin is not a TTY here).
     expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(false);

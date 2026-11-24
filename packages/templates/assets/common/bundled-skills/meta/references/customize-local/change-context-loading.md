@@ -45,7 +45,7 @@ Context loading determines when AI reads workflow, task, spec, research, workspa
 {"file": ".memerig/tasks/04-28-x/research/api.md", "reason": "API research"}
 ```
 
-Include only spec/research files. Do not put code files that will be modified into these manifests; agents read code files themselves during implementation.
+Include only spec/rule/research files. Do not put code files that will be modified into these manifests; agents read code files themselves during implementation. Rule files are the adopted documents under `.memerig/rules/`, listed individually (never the whole directory).
 
 ## Change Session Context
 
@@ -67,7 +67,7 @@ In both modes, make sure the agent ultimately reads:
 
 1. active task
 2. the corresponding JSONL
-3. spec/research referenced by the JSONL
+3. spec/rule/research referenced by the JSONL
 4. `prd.md`
 5. `design.md` if present
 6. `implement.md` if present

@@ -11,8 +11,22 @@ marketplace/
 ├── index.json            # Template registry (ids, types, names, relative paths)
 ├── skills/               # Claude Skills (.claude/skills/)
 ├── specs/                # Spec templates (.memerig/spec/)
+├── rules/                # Optional rule declarations (manual adoption; not registry entries)
 └── workflows/            # Workflow templates (.memerig/workflow.md)
 ```
+
+## Optional rule catalog
+
+[`rules/`](./rules/README.md) contains optional, reusable rule declarations for clean
+cutover, production compatibility, dependency governance, and architecture research.
+They are reference documents, not active project instructions, and they are not
+registered in `index.json` or copied by `memerig init` / `memerig update`. There is no
+installer flag or rule registry.
+
+Read the catalog in [English](./rules/README.md) or [简体中文](./rules/README_CN.md) for
+the Rules/Spec boundary, pinned manual adoption, task-context wiring, and removal/upgrade
+handling. The default `.memerig/rules/index.md` and `core.md` are delivered by the normal
+project template, separately from this optional catalog.
 
 ## Starter spec presets
 

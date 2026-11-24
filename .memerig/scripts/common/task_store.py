@@ -682,13 +682,13 @@ def cmd_create(args: argparse.Namespace) -> int:
     print("  - Complex task: add design.md and implement.md before task.py start", file=sys.stderr)
     if created_jsonl:
         print(
-            "  - Curate implement.jsonl / check.jsonl (created empty) as spec/research "
+            "  - Curate implement.jsonl / check.jsonl (created empty) as spec/rule/research "
             "manifests before task.py start when sub-agents need context:",
             file=sys.stderr,
         )
         print(
             '      one JSON object per line — {"file": "<path>", "reason": "<why>"}; '
-            "spec/research docs only, no code paths",
+            "spec/rule/research docs only, no code paths",
             file=sys.stderr,
         )
         print(

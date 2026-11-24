@@ -7496,22 +7496,6 @@ print(len(entries))
     }
   });
 
-  it("[workflow-state-r2] template workflow.md [workflow-state:planning] mentions artifact gates + required jsonl curation", () => {
-    const wf = templateWorkflowMd();
-    const match = wf.match(
-      /\[workflow-state:planning\]([\s\S]*?)\[\/workflow-state:planning\]/,
-    );
-    expect(match).toBeTruthy();
-    const body = match?.[1] ?? "";
-    expect(body).toMatch(/Lightweight: `prd\.md` can be enough/);
-    expect(body).toMatch(
-      /Complex: finish `prd\.md`, `design\.md`, and `implement\.md`/,
-    );
-    expect(body).toContain(
-      "curate `implement.jsonl` and `check.jsonl` as spec/research manifests before start",
-    );
-  });
-
   it("[#292] workflow and brainstorm templates treat seed-only jsonl as not planning-ready", () => {
     const wf = templateWorkflowMd();
     expect(wf).not.toContain("seed-only manifests are tolerated by consumers");

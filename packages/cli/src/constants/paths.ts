@@ -17,6 +17,8 @@ export const DIR_NAMES = {
   ARCHIVE: "archive",
   /** Spec/guidelines directory (under .memerig/) */
   SPEC: "spec",
+  /** Declarative behavioral rules (under .memerig/) */
+  RULES: "rules",
   /** Scripts directory (under .memerig/) */
   SCRIPTS: "scripts",
   /** Channel runtime agent definitions (under .memerig/) */
@@ -51,6 +53,8 @@ export const PATHS = {
   TASKS: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.TASKS}`,
   /** .memerig/spec/ */
   SPEC: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SPEC}`,
+  /** .memerig/rules/ */
+  RULES: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.RULES}`,
   /** .memerig/scripts/ */
   SCRIPTS: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SCRIPTS}`,
   /** .memerig/agents/ */

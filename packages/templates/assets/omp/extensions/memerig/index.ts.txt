@@ -297,7 +297,7 @@ function buildSessionContext(projectRoot: string, contextKey: string | null): st
 }
 
 // ---------------------------------------------------------------------------
-// Task context — prd.md, info.md, and jsonl-referenced spec/research files
+// Task context — prd.md, info.md, and jsonl-referenced spec/rule/research files
 // ---------------------------------------------------------------------------
 
 type AgentType = "memerig-implement" | "memerig-check" | "memerig-research" | null;

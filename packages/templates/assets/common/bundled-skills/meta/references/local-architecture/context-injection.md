@@ -37,7 +37,7 @@ Implement and check agents need task context. MemeRig has two loading modes:
 1. **hook push**: a platform hook injects jsonl-referenced files plus `prd.md`, `design.md` if present, and `implement.md` if present before the agent starts.
 2. **agent pull**: the agent definition instructs the agent to read the active task, jsonl context, and task artifacts after startup.
 
-In both modes, JSONL files in the task directory are the manifest for spec/research context. Task artifacts are read separately in this order: `prd.md` -> `design.md if present` -> `implement.md if present`.
+In both modes, JSONL files in the task directory are the manifest for spec/rule/research context. Task artifacts are read separately in this order: `prd.md` -> `design.md if present` -> `implement.md if present`.
 
 ## JSONL Reading Rules
 
@@ -47,7 +47,7 @@ In both modes, JSONL files in the task directory are the manifest for spec/resea
 {"file": ".memerig/spec/backend/index.md", "reason": "Backend rules"}
 ```
 
-Readers should skip rows without a `file` field (e.g. legacy `_example` placeholders). When configuring JSONL, the AI should include only spec/research files, not pre-register code files that will be modified.
+Readers should skip rows without a `file` field (e.g. legacy `_example` placeholders). When configuring JSONL, the AI should include only spec/rule/research files, not pre-register code files that will be modified. Include `.memerig/rules/index.md` and each applicable rule body; a rule link is not expanded automatically.
 
 ## Active Task And Context Key
 
@@ -65,4 +65,4 @@ If shell commands cannot see the same context key, `task.py current --source` ma
 | Change JSONL validation/display | `.memerig/scripts/common/task_context.py`. |
 | Change active task resolution | `.memerig/scripts/common/active_task.py`. |
 
-When modifying context injection, verify two things: new sessions can see the correct task, and sub-agents can see the correct task artifacts/spec/research.
+When modifying context injection, verify two things: new sessions can see the correct task, and sub-agents can see the correct task artifacts/spec/rule/research.

@@ -15,7 +15,7 @@ git diff --name-only HEAD
 git status
 ```
 
-## Step 2: Read Task Artifacts and Applicable Specs
+## Step 2: Read Task Artifacts, Rules, and Applicable Specs
 
 Read the current task artifacts in order:
 
@@ -27,7 +27,7 @@ Read the current task artifacts in order:
 python3 ./.memerig/scripts/get_context.py --mode packages
 ```
 
-For each changed package/layer, read the spec index and follow its **Quality Check** section:
+Read `.memerig/rules/index.md` and the body of every rule whose applicability covers this work (`core.md` always applies). A linked rule is not loaded content. Then, for each changed package/layer, read the spec index and follow its **Quality Check** section:
 
 ```bash
 cat .memerig/spec/<package>/<layer>/index.md

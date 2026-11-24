@@ -30,6 +30,7 @@ DIR_WORKSPACE = "workspace"
 DIR_TASKS = "tasks"
 DIR_ARCHIVE = "archive"
 DIR_SPEC = "spec"
+DIR_RULES = "rules"
 DIR_SCRIPTS = "scripts"
 
 # File names

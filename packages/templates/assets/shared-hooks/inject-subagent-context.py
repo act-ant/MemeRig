@@ -498,12 +498,14 @@ def get_agent_context(
         # Zero curated context reaches the model silently otherwise — the
         # stderr WARN above never enters any session (#573). Put the fact in
         # the prompt itself so the sub-agent compensates instead of assuming
-        # the spec context was complete.
+        # the context was complete.
         return (
-            f"[MemeRig] {agent_jsonl} has no curated entries, so no spec/research "
-            "context was injected. Before working, read the guidelines relevant "
-            "to the code you will touch under .memerig/spec/, and treat the task "
-            "artifacts below as the only prepared context."
+            f"[MemeRig] {agent_jsonl} has no curated entries, so no spec/rule/research "
+            "context was injected. Before working, read `.memerig/rules/index.md` "
+            "and every applicable rule body (`core.md` always applies), then read "
+            "the guidelines relevant to the code you will touch under "
+            ".memerig/spec/, and treat the task artifacts below as the only "
+            "prepared context."
         )
     return "\n\n".join(blocks)
 
@@ -537,7 +539,7 @@ def get_implement_context(repo_root: str, task_dir: str) -> str:
     Complete context for Implement Agent
 
     Read order:
-    1. All files in implement.jsonl (spec/research manifests)
+    1. All files in implement.jsonl (spec/rule/research manifests)
     2. prd.md (requirements)
     3. design.md if present (technical design)
     4. implement.md if present (execution plan)
@@ -647,6 +649,13 @@ def get_finish_context(repo_root: str, task_dir: str) -> str:
 
 
 
+_RULES_ROUTING = (
+    "Project rules: read `.memerig/rules/index.md` and every rule body whose "
+    "applicability covers this task (`core.md` always applies). Do not assume a "
+    "rule link was expanded into this prompt."
+)
+
+
 def build_implement_prompt(original_prompt: str, context: str) -> str:
     """Build complete prompt for Implement"""
     return f"""<!-- memerig-hook-injected -->
@@ -660,6 +669,8 @@ All the information you need has been prepared for you:
 
 {context}
 
+{_RULES_ROUTING}
+
 ---
 
 ## Your Task
@@ -670,7 +681,7 @@ All the information you need has been prepared for you:
 
 ## Workflow
 
-1. **Understand specs** - All dev specs are injected above, understand them
+1. **Understand specs** - All curated dev context is injected above, understand it
     2. **Understand task artifacts** - Read requirements, technical design if present, and execution plan if present
     3. **Implement feature** - Implement following specs and task artifacts
 4. **Self-check** - Ensure code quality against check specs
@@ -678,7 +689,7 @@ All the information you need has been prepared for you:
 ## Important Constraints
 
 - Do NOT execute git commit, only code modifications
-- Follow all dev specs injected above
+- Follow all injected dev specs and project rules
 - Report list of modified/created files when done"""
 
 
@@ -694,6 +705,8 @@ You are the Check Agent in the Multi-Agent Pipeline (code and cross-layer checke
 All check specs and dev specs you need:
 
 {context}
+
+{_RULES_ROUTING}
 
 ---
 
@@ -729,6 +742,8 @@ You are performing the final check before creating a PR.
 Finish checklist and requirements:
 
 {context}
+
+{_RULES_ROUTING}
 
 ---
 
@@ -908,7 +923,9 @@ Active task: {task_dir}
 
 ## Curated Context
 
-{context}"""
+{context}
+
+{_RULES_ROUTING}"""
 
 
 def _handle_codex_subagent_start(input_data: dict) -> None:

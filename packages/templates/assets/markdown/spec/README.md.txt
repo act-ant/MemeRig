@@ -47,4 +47,4 @@ python ./.memerig/scripts/task.py add-context <task> implement .memerig/spec/<pa
 python ./.memerig/scripts/task.py add-context <task> check     .memerig/spec/<path>.md "<why>"
 ```
 
-Only spec and research documents belong in those manifests — never code paths.
+Only spec, rule, and research documents belong in those manifests — never code paths. Rule documents are the adopted files under `.memerig/rules/`, not the optional catalog.

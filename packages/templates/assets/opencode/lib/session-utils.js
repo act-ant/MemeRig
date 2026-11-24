@@ -431,6 +431,10 @@ MemeRig compact SessionStart context. Use it to orient the session; load details
     "`design.md if present` -> `implement.md if present`. Missing optional artifacts " +
     "are skipped for lightweight tasks.\n"
   )
+  parts.push(
+    "Project rules: read `.memerig/rules/index.md` and every applicable rule body " +
+    "(`core.md` always applies) before changing code or specs.\n"
+  )
 
   if (paths.length > 0) {
     parts.push("## Available indexes (read on demand)")

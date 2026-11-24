@@ -29,7 +29,7 @@ Common capabilities:
 
 - session-start injection of a `.memerig/` overview.
 - workflow-state hints for each user turn.
-- PRD/spec/research injection when sub-agents start.
+- PRD/spec/rule/research injection when sub-agents start.
 - Shell commands inheriting session identity.
 
 To change "when the AI knows what," inspect hooks/plugins/extensions and settings first.

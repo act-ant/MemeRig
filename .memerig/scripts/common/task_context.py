@@ -32,7 +32,7 @@ from .log import Colors, colored
 from .paths import DIR_ARCHIVE, DIR_TASKS, DIR_WORKFLOW, FILE_TASK_JSON, get_repo_root
 from .task_utils import resolve_task_dir
 
-# Extensions that look like code rather than spec/research docs. Entries with
+# Extensions that look like code rather than spec/rule/research docs. Entries with
 # one of these extensions outside .memerig/spec/, docs/docs-site, or the
 # task's own directory get a hygiene warning in `task.py validate` — the
 # reader is a sub-agent, not a human, so code paths belong in the diff the
@@ -278,7 +278,7 @@ def _validate_jsonl(jsonl_file: Path, repo_root: Path, task_dir: Path | None = N
     Beyond hard errors (missing file/dir, invalid JSON), this also prints
     non-blocking hygiene warnings (never counted in ``errors``, never change
     the exit code): entries that look like code files rather than
-    spec/research docs, and entries whose file size exceeds the configured
+    spec/rule/research docs, and entries whose file size exceeds the configured
     sub-agent context injection cap (``context_injection.max_file_bytes``).
     """
     file_name = jsonl_file.name
@@ -364,7 +364,7 @@ def _validate_jsonl(jsonl_file: Path, repo_root: Path, task_dir: Path | None = N
         ):
             warning_message = (
                 f"{file_name}:{line_num}: Warning: {file_path} looks like a code file — "
-                "implement/check.jsonl should reference spec/research docs; "
+                "implement/check.jsonl should reference spec/rule/research docs; "
                 "agents read code themselves"
             )
             print(f"  {colored(warning_message, Colors.YELLOW)}")

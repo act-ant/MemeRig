@@ -39,7 +39,7 @@ Whether these files exist in a project depends on which `memerig init --<platfor
 | --- | --- |
 | `session-start.py` | Generates session-start context. |
 | `inject-workflow-state.py` | Parses `[workflow-state:STATUS]` blocks in `.memerig/workflow.md` and emits the body matching the current task status. Falls back to `Refer to workflow.md for current step.` when no matching block exists. |
-| `inject-subagent-context.py` | Injects PRD, JSONL context, and related spec/research into sub-agents. |
+| `inject-subagent-context.py` | Injects PRD, JSONL context, and related spec/rule/research into sub-agents. |
 | `inject-shell-session-context.py` | Lets shell commands inherit MemeRig session identity. |
 
 Not every platform has every hook. Do not copy files from another platform just because a platform lacks a hook; first confirm whether that platform supports the corresponding event.

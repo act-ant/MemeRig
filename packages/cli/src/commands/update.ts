@@ -42,6 +42,7 @@ import { emptyTaskJson } from "../utils/task-json.js";
 import {
   getAllScripts,
   getAllAgents,
+  getAllRules,
   // Configuration
   configYamlTemplate,
   gitignoreTemplate,
@@ -884,6 +885,10 @@ async function collectTemplateFiles(
   // Python scripts (single source of truth: getAllScripts())
   for (const [scriptPath, content] of getAllScripts()) {
     files.set(`${PATHS.SCRIPTS}/${scriptPath}`, content);
+  }
+
+  for (const [ruleFile, content] of getAllRules()) {
+    files.set(`${PATHS.RULES}/${ruleFile}`, content);
   }
 
   // Blank installs omit channel agents. Keep existing agent-enabled projects

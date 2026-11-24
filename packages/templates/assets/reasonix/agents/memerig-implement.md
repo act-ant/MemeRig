@@ -19,7 +19,7 @@ You are already the `memerig-implement` sub-agent that the main session dispatch
 ## Core Responsibilities
 
 1. Understand the active task requirements.
-2. Read and follow the spec and research files listed in the task's `implement.jsonl`.
+2. Read and follow `.memerig/rules/index.md` and every applicable rule body (`core.md` always applies), plus the spec and research files listed in the task's `implement.jsonl`.
 3. Implement the requested change using existing project patterns.
 4. Run the relevant lint, typecheck, and focused tests available for the touched code.
 5. Report files changed and verification results.

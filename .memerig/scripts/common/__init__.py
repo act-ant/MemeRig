@@ -61,6 +61,7 @@ from .paths import (
     DIR_TASKS,
     DIR_ARCHIVE,
     DIR_SPEC,
+    DIR_RULES,
     DIR_SCRIPTS,
     FILE_DEVELOPER,
     FILE_CURRENT_TASK,

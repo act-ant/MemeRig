@@ -5,7 +5,7 @@
 ## Core Principles
 
 1. **Plan before code** — figure out what to do before you start
-2. **Specs injected, not remembered** — guidelines are injected via hook/skill, not recalled from memory
+2. **Specs and rules injected, not remembered** — guidelines are injected via hook/skill, not recalled from memory
 3. **Persist everything** — research, decisions, and lessons all go to files; conversations get compacted, files don't
 4. **Incremental development** — one task at a time
 5. **Capture learnings** — after each task, review and write new knowledge back to spec
@@ -37,6 +37,16 @@ python3 ./.memerig/scripts/get_context.py --mode packages   # list packages / la
 
 **When to update spec**: new pattern/convention found · bug-fix prevention to codify · new technical decision.
 
+### Rules System
+
+`.memerig/rules/` holds behavioral constraints adopted by this project. It is a declaration category like `spec/`, not a runtime toggle or a precedence layer.
+
+- `.memerig/rules/index.md` — adopted rules and their applicability. Default installs list only `core.md`.
+- `.memerig/rules/core.md` — baseline engineering rules that always apply.
+- Other files — optional declarations the project explicitly adopted (for example, clean cutover or production compatibility).
+
+Read the index, then open every rule body that applies before changing code or specs. A Markdown link is not loaded content. Do not load optional catalog rules that the index does not list. For delegated work, include the index and each applicable rule body in `implement.jsonl` / `check.jsonl` with `task.py add-context`; hooks and pull-based agents do not expand links for you.
+
 ### Task System
 
 Every task has its own directory under `.memerig/tasks/{MM-DD-name}/` holding `task.json`, `prd.md`, optional `design.md`, optional `implement.md`, optional `research/`, and context manifests (`implement.jsonl`, `check.jsonl`) for sub-agent-capable platforms.
@@ -55,7 +65,7 @@ python3 ./.memerig/scripts/task.py list-archive
 
 # Code-spec context (injected into implement/check agents via JSONL).
 # `implement.jsonl` / `check.jsonl` are seeded (empty) on `task create` for sub-agent-capable
-# platforms; the AI curates real spec + research entries during planning. `validate` fails
+# platforms; the AI curates real spec + rule + research entries during planning. `validate` fails
 # and `start` refuses while a seeded manifest is still empty — sub-agents would run with
 # zero spec context. Pass `start --allow-empty-context` when that is intentional.
 python3 ./.memerig/scripts/task.py add-context <name> <action> <file> <reason>
@@ -160,7 +170,7 @@ Phase 3: Finish  → verify, update spec, commit, and wrap up
 - `prd.md` — requirements, constraints, and acceptance criteria. Do not put technical design or execution checklists here.
 - `design.md` — technical design for complex tasks: boundaries, contracts, data flow, tradeoffs, compatibility, rollout / rollback shape.
 - `implement.md` — execution plan for complex tasks: ordered checklist, validation commands, review gates, and rollback points.
-- `implement.jsonl` / `check.jsonl` — spec and research manifests for sub-agent context. They do not replace `implement.md`.
+- `implement.jsonl` / `check.jsonl` — spec, rule, and research manifests for sub-agent context. They do not replace `implement.md`.
 - Lightweight tasks may be PRD-only. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start`.
 
 ### Parent / Child Task Trees
@@ -201,7 +211,7 @@ Preserve existing task fields and artifacts. If the correct status cannot be det
 Load `brainstorm`; stay in planning.
 Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; ask for review before `task.py start`.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
-Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research manifests before start.
+Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/rule/research manifests before start. Include `.memerig/rules/index.md` and each applicable rule body.
 [/workflow-state:planning]
 
 <!-- Per-turn breadcrumb: shown throughout Phase 1 when codex.dispatch_mode=inline.
@@ -234,7 +244,7 @@ Sub-agent dispatch protocol applies to all platforms and all sub-agents, includi
 Tools: `memerig-implement` / `memerig-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `update-spec` is a skill. `memerig-check` exists as both; prefer the Agent form when verifying after code changes.
 Flow: `memerig-implement` -> `memerig-check` -> `update-spec` -> commit (Phase 3.4) -> `/memerig:finish-work`.
 Main-session default: dispatch implement/check sub-agents. Sub-agent self-exemption: if already running as `memerig-implement`, do NOT spawn another `memerig-implement` or `memerig-check`; if already running as `memerig-check`, do NOT spawn another `memerig-check` or `memerig-implement`. Dispatch is main session only.
-Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`.
+Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`, then `.memerig/rules/index.md` and each applicable rule body (`core.md` always applies).
 [/workflow-state:in_progress]
 
 <!-- Per-turn breadcrumb: shown while status='in_progress' when
@@ -245,7 +255,7 @@ Dispatch prompt starts with `Active task: <task path from task.py current>`. Rea
 [workflow-state:in_progress-inline]
 Flow: `before-dev` -> edit -> `check` -> validation -> `update-spec` -> commit (Phase 3.4) -> `/memerig:finish-work`.
 Do not dispatch implement/check sub-agents in inline mode.
-Read context: `prd.md` -> `design.md if present` -> `implement.md if present`, plus relevant spec/research loaded by skills.
+Read context: `prd.md` -> `design.md if present` -> `implement.md if present`, plus relevant rules/specs/research loaded by skills.
 [/workflow-state:in_progress-inline]
 
 ### Phase 3: Finish
@@ -386,13 +396,14 @@ Brainstorm and research can interleave freely — pause to research a technical 
 
 [Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
 
-Curate `implement.jsonl` and `check.jsonl` so the Phase 2 sub-agents get the right spec/research context. These files were seeded on `task create` with a single self-describing `_example` line; your job here is to fill in real entries.
+Curate `implement.jsonl` and `check.jsonl` so the Phase 2 sub-agents get the right spec/rule/research context. These files were seeded on `task create` with a single self-describing `_example` line; your job here is to fill in real entries. A rule is active only when the project lists it in `.memerig/rules/index.md`; include the index and each applicable rule body explicitly.
 
 **Location**: `{TASK_DIR}/implement.jsonl` and `{TASK_DIR}/check.jsonl` (already exist).
 
 **Format**: one JSON object per line — `{"file": "<path>", "reason": "<why>"}`. Paths are repo-root relative.
 
 **What to put in**:
+- **Rule files** — `.memerig/rules/index.md` and every adopted rule body whose applicability covers this task (`core.md` always applies). List files individually; do not list the `.memerig/rules/` directory, which would broad-load unselected declarations
 - **Spec files** — `.memerig/spec/<package>/<layer>/index.md` and any specific guideline files (`error-handling.md`, `conventions.md`, etc.) relevant to this task
 - **Research files** — `{TASK_DIR}/research/*.md` that the sub-agent will need to consult
 
@@ -401,8 +412,8 @@ Curate `implement.jsonl` and `check.jsonl` so the Phase 2 sub-agents get the rig
 - Files you're about to modify — same reason
 
 **Split between the two files**:
-- `implement.jsonl` → specs + research the implement sub-agent needs to write code correctly
-- `check.jsonl` → specs for the check sub-agent (quality guidelines, check conventions, same research if needed)
+- `implement.jsonl` → rules + specs + research the implement sub-agent needs to write code correctly
+- `check.jsonl` → rules + specs for the check sub-agent (quality guidelines, check conventions, same research if needed)
 
 These manifests do not replace `implement.md`. `implement.md` is the human-readable execution plan for a complex task; jsonl files only list context files to inject or load.
 
@@ -414,6 +425,8 @@ python3 ./.memerig/scripts/get_context.py --mode packages
 
 Lists every package + its spec layers with paths. Pick the entries that match this task's domain.
 
+Read `.memerig/rules/index.md` for adopted rule applicability, then add each applicable body.
+
 **How to append entries**:
 
 Either edit the jsonl file directly in your editor, or use:
@@ -421,11 +434,13 @@ Either edit the jsonl file directly in your editor, or use:
 ```bash
 python3 ./.memerig/scripts/task.py add-context "$TASK_DIR" implement "<path>" "<reason>"
 python3 ./.memerig/scripts/task.py add-context "$TASK_DIR" check "<path>" "<reason>"
+python3 ./.memerig/scripts/task.py add-context "$TASK_DIR" implement ".memerig/rules/core.md" "Baseline engineering rules"
+python3 ./.memerig/scripts/task.py add-context "$TASK_DIR" check ".memerig/rules/core.md" "Baseline engineering rules"
 ```
 
 Delete the seed `_example` line once real entries exist (optional — it's skipped automatically by consumers).
 
-Ready gate: both `implement.jsonl` and `check.jsonl` must contain at least one real `{"file": "...", "reason": "..."}` entry before `task.py start`. The seed `_example` row alone is not ready.
+Ready gate: both `implement.jsonl` and `check.jsonl` must contain at least one real `{"file": "...", "reason": "..."}` entry before `task.py start`. Include `.memerig/rules/index.md` and `core.md` in both, plus any adopted rule whose applicability covers the task. The seed `_example` row alone is not ready.
 
 Skip this step only when both files already have real curated entries.
 
@@ -445,7 +460,7 @@ After artifact review, flip the task status to `in_progress`:
 python3 ./.memerig/scripts/task.py start <task-dir>
 ```
 
-For lightweight tasks, `prd.md` can be enough. For complex tasks, `prd.md`, `design.md`, and `implement.md` must exist and be reviewed before start. On sub-agent-dispatch platforms, `implement.jsonl` and `check.jsonl` must both have real curated entries before start. Runtime consumers tolerate missing or seed-only manifests for compatibility, but that tolerance is not a planning-ready state.
+For lightweight tasks, `prd.md` can be enough. For complex tasks, `prd.md`, `design.md`, and `implement.md` must exist and be reviewed before start. On sub-agent-dispatch platforms, `implement.jsonl` and `check.jsonl` must both have real curated entries before start, including `.memerig/rules/index.md` and `core.md` plus any applicable adopted rule. Runtime consumers tolerate missing or seed-only manifests for compatibility, but that tolerance is not a planning-ready state.
 
 After this command succeeds, the breadcrumb auto-switches to `[workflow-state:in_progress]`, and the rest of Phase 2 / 3 follows.
 
@@ -485,8 +500,9 @@ Spawn the implement sub-agent:
 - **Dispatch prompt guard**: The prompt MUST start with `Active task: <task path>`, then tell the spawned agent it is already the `memerig-implement` sub-agent and must implement directly, not spawn another `memerig-implement` / `memerig-check`.
 
 The platform hook/plugin auto-handles:
-- Reads `implement.jsonl` and injects referenced spec/research files into the agent prompt
+- Reads `implement.jsonl` and injects referenced spec/rule/research files into the agent prompt
 - Injects `prd.md`, `design.md` if present, and `implement.md` if present
+- The agent definition also routes it to `.memerig/rules/index.md` and each applicable rule body; a Markdown link is not expanded for it
 - For Codex, `SubagentStart` supplies native context injection; the agent profile keeps child-side loading as the fallback
 
 [/Claude Code, Cursor, OpenCode, codex-sub-agent, CodeBuddy, Droid, Pi, ZCode, Snow, Oh My Pi]
@@ -501,7 +517,8 @@ Spawn the implement sub-agent:
 
 The pull-based sub-agent definition auto-handles the context load requirement:
 - Resolves the active task with `task.py current --source`, then reads `prd.md`, `design.md` if present, and `implement.md` if present
-- Reads `implement.jsonl` and requires the agent to load each referenced spec/research file before coding
+- Reads `implement.jsonl` and requires the agent to load each referenced spec/rule/research file before coding
+- Routes the agent to `.memerig/rules/index.md` and each applicable rule body; a Markdown link is not expanded for it
 
 [/Gemini, Qoder, Copilot, Reasonix, Trae, Grok, Kimi Code]
 
@@ -514,14 +531,15 @@ Spawn the implement sub-agent:
 - **Dispatch prompt guard**: Tell the spawned agent it is already the `memerig-implement` sub-agent and must implement directly, not spawn another `memerig-implement` / `memerig-check`.
 
 The platform prelude auto-handles the context load requirement:
-- Reads `implement.jsonl` and injects referenced spec/research files into the agent prompt
+- Reads `implement.jsonl` and injects referenced spec/rule/research files into the agent prompt
 - Injects `prd.md`, `design.md` if present, and `implement.md` if present
+- Routes the agent to `.memerig/rules/index.md` and each applicable rule body; a Markdown link is not expanded for it
 
 [/Kiro]
 
 [codex-inline, Kilo, Antigravity, Devin, DeepSeek Harness]
 
-1. Load the `before-dev` skill to read project guidelines
+1. Load the `before-dev` skill to read project rules and guidelines
 2. Read `{TASK_DIR}/prd.md`, then `design.md` if present, then `implement.md` if present
 3. Consult materials under `{TASK_DIR}/research/`
 4. Implement the code per reviewed artifacts
@@ -540,6 +558,7 @@ Spawn the check sub-agent:
 - **Dispatch prompt guard**: The prompt MUST start with `Active task: <task path>`, then tell the spawned agent it is already the `memerig-check` sub-agent and must review/fix directly, not spawn another `memerig-check` / `memerig-implement`.
 
 The check agent's job:
+- Review code changes against applicable project rules (`.memerig/rules/index.md` and each applicable body; `core.md` always applies)
 - Review code changes against specs
 - Review code changes against `prd.md`, `design.md` if present, and `implement.md` if present
 - Auto-fix issues it finds
@@ -550,6 +569,7 @@ The check agent's job:
 [codex-inline, Kilo, Antigravity, Devin, DeepSeek Harness]
 
 Load the `check` skill and verify the code per its guidance:
+- Rule compliance
 - Spec compliance
 - lint / type-check / tests
 - Cross-layer consistency (when changes span layers)

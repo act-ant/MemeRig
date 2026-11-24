@@ -11,6 +11,7 @@ import {
   gitignoreTemplate,
   gitattributesTemplate,
   getAllAgents,
+  getAllRules,
 } from "../templates/memerig/index.js";
 
 // Import markdown templates
@@ -118,6 +119,11 @@ export async function createWorkflowStructure(
     path.join(cwd, PATHS.WORKFLOW_GUIDE_FILE),
     replacePythonCommandLiterals(workflowMd),
   );
+
+  ensureDir(path.join(cwd, PATHS.RULES));
+  for (const [ruleFile, content] of getAllRules()) {
+    await writeFile(path.join(cwd, PATHS.RULES, ruleFile), content);
+  }
 
   // Project identity, task policy, and custom rules belong to this checkout.
   const memerig = path.join(cwd, DIR_NAMES.WORKFLOW);

@@ -17,7 +17,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
-import { DIR_NAMES, FILE_NAMES } from "../constants/paths.js";
+import { DIR_NAMES, FILE_NAMES, PATHS } from "../constants/paths.js";
 import type { TemplateHashes } from "../types/migration.js";
 import { writeFileAtomic } from "./atomic-write.js";
 import { toPosix } from "./posix.js";
@@ -270,6 +270,7 @@ const EXCLUDE_FROM_HASH = [
   "tasks/", // Task files (user data)
   ".current-task", // Current task marker (file, not directory)
   ".memerig/spec/", // User-customized spec files
+  `${PATHS.RULES}/`, // Rules use write receipts, never a walk of adopted documents
   ".backup-", // Backup directories
 ];
 
@@ -362,11 +363,14 @@ export function initializeHashes(
   const { trackedPaths, merge = false } = options;
   const hashes: TemplateHashes = merge ? loadHashes(cwd) : {};
 
-  // Platform + root files: hash only paths actually written this run.
+  // Rules, platform and root files: hash only paths actually written this run.
   if (trackedPaths) {
     for (const relativePath of trackedPaths) {
-      // `.memerig/` paths are handled by the walk below — don't double-track.
-      if (relativePath.startsWith(".memerig/") || relativePath === ".memerig") {
+      // Other .memerig paths are handled by the legacy walk below.
+      if (
+        (relativePath.startsWith(".memerig/") || relativePath === ".memerig") &&
+        !relativePath.startsWith(`${PATHS.RULES}/`)
+      ) {
         continue;
       }
       const fullPath = path.join(cwd, ...relativePath.split("/"));

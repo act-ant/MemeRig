@@ -26,16 +26,18 @@ Phase Index + skill routing table + DO-NOT-skip rules.
 
 Full guide in `.memerig/workflow.md` (read on demand).
 
-## Step 3: Guideline indexes
+## Step 3: Guideline and rule indexes
 Discover packages + spec layers, then read each relevant index file.
 
 ```bash
 {{PYTHON_CMD}} ./.memerig/scripts/get_context.py --mode packages
 cat .memerig/spec/guides/index.md
 cat .memerig/spec/<package>/<layer>/index.md   # for each relevant layer
+cat .memerig/rules/index.md
+cat .memerig/rules/<rule>.md                   # every applicable rule body; core.md always applies
 ```
 
-Index files list the specific guideline docs to read when you actually start coding.
+Spec index files list the specific guideline docs to read when you actually start coding. Rules are constraints, not routes: open each body whose applicability covers the work. Do not assume a Markdown link was loaded, and do not load unadopted optional rules.
 
 ## Step 4: Decide next action
 From Step 1 you know the current task and status. Check the task directory:

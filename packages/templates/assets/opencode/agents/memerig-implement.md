@@ -28,12 +28,13 @@ You are already the `memerig-implement` sub-agent that the main session dispatch
 Look for the `<!-- memerig-hook-injected -->` marker in your input above.
 
 - **If the marker is present**: task artifacts, spec, and research files have already been auto-loaded for you above. Proceed with the implementation work directly.
-- **If the marker is absent**: hook injection didn't fire (Windows + Claude Code, `--continue` resume, fork distribution, hooks disabled, etc.). Find the active task path from your dispatch prompt's first line `Active task: <path>` (or run `python3 ./.memerig/scripts/task.py current --source` as a fallback), then Read `<task-path>/implement.jsonl`, each listed file, `<task-path>/prd.md`, `<task-path>/design.md` if present, and `<task-path>/implement.md` if present before doing the work.
+- **If the marker is absent**: hook injection didn't fire (Windows + Claude Code, `--continue` resume, fork distribution, hooks disabled, etc.). Find the active task path from your dispatch prompt's first line `Active task: <path>` (or run `python3 ./.memerig/scripts/task.py current --source` as a fallback), then Read `<task-path>/implement.jsonl`, each listed file, `<task-path>/prd.md`, `<task-path>/design.md` if present, and `<task-path>/implement.md` if present before doing the work. Also Read `.memerig/rules/index.md` and every applicable rule body (`core.md` always applies) if rules were not injected.
 
 ## Context
 
 Before implementing, read:
 - `.memerig/workflow.md` - Project workflow
+- `.memerig/rules/` - Project rules (read `index.md`, then every applicable body; `core.md` always applies)
 - `.memerig/spec/` - Development guidelines
 - Task `prd.md` - Requirements document
 - Task `design.md` - Technical design (if exists)

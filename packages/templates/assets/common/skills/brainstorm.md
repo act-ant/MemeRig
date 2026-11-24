@@ -162,7 +162,7 @@ The final planning summary must show Goal, In Scope, Out of Scope, Acceptance Cr
 
 Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start`.
 
-`implement.md` is not a replacement for `implement.jsonl`. On sub-agent-dispatch workflows, `implement.jsonl` and `check.jsonl` must each contain at least one real spec/research entry before `task.py start`; an empty manifest, or one holding only a legacy `_example` placeholder row, does not count. Inline workflows skip this JSONL gate because Phase 2 loads context through `before-dev`.
+`implement.md` is not a replacement for `implement.jsonl`. On sub-agent-dispatch workflows, `implement.jsonl` and `check.jsonl` must each contain at least one real spec/rule/research entry before `task.py start`. Include `.memerig/rules/index.md` plus the applicable rule bodies (at minimum `core.md`) and relevant spec files; an empty manifest, or one holding only a legacy `_example` placeholder row, does not count. Inline workflows skip this JSONL gate because Phase 2 loads context through `before-dev`.
 
 ## PRD Convergence Pass
 
@@ -188,7 +188,7 @@ Before declaring planning ready:
 - Repository-answerable questions have already been answered through inspection.
 - Blocking open questions are empty.
 - Complex tasks have `design.md` and `implement.md`.
-- Sub-agent-dispatch tasks have real curated entries in both `implement.jsonl` and `check.jsonl`; seed-only manifests are not ready.
+- Sub-agent-dispatch tasks have real curated entries in both `implement.jsonl` and `check.jsonl`; seed-only manifests are not ready. Rule-aware context includes `.memerig/rules/index.md` and each applicable rule body, not just spec files.
 - The latest final planning summary has been presented to the user.
 - In a subsequent message, the user explicitly approved that summary for implementation.
 

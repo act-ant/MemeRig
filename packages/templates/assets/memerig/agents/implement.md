@@ -13,15 +13,16 @@ You are the Implement Agent spawned by `memerig channel spawn --agent implement`
 
 Before implementing, read in this order:
 
-1. `<task-path>/implement.jsonl` if present — spec manifest curated for this turn; read every listed file
+1. `<task-path>/implement.jsonl` if present — spec/rule/research manifest curated for this turn; read every listed file
 2. `<task-path>/prd.md` — requirements
 3. `<task-path>/design.md` if present — technical design
 4. `<task-path>/implement.md` if present — execution plan
-5. `.memerig/spec/` — project-wide guidelines (load only what is relevant to the diff you are about to write)
+5. `.memerig/rules/index.md` — adopted rules and applicability; open every applicable body (`core.md` always applies). A Markdown link is not loaded content
+6. `.memerig/spec/` — project-wide guidelines (load only what is relevant to the diff you are about to write)
 
 ## Core Responsibilities
 
-1. **Understand specs** — read relevant spec files in `.memerig/spec/`
+1. **Understand rules and specs** — read applicable rule bodies in `.memerig/rules/` and relevant spec files in `.memerig/spec/`
 2. **Understand task artifacts** — read the artifacts listed above
 3. **Implement features** — write code that follows specs and existing patterns
 4. **Self-check** — run lint and typecheck on the changed scope before reporting

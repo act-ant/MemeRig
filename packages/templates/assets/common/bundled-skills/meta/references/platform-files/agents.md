@@ -13,7 +13,7 @@ File locations and formats differ by platform, but responsibility boundaries sho
 | Agent | Responsibility |
 | --- | --- |
 | `memerig-research` | Investigate the question and write findings into the current task's `research/`. |
-| `memerig-implement` | Implement against `prd.md`, optional `design.md` / `implement.md`, `implement.jsonl`, and related spec/research. |
+| `memerig-implement` | Implement against `prd.md`, optional `design.md` / `implement.md`, `implement.jsonl`, and related spec/rule/research. |
 | `check` | Review changes, fix discovered issues, and run necessary checks. |
 
 Agent files should not become generic chat prompts. They should define input sources, write boundaries, whether code may be changed, and how results are reported.
@@ -54,7 +54,7 @@ The agent file instructs the agent to read after startup:
 
 - `python3 ./.memerig/scripts/task.py current --source`
 - `implement.jsonl` or `check.jsonl`
-- spec/research files referenced by JSONL
+- spec/rule/research files referenced by JSONL
 - current task `prd.md`
 - `design.md` if present
 - `implement.md` if present

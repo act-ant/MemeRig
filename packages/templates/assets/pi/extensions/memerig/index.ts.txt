@@ -1212,7 +1212,7 @@ function buildContext(root: string, agent: string, key: string | null): string {
   const limits = readContextInjectionLimits(root);
   const budget = new ContextBudget(limits.max_total_bytes);
 
-  // 1. Curated spec/research files from {agent}.jsonl (same order, budget
+  // 1. Curated spec/rule/research files from {agent}.jsonl (same order, budget
   //    processed first, matching Python's get_agent_context()).
   const jsonlName = MEMERIG_AGENT_JSONL[agent] ?? "";
   const specBlocks: string[] = [];
@@ -1257,6 +1257,7 @@ function buildContext(root: string, agent: string, key: string | null): string {
   return [
     `## MemeRig Task Context`,
     `Task directory: ${dir}`,
+    "Project rules: read `.memerig/rules/index.md` and every applicable rule body (`core.md` always applies); do not assume a rule link was expanded into this prompt.",
     "",
     prd ?? `(missing) ${relTaskDir}/prd.md`,
     design ? "\n" + design : "",
