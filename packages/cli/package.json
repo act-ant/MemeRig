@@ -1,6 +1,6 @@
 {
   "name": "memerig",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "MemeRig: an agent harness for game and agent development — specs, tasks, and memory persisted in your repo. Forked from Trellis.",
   "type": "module",
   "main": "./dist/index.js",
