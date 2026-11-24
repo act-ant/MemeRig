@@ -1,0 +1,4 @@
+{"file": ".memerig/spec/cli/backend/release-process.md", "reason": "Release command sequence and bump step"}
+{"file": ".memerig/spec/cli/backend/script-conventions.md", "reason": "Python/Node script entry-point conventions"}
+{"file": ".memerig/rules/index.md", "reason": "Project rules routing"}
+{"file": ".memerig/rules/core.md", "reason": "Core engineering constraints"}

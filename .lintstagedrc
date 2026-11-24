@@ -1,3 +1,4 @@
 {
-  "packages/cli/src/**/*.ts": ["pnpm --filter memerig exec eslint --fix", "pnpm --filter memerig exec prettier --write"]
+  "packages/cli/src/**/*.ts": ["pnpm --filter memerig exec eslint --fix", "pnpm --filter memerig exec prettier --write"],
+  "packages/cli/test/**/*.ts": ["pnpm --filter memerig exec eslint --fix", "pnpm --filter memerig exec prettier --write"]
 }
