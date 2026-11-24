@@ -97,7 +97,7 @@ GitLab (`platgit.mihoyo.com`) is the release upstream: branches and tags land th
 | Trigger | GitLab (`.gitlab-ci.yml`) | GitHub (`.github/workflows/`) |
 | --- | --- | --- |
 | Push to `main`, merge request | `python-3.9-syntax`, `test` | `CI` |
-| Tag `v*` | `test`, then `publish` | `Publish to npm` |
+| Tag `v*` | `test`, then `publish` | — (manual `workflow_dispatch` only) |
 
 Publish prerequisites on the GitLab project:
 

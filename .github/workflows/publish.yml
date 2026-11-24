@@ -1,18 +1,15 @@
 name: Publish to npm
 
-# Both event sources stay wired so a published GitHub Release and a raw
-# `v*` tag push both fire a publish. The shared release-preflight script
-# makes reruns idempotent: if a package version is already on npm it is
-# skipped, so duplicate triggers do not produce duplicate publishes.
+# GitLab owns tag publishing (see .gitlab-ci.yml). This workflow stays as a
+# manual escape hatch — dispatch it against the release tag ref, so
+# `check-versions --require-tag` sees the tag.
+#
+# The automatic triggers were removed on purpose: once the GitHub repo is a
+# mirror, a mirrored `v*` tag push would fire this job next to the GitLab
+# publish pipeline, and both would race the first `pnpm publish` of the same
+# version.
 on:
-  # Manual dispatch is the escape hatch when tag pushes do not start a run;
-  # dispatch against the release tag ref so check-versions --require-tag works.
   workflow_dispatch:
-  release:
-    types: [published]
-  push:
-    tags:
-      - "v*"
 
 concurrency:
   group: publish-${{ github.ref_name || github.ref }}

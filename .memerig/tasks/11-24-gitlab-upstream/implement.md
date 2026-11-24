@@ -56,11 +56,13 @@ git push origin --tags
 5. Run a pipeline on `main`, then `glab ci lint` / web lint against
    `.gitlab-ci.yml`.
 
-Open decision after cutover: GitHub mirror pushes also carry tags, so
-`.github/workflows/publish.yml` (`push: tags`) can fire alongside the GitLab
-job. Publishing stays idempotent, but two concurrent publishes race on the
-first `pnpm publish`. Either restrict the GitHub workflow to
-`workflow_dispatch`, or leave Actions off on the mirror.
+Decided: `.github/workflows/publish.yml` keeps only `workflow_dispatch`
+(auto triggers `push: tags` and `release: published` removed), so a mirrored
+tag cannot race the GitLab publish job. Dispatch against the tag ref when the
+GitHub path is ever needed.
+
+Open decision after cutover: none. GitHub mirror pushes carry tags, but nothing
+automatic reacts to them any more; `ci.yml` still gates pushes to `main`.
 
 Tool note: `node .gitnexus/run.cjs impact` timed out twice (120s) for
 `tagVersionFromEnv` / `publishPlan`, so callers were confirmed by text search
