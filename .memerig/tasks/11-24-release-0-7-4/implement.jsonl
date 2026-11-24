@@ -1,0 +1,5 @@
+{"file": ".memerig/spec/cli/backend/release-process.md", "reason": "Release gates, version invariants, CI-only publishing"}
+{"file": ".memerig/spec/cli/backend/migrations.md", "reason": "Manifest schema and continuity contract"}
+{"file": ".memerig/spec/cli/backend/commands-update.md", "reason": "Update path consuming the manifest chain"}
+{"file": ".memerig/rules/index.md", "reason": "Project rules routing"}
+{"file": ".memerig/rules/core.md", "reason": "Core engineering constraints"}
