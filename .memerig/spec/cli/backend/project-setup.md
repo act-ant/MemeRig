@@ -21,8 +21,8 @@ memerig mem projects --registered [--json]
 - New config receives a stable `project_id` UUID and `tasks.version_control: local` by default. Local task tracking uses a managed `/tasks/` block in `.memerig/.gitignore`. Changing it never edits the Git index.
 - The nearest `.memerig/config.yaml` inside a Git boundary owns tasks by default. `task_owner: parent` selects the enclosing project explicitly. Project diagnostics return `projectId`, `config`, `ownerConfig`, `taskStore`, and `taskVersionControl`.
 - Registered checkout paths and a local user UUID live in `~/.memerig/projects.json`. The persisted shape is `{schemaVersion: 1, userId, projects: { [projectId]: string[] }}`. `list` also reports `stale` paths. Discovery reads never create the file.
-- The built-in presets use the exact Marketplace file content. Init without a template generates no project conventions (only the spec layout README). Default behavioral declarations are separate: `.memerig/rules/index.md` and `core.md`. Explicitly configured platforms can provide hooks. Onboarding task generation requires its own flag.
-- An explicit remote template or registry error exits nonzero. Fresh init stages the download outside the checkout, so a failed fetch leaves no project files. Use `--template blank` to explicitly select the empty preset.
+- The built-in presets use the exact Marketplace file content. The default guidance template generates no project conventions or project vision: its Spec README adopts the standalone `.memerig/attractor-guide.md` method. Default behavioral declarations remain separate in `.memerig/rules/index.md` and `core.md`. Explicitly configured platforms can provide hooks. Onboarding task generation requires its own flag.
+- An explicit remote template or registry error exits nonzero. Fresh init stages the download outside the checkout, so a failed fetch leaves no project files. `--template blank` explicitly selects default guidance without a preset or registry lookup, including in a blank monorepo.
 
 ## 4. Validation and errors
 
@@ -123,4 +123,85 @@ unselected reference rule; only the selected content should reach the task.
 Wrong: recursively hash `.memerig/rules/` after re-init, making local edits look
 like pristine upstream content. Correct: hash only rule files actually written
 in that run and retain previous receipts for skipped files.
+
+## 9. Optional repository-attractor guidance
+
+### Scope / Trigger
+
+Applies to default setup, bundled guidance, shared workflow entry points, and
+init/update ownership. This is a Markdown practice, not a new parser, task state,
+configuration flag, or capability registry.
+
+### Signatures
+
+- `memerig init --template blank` selects the default guidance template offline.
+- `attractorGuideTemplate` in `templates/memerig/index.ts` supplies the standalone
+  guide to `createWorkflowStructure` and `collectTemplateFiles`.
+- `initializeHashes(cwd, { trackedPaths, merge })` uses actual write receipts for
+  managed files, including `.memerig/` assets. A skipped file retains its earlier
+  receipt. The no-receipts API retains directory-based initialization.
+- Relevant direction uses existing `task.py add-context` manifests; no automatic
+  filename-based injection is added.
+
+### Contracts
+
+- Canonical assets live under `packages/templates/assets/`. The managed guide is
+  installed at `.memerig/attractor-guide.md`, independently of Spec/workflow
+  selection. The bundled `attractor` skill owns its frontmatter and is discovered
+  through the existing shared platform template map.
+- Only the default Spec README adopts the default method automatically. Other
+  templates own their adoption, method, documents, and timing; silence means no
+  attractor procedure. Shared routes read existing root Spec entries and actual
+  relevant adopted bodies. Installed resources and leftover files are not adoption.
+- Meaningful direction is user-owned `.memerig/spec/attractor.md`. Installation
+  never fabricates it. Confirmed user intent, AI proposals, and open questions
+  remain distinct. Deferral does not block ordinary work or create tasks.
+- Current code contracts remain separate from desired future properties. Neither
+  permits unrelated rewrites. Explicit custom-method conflicts require a scoped
+  decision; a broken custom guide never selects the default implicitly.
+- Main and delegated contexts load applicable actual bodies. An index link alone
+  does not load them. Non-adoption introduces no interview, reminder, missing-file
+  warning, context injection, or completion gate.
+- Re-init and conflict-safe update preserve authored direction and custom entry
+  documents. Remote append records only newly downloaded Spec paths, never local
+  files that the download skipped. Explicit remote `--overwrite` retains its
+  existing whole-directory replacement semantics; use append to retain local Spec
+  content. This feature does not introduce another overwrite policy.
+
+### Validation and error matrix
+
+| Scenario | Result |
+| --- | --- |
+| Default setup without platform, identity, or onboarding | README reaches standalone guide; no fabricated attractor or task |
+| Blank monorepo | Default root README; no per-package placeholder conventions |
+| Selected preset or silent template | Preserve its entries and objectives; no inherited default adoption |
+| Custom method or explicit non-adoption | Follow selected instructions; do not run a second default interview |
+| Modified guide/workflow followed by skip-existing re-init | Preserve bytes and prior receipts; later update must see the conflict |
+| Remote append followed by update | Local direction remains user-owned; downloaded pristine conventions can update |
+| Existing attractor omitted from task manifests | Its body is not automatically injected |
+
+### Good / Base / Bad cases
+
+Good: record a user's explicit long-term UI preference, then curate the actual
+body for a relevant design task. Base: defer construction and continue approved
+work. Bad: interpret an installed skill or old file as mandatory adoption, or
+re-hash skipped user content as a pristine upstream template.
+
+### Tests required
+
+Exercise real default CLI init and a pristine update dry-run; verify packaged
+guide/skill/reference assets and platform parity. Use init/update integration
+tests for remote append, skipped-file receipts, and `.new` conflict review.
+Run actual SessionStart and implement/check hooks for selected-body loading and
+non-injection. Evaluate conversational guidance separately; toolless model replies
+are evidence of conversational choices, not proof of saved files or autonomous
+workflow execution.
+
+### Wrong versus correct
+
+Wrong: recursively hash `.memerig/` after a skip-existing init or all Spec files
+after a remote append. This turns user edits into supposedly pristine templates.
+Correct: use recorded managed writes; retain previous receipts for skipped files;
+only claim new Spec paths added by an append download.
+
 

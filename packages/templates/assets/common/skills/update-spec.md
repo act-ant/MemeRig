@@ -36,12 +36,25 @@ For triggered tasks, include all sections below:
 
 ---
 
+## Adopted Project-Wide Guidance (Optional)
+
+The selected template's root Spec entry — `.memerig/spec/README.md`, and `.memerig/spec/index.md` when present — may explicitly adopt a project-wide practice whose body lives under `.memerig/spec/`. Update that body only when the practice is adopted and this task established durable intent.
+
+- Explicit user statements or decisions authorize recording that intent; do not re-ask for confirmation of what the user just established.
+- An AI interpretation or a one-off implementation exception is not project-wide direction. Present a broader inference for user calibration before recording it as repository-wide.
+- Ordinary task goals, acceptance criteria, and implementation exceptions stay task-scoped unless the user explicitly generalizes them.
+- Keep unadopted proposals visibly separate from confirmed direction, and preserve user-authored content when updating the document.
+- When the practice is not adopted, do nothing: no interview, missing-file warning, reminder, or completion gate. Deferral inside an adopted practice is not a defect either.
+
+---
+
 ## When to Update Code-Specs
 
 | Trigger | Example | Target Spec |
 |---------|---------|-------------|
 | **Implemented a feature** | Added a new integration or module | Relevant spec file |
 | **Made a design decision** | Chose extensibility pattern over simplicity | Relevant spec + "Design Decisions" section |
+| **Established project-wide intent** | User confirmed a durable design direction under an adopted practice | The adopted body named by the current Spec entry (only when that practice is adopted) |
 | **Fixed a bug** | Found a subtle issue with error handling | Relevant spec (e.g., error-handling docs) |
 | **Discovered a pattern** | Found a better way to structure code | Relevant spec file |
 | **Hit a gotcha** | Learned that X must be done before Y | Relevant spec + "Common Mistakes" section |

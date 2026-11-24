@@ -2,6 +2,8 @@
 
 Wrap up the current session by completing the active task in place and recording the session journal. Commit the code in workflow Phase 3.4 before invoking this command.
 
+Before completing, confirm the Phase 3.3 spec update captured any durable project-wide intent this session established when the selected Spec entry explicitly adopts such a practice. This is not a gate: unadopted, absent, or deferred optional guidance never blocks completion.
+
 ## Step 1: Survey current state
 
 ```bash

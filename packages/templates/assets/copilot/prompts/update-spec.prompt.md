@@ -40,6 +40,18 @@ For triggered tasks, include all sections below:
 
 ---
 
+## Adopted Project-Wide Guidance (Optional)
+
+The selected template's root Spec entry — `.memerig/spec/README.md`, and `.memerig/spec/index.md` when present — may explicitly adopt a project-wide practice whose body lives under `.memerig/spec/`. Update that body only when the practice is adopted and this task established durable intent.
+
+- Explicit user statements or decisions authorize recording that intent; do not re-ask for confirmation of what the user just established.
+- An AI interpretation or a one-off implementation exception is not project-wide direction. Present a broader inference for user calibration before recording it as repository-wide.
+- Ordinary task goals, acceptance criteria, and implementation exceptions stay task-scoped unless the user explicitly generalizes them.
+- Keep unadopted proposals visibly separate from confirmed direction, and preserve user-authored content when updating the document.
+- When the practice is not adopted, do nothing: no interview, missing-file warning, reminder, or completion gate. Deferral inside an adopted practice is not a defect either.
+
+---
+
 ## When to Update Code-Specs
 
 | Trigger | Example | Target Spec |
@@ -61,11 +73,11 @@ For triggered tasks, include all sections below:
 ```
 .memerig/spec/
 ├── backend/           # Backend coding standards
-�?  ├── index.md       # Overview and links
-�?  └── *.md           # Topic-specific guidelines
+│   ├── index.md       # Overview and links
+│   └── *.md           # Topic-specific guidelines
 ├── frontend/          # Frontend coding standards
-�?  ├── index.md       # Overview and links
-�?  └── *.md           # Topic-specific guidelines
+│   ├── index.md       # Overview and links
+│   └── *.md           # Topic-specific guidelines
 └── guides/            # Thinking checklists (NOT coding specs!)
     ├── index.md       # Guide index
     └── *.md           # Topic-specific guides
@@ -80,15 +92,15 @@ For triggered tasks, include all sections below:
 
 **Decision Rule**: Ask yourself:
 
-- "This is **how to write** the code" �?Put in `backend/` or `frontend/`
-- "This is **what to consider** before writing" �?Put in `guides/`
+- "This is **how to write** the code" -> Put in `backend/` or `frontend/`
+- "This is **what to consider** before writing" -> Put in `guides/`
 
 **Example**:
 
 | Learning | Wrong Location | Correct Location |
 |----------|----------------|------------------|
-| "Use `reconfigure()` not `TextIOWrapper` for Windows stdout" | �?`guides/cross-platform-thinking-guide.md` | �?`backend/script-conventions.md` |
-| "Remember to check encoding when writing cross-platform code" | �?`backend/script-conventions.md` | �?`guides/cross-platform-thinking-guide.md` |
+| "Use `reconfigure()` not `TextIOWrapper` for Windows stdout" | `guides/cross-platform-thinking-guide.md` | `backend/script-conventions.md` |
+| "Remember to check encoding when writing cross-platform code" | `backend/script-conventions.md` | `guides/cross-platform-thinking-guide.md` |
 
 **Guides should be short checklists that point to specs**, not duplicate the detailed rules.
 
@@ -301,10 +313,10 @@ If you're unsure what to update, answer these prompts:
    - Better approach (pattern)
 
 3. **Would future AI/developers need to know this?**
-   - To understand how the code works �?Yes, update spec
-   - To maintain or extend the feature �?Yes, update spec
-   - To avoid repeating mistakes �?Yes, update spec
-   - Purely one-off implementation detail �?Maybe skip
+   - To understand how the code works -> Yes, update spec
+   - To maintain or extend the feature -> Yes, update spec
+   - To avoid repeating mistakes -> Yes, update spec
+   - Purely one-off implementation detail -> Maybe skip
 
 4. **Which area does it relate to?**
    - [ ] Backend code
@@ -336,8 +348,8 @@ Before finishing your code-spec update:
 
 ```
 Development Flow:
-  Learn something �?/ �?Knowledge captured
-       �?                                 �?
+  Learn something -> / -> Knowledge captured
+       ->                                  -> 
   / ←──────────────────── Future sessions benefit
   (deep bug analysis)
 ```

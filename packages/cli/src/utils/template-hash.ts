@@ -323,12 +323,10 @@ function collectFiles(cwd: string, dir: string): string[] {
 export interface InitializeHashesOptions {
   /**
    * POSIX-style relative paths memerig actually wrote during the init run
-   * (captured via `startRecordingWrites` in `file-writer.ts`). Only these
-   * paths are hashed for the platform/root-level coverage; anything else
-   * under `.codex/` / `.claude/` / etc. is left alone, even if it exists
-   * on disk. Setting this to `undefined` or an empty set means "no
-   * platform/root coverage this run" — historical hashes from earlier
-   * runs are preserved via `merge`.
+   * (captured via `startRecordingWrites` in `file-writer.ts`). Skipped files
+   * must retain their prior receipt rather than becoming pristine templates.
+   * User-owned Spec, workspace, and task files remain excluded. Rules use
+   * receipts because the directory can also contain manually adopted files.
    */
   trackedPaths?: ReadonlySet<string>;
   /**
@@ -343,16 +341,10 @@ export interface InitializeHashesOptions {
 /**
  * Initialize template hashes after init
  *
- * The platform/root section of the manifest comes from `trackedPaths` —
- * the set of POSIX paths that `writeFile` actually wrote (or owned with
- * byte-identical content) during this init run. Avoids the historical bug
- * where a blind directory walk of `.codex/` / `.claude/` swept up
- * user-owned runtime data (chat history, session JSONLs).
- *
- * `.memerig/` is still walked recursively (with `EXCLUDE_FROM_HASH`) because
- * uninstall removes `.memerig/` wholesale via `rm -rf` regardless of manifest
- * content — accuracy there doesn't affect data-loss, only `memerig update`
- * 3-way-merge fidelity (preserved by the existing walk).
+ * With write receipts, hash only files actually written (or owned with
+ * byte-identical content). Re-init must not rebaseline skipped custom guides,
+ * workflows, scripts, platform files, or user runtime data.
+ * Without receipts, retain the directory-based initialization API.
  *
  * @returns Number of files hashed in the final manifest.
  */
@@ -363,37 +355,20 @@ export function initializeHashes(
   const { trackedPaths, merge = false } = options;
   const hashes: TemplateHashes = merge ? loadHashes(cwd) : {};
 
-  // Rules, platform and root files: hash only paths actually written this run.
-  if (trackedPaths) {
-    for (const relativePath of trackedPaths) {
-      // Other .memerig paths are handled by the legacy walk below.
-      if (
-        (relativePath.startsWith(".memerig/") || relativePath === ".memerig") &&
-        !relativePath.startsWith(`${PATHS.RULES}/`)
-      ) {
-        continue;
-      }
-      const fullPath = path.join(cwd, ...relativePath.split("/"));
-      if (!fs.existsSync(fullPath)) continue;
-      try {
-        const content = fs.readFileSync(fullPath, "utf-8");
-        hashes[toPosix(relativePath)] = computeHash(content);
-      } catch {
-        // Skip files that can't be read (binary, etc.)
-      }
+  for (const relativePath of trackedPaths ??
+    collectFiles(cwd, DIR_NAMES.WORKFLOW)) {
+    if (
+      trackedPaths &&
+      shouldExcludeFromHash(relativePath) &&
+      !relativePath.startsWith(`${PATHS.RULES}/`)
+    ) {
+      continue;
     }
-  }
-
-  // .memerig/ workflow tree: still walked recursively. Accuracy here is for
-  // `memerig update`'s 3-way merge of workflow.md / config.yaml / scripts;
-  // uninstall removes .memerig/ wholesale so it does not matter for the
-  // data-loss bug this contract addresses.
-  const files = collectFiles(cwd, ".memerig");
-  for (const relativePath of files) {
     const fullPath = path.join(cwd, relativePath);
+    if (!fs.existsSync(fullPath)) continue;
     try {
       const content = fs.readFileSync(fullPath, "utf-8");
-      hashes[relativePath] = computeHash(content);
+      hashes[toPosix(relativePath)] = computeHash(content);
     } catch {
       // Skip files that can't be read (binary, etc.)
     }

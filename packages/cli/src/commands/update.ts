@@ -47,6 +47,7 @@ import {
   configYamlTemplate,
   gitignoreTemplate,
   workflowMdTemplate,
+  attractorGuideTemplate,
 } from "../templates/memerig/index.js";
 import { agentsMdContent } from "../templates/markdown/index.js";
 import {
@@ -937,6 +938,7 @@ async function collectTemplateFiles(
   // platform routing markers outside [workflow-state:*] blocks are also
   // script-consumed.
   files.set(`${DIR_NAMES.WORKFLOW}/workflow.md`, workflowMdTemplate);
+  files.set(`${DIR_NAMES.WORKFLOW}/attractor-guide.md`, attractorGuideTemplate);
   // workspace/index.md stays excluded — it's runtime-appended by add_session.py
   // (journal index) and has no script-parsed structure.
   files.set(FILE_NAMES.AGENTS, buildAgentsMdTemplate(cwd));

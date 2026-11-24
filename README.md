@@ -42,6 +42,12 @@ memerig init --claude --codex --omp -u your-name
 
 `memerig init` creates `.memerig/` plus the platform files for each agent you select. Run `memerig platforms` to list every supported host.
 
+The **default guidance template** (`--template blank`, also the default without a preset) starts without invented coding conventions and adopts guided construction of a **repository attractor**: the long-term qualities you want its architecture, code, and interface to move toward. After init, ask your agent to follow the current workflow and root Spec entry documents. The default entry links to `.memerig/attractor-guide.md`, a complete method that works even without a platform skill, developer identity, or onboarding task. `--with-onboarding` optionally creates a setup task.
+
+Construction begins with a useful question or concrete tradeoff, then records meaningful progress in `.memerig/spec/attractor.md`. Confirmed intent, proposals, and open questions stay distinct. You can defer; relevant later design conversations can refine the document. Current code contracts remain separate from desired direction, and neither authorizes unrelated rewrites.
+
+Other templates may reuse the default method, provide their own, or omit attractors entirely. Their workflow and Spec entries control adoption and timing. Installing the guide or optional `attractor` skill, or keeping an old attractor document, does not enable the practice. Ordinary initialization and updates preserve user-authored direction through the existing file-conflict rules.
+
 ## How it works
 
 MemeRig runs each task through four phases:
@@ -53,10 +59,11 @@ MemeRig runs each task through four phases:
 
 | Path | Holds |
 | --- | --- |
-| `.memerig/spec/` | Coding conventions, scoped by package and layer |
+| `.memerig/spec/` | Current coding contracts and explicitly adopted project guidance |
 | `.memerig/tasks/` | Task PRDs, designs, research, and context manifests |
 | `.memerig/workspace/` | Per-developer session journals |
 | `.memerig/workflow.md` | Phase definitions and the per-turn workflow-state prompts |
+| `.memerig/attractor-guide.md` | Available default construction method; used only when adopted or requested |
 | `.agents/skills/` | Skills shared across hosts that follow the agentskills.io layout |
 
 ## Developing MemeRig

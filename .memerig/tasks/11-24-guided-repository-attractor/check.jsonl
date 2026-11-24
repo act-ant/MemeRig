@@ -1,0 +1,14 @@
+{"file": ".memerig/rules/index.md", "reason": "Adopted project rules routing"}
+{"file": ".memerig/rules/core.md", "reason": "Applicable engineering and user-content preservation rules"}
+{"file": ".memerig/tasks/11-24-guided-repository-attractor/research/current-surfaces.md", "reason": "Confirmed intent, source evidence, integration choices, and graph limitations"}
+{"file": ".memerig/spec/cli/backend/index.md", "reason": "CLI and template development guideline routing"}
+{"file": ".memerig/spec/cli/backend/project-setup.md", "reason": "Blank initialization, onboarding opt-in, and project ownership contracts"}
+{"file": ".memerig/spec/cli/backend/filesystem-safety.md", "reason": "User-owned Spec preservation and safe managed-file writes"}
+{"file": ".memerig/spec/cli/backend/workflow-state-contract.md", "reason": "Workflow-owned guidance, compact context, and unchanged task lifecycle"}
+{"file": ".memerig/spec/cli/backend/configurator-shared.md", "reason": "Single template map, bundled skills, neutral rendering, and context preludes"}
+{"file": ".memerig/spec/cli/backend/commands-update.md", "reason": "Whole-file workflow updates and existing conflict handling"}
+{"file": ".memerig/spec/cli/unit-test/conventions.md", "reason": "Consumer behavior tests, isolation, and avoiding prompt-wording tests"}
+{"file": ".memerig/spec/guides/cross-platform-thinking-guide.md", "reason": "Portable initialization commands, template paths, and Python rendering"}
+{"file": ".memerig/spec/cli/backend/quality-guidelines.md", "reason": "TypeScript and CLI quality requirements"}
+{"file": ".memerig/spec/cli/backend/platform-integration.md", "reason": "Read Multi-file bundled skills and Bootstrap and Joiner sections explicitly if this large file is truncated"}
+{"file": ".memerig/spec/cli/backend/commands-workflow.md", "reason": "Verify custom workflow preservation and selected-template guidance"}

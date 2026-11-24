@@ -7,6 +7,7 @@ import { copyMemerigDir } from "../templates/extract.js";
 // Import memerig templates (generic, not project-specific)
 import {
   workflowMdTemplate,
+  attractorGuideTemplate,
   configYamlTemplate,
   gitignoreTemplate,
   gitattributesTemplate,
@@ -118,6 +119,10 @@ export async function createWorkflowStructure(
   await writeFile(
     path.join(cwd, PATHS.WORKFLOW_GUIDE_FILE),
     replacePythonCommandLiterals(workflowMd),
+  );
+  await writeFile(
+    path.join(cwd, DIR_NAMES.WORKFLOW, "attractor-guide.md"),
+    replacePythonCommandLiterals(attractorGuideTemplate),
   );
 
   ensureDir(path.join(cwd, PATHS.RULES));

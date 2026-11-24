@@ -66,6 +66,7 @@ Note that `force` / `skipAll` / `createNew` are mutually exclusive in spirit but
 | `.memerig/config.yaml` | `templates/memerig/index.ts:configYamlTemplate` |
 | `.memerig/.gitignore` | `templates/memerig/index.ts:gitignoreTemplate` |
 | `.memerig/workflow.md` | `templates/memerig/index.ts:workflowMdTemplate` (whole-file hash-gated, see below) |
+| `.memerig/attractor-guide.md` | `templates/memerig/index.ts:attractorGuideTemplate` (available resource; installation does not adopt the practice) |
 | Root `AGENTS.md` | `commands/update.ts:buildAgentsMdTemplate` (managed-block merge) |
 | Per-platform files | `configurators/index.ts:collectPlatformTemplates` for each detected platform via `configurators/index.ts:getConfiguredPlatforms` |
 | `.claude/settings.json` `statusLine` | preserved through `commands/update.ts:preserveExistingClaudeStatusLine` |
@@ -94,6 +95,13 @@ Non-native workflow variants selected through `memerig workflow --template` or
 `memerig init --workflow` are deliberately removed from
 `.memerig/.template-hashes.json`. That makes `memerig update` classify the file
 as user-managed instead of auto-updating it back to bundled native workflow.
+
+Re-init with write receipts must not rebaseline a skipped guide or workflow. The
+original receipt makes later update treat local changes as conflicts. The default
+guide follows ordinary managed-file conflict handling; user-authored direction
+under Spec remains project-owned. Appending a registry preset must not claim
+pre-existing local Spec files in the template hashes. See
+[`project-setup.md` § 9](./project-setup.md#9-optional-repository-attractor-guidance).
 
 ### 3. Analyze on-disk state
 

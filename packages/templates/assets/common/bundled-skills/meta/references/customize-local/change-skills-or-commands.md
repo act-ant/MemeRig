@@ -4,7 +4,7 @@ When the user wants to change AI entry points, auto-trigger rules, or explicit c
 
 Before editing, classify the skill you are about to touch:
 
-- **Bundled upstream skill** — `meta`, `spec-bootstrap`, `session-insight`, `channel`. Source of truth lives in the MemeRig CLI repo under `packages/cli/src/templates/common/bundled-skills/<name>/`; auto-dispatched to every platform's skill root by `getBundledSkillTemplates()` on `memerig init` / `memerig update`. Local edits here are tracked by `.memerig/.template-hashes.json` and will be flagged on the next update.
+- **Bundled upstream skill** — `meta`, `spec-bootstrap`, `session-insight`, `channel`, `attractor`. Source of truth lives in the MemeRig CLI repo under `packages/templates/assets/common/bundled-skills/<name>/`; auto-dispatched to every platform's skill root by `getBundledSkillTemplates()` on `memerig init` / `memerig update`. Local edits here are tracked by `.memerig/.template-hashes.json` and will be flagged on the next update. Installation is not adoption: the `attractor` skill applies only when the selected project/template adopts construction or the user explicitly asks for it.
 - **Project-local skill** — anything else under `.{platform}/skills/`. Owned by the user; not refreshed by `memerig update`.
 
 The remainder of this file uses "skill" for the local file; the override and conflict rules differ between the two cases.
@@ -25,7 +25,7 @@ The remainder of this file uses "skill" for the local file; the override and con
 | User wants to trigger manually with a command | Add or modify a command/prompt/workflow. |
 | Team project conventions | Prefer `.memerig/spec/` or a project-local skill — never a bundled skill directory. |
 | Tweak a bundled skill (`meta` et al.) for the user's own project | Create a project-local sibling skill (different name) that overrides intent, or edit `.memerig/spec/`. Edits inside the bundled skill directory survive only until the next `memerig update` and will need a "keep" choice each time. |
-| Contribute the change back upstream | Edit `packages/cli/src/templates/common/bundled-skills/<name>/` in the MemeRig CLI repo, not the deployed copy. |
+| Contribute the change back upstream | Edit `packages/templates/assets/common/bundled-skills/<name>/` in the MemeRig CLI repo, not the deployed copy. |
 | Change MemeRig flow semantics | Synchronize `.memerig/workflow.md`. |
 
 ## Modify A Skill
@@ -52,9 +52,9 @@ Do not write vague descriptions such as "helpful project skill"; they can trigge
 
 The same directory shape is used by two very different ownership models:
 
-| Aspect | Bundled (`meta`, `spec-bootstrap`, `session-insight`, `channel`) | Project-local |
+| Aspect | Bundled (`meta`, `spec-bootstrap`, `session-insight`, `channel`, `attractor`) | Project-local |
 | --- | --- | --- |
-| Source of truth | `packages/cli/src/templates/common/bundled-skills/<name>/` in MemeRig CLI repo | Inside the user project itself |
+| Source of truth | `packages/templates/assets/common/bundled-skills/<name>/` in MemeRig CLI repo | Inside the user project itself |
 | Dispatch | Auto-dispatched to every platform skill root by `getBundledSkillTemplates()` (`packages/cli/src/templates/common/index.ts`) on `memerig init` / `memerig update` | Created by the user (or another skill) and never moved |
 | Hash tracking | Every file recorded in `.memerig/.template-hashes.json`; conflict prompt on update | Not tracked |
 | Editing locally | Allowed but will be marked "modified by user" on next update | Free editing |
@@ -92,7 +92,7 @@ If a command only repeats workflow rules, prefer making it reference/read `.meme
 | ZCode | `.zcode/skills/`, `.zcode/commands/` |
 | Kilo / Antigravity / Devin | workflows + skills |
 
-Every directory above is a deploy target for the four bundled skills. Each platform receives a full copy on `memerig init` and refresh on `memerig update`; nothing has to be wired by hand.
+Every directory above is a deploy target for the five bundled skills. Each platform receives a full copy on `memerig init` and refresh on `memerig update`; nothing has to be wired by hand.
 
 ## Add A Project-Local Skill
 
@@ -111,6 +111,7 @@ Pick a name that does **not** collide with the bundled set:
 - `spec-bootstrap`
 - `session-insight`
 - `channel`
+- `attractor`
 
 A reused name causes `getBundledSkillTemplates()` to overwrite the project-local copy on the next update. A common convention is to prefix the project name: `acme-memerig-deploy`, `acme-memerig-onboarding`.
 
@@ -119,5 +120,6 @@ A reused name causes `getBundledSkillTemplates()` to overwrite the project-local
 - Do not mix every platform's syntax into one file.
 - Do not change only one platform entry point while claiming all platforms are supported.
 - Do not hide long-term engineering conventions inside a command; write them to `.memerig/spec/`.
-- Do not hand-edit files inside `meta/`, `spec-bootstrap/`, `session-insight/`, or `channel/` under any `.{platform}/skills/` directory expecting the change to persist — they are bundled and refreshed by `memerig update`. Either contribute upstream or add a project-local skill that complements them.
+- Do not hand-edit files inside `meta/`, `spec-bootstrap/`, `session-insight/`, `channel/`, or `attractor/` under any `.{platform}/skills/` directory expecting the change to persist — they are bundled and refreshed by `memerig update`. Either contribute upstream or add a project-local skill that complements them.
+- Treat an installed `attractor` skill or an existing `.memerig/spec/attractor.md` as available content, not as proof that the project adopted attractor construction.
 - After `memerig update` reports a "modified by you" conflict on a bundled skill file, choose **keep** only if you accept maintaining the divergence by hand; otherwise accept the overwrite and re-apply the intent as a project-local skill.

@@ -28,6 +28,12 @@ Creates `.memerig/.developer` (gitignored) + `.memerig/workspace/<your-name>/`.
 
 `.memerig/spec/` holds coding guidelines organized by package and layer.
 
+Read the current root `README.md` and `index.md` under `.memerig/spec/` when
+present, then the actual applicable documents they explicitly adopt. The selected
+template owns its setup objectives, method, and timing. A missing declaration or
+a leftover document does not activate an optional practice. Resolve conflicting
+explicit instructions rather than silently substituting a default method.
+
 - `.memerig/spec/<package>/<layer>/index.md` — entry point with **Pre-Development Checklist** + **Quality Check**. Actual guidelines live in the `.md` files it points to.
 - `.memerig/spec/guides/index.md` — cross-package thinking guides.
 
@@ -158,6 +164,11 @@ Phase 1: Plan    → classify, get task-creation consent, then write planning ar
 Phase 2: Execute → implement only after task status is in_progress
 Phase 3: Finish  → verify, update spec, commit, and wrap up
 ```
+
+At entry, read existing root Spec instructions (`.memerig/spec/README.md` and
+`index.md`) and load their applicable adopted bodies. Apply only the current
+template's practices; missing optional guidance creates no interview or gate.
+For delegated work, include actual relevant bodies in the task manifests.
 
 ### Request Triage
 

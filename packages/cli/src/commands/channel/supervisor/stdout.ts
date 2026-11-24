@@ -207,7 +207,7 @@ export async function applyParseResult(
       ...(ev.payload ?? {}),
     });
     if (ev.kind === "done" || ev.kind === "error") {
-      const turn = turnTracker?.finish();
+      const turn = turnTracker?.current();
       if (turn) {
         const outcome: TurnOutcome = ev.kind === "done" ? "done" : "error";
         await appendEvent(channelName, {
@@ -218,6 +218,11 @@ export async function applyParseResult(
           turnId: turn.turnId,
           outcome,
         });
+        // Keep queued input blocked until completion is durable. An interrupt
+        // may have replaced this turn while the event was being appended.
+        if (turnTracker?.current() === turn) {
+          turnTracker.finish();
+        }
       }
     }
   }

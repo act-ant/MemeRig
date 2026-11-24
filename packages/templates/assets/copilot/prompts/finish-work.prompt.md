@@ -6,6 +6,8 @@ description: "MemeRig Copilot prompt: Complete the current task and record the s
 
 Complete the current task in place and record the session journal. Commit the code in workflow Phase 3.4 before invoking this prompt.
 
+Before completing, confirm the Phase 3.3 spec update captured any durable project-wide intent this session established when the selected Spec entry explicitly adopts such a practice. This is not a gate: unadopted, absent, or deferred optional guidance never blocks completion.
+
 **Timing**: After Phase 3.4 (Commit changes) — when the working tree is already clean.
 
 ---

@@ -62,6 +62,13 @@ Both regexes MUST use the `\1` backreference variant — `[workflow-state:([A-Za
 
 **Test invariant**: `test/regression.test.ts` `[strip-breadcrumb] _strip_breadcrumb_tag_blocks only strips matched STATUS pairs` covers the three boundary cases (matched, mismatched, nested orphan) for the strip side. The parser already enforces same-status pairing structurally via `\1`.
 
+**Entry routing must survive stripping.** `get_phase_index()` extracts the text
+from `## Phase Index` through `## Phase 1: Plan`, then removes workflow-state tag
+blocks. Required root Spec routing therefore belongs in the ordinary Phase Index
+body as well as the relevant per-turn blocks. A prompt inside a tag block alone
+does not reach `get_context.py --mode phase` or SessionStart. Verify both consumers
+in an initialized fixture; inspecting full workflow Markdown is insufficient.
+
 ---
 
 ## Runtime contract

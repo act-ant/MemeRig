@@ -16,30 +16,37 @@ Execute these steps:
 
    User-level rules: read `~/.memerig/rules/*.md` when present — every `load: always` body, and `load: index` rules whose applicability covers this work. These are personal rules, not project adoptions; do not add them to task manifests.
 
-3. **Discover packages and their spec layers**:
+3. **Read the selected template's root Spec entry**:
+   ```bash
+   cat .memerig/spec/README.md
+   cat .memerig/spec/index.md   # when present
+   ```
+   These entry documents record the project-wide practices the selected template/project explicitly adopts and point to their bodies. Read the actual body of each adopted practice relevant to this task — a link is not loaded content. File presence or absence alone does not establish adoption; unadopted or deferred guidance is not a missing prerequisite.
+
+4. **Discover packages and their spec layers**:
    ```bash
    python3 ./.memerig/scripts/get_context.py --mode packages
    ```
 
-4. **Identify which specs apply** to your task based on:
+5. **Identify which specs apply** to your task based on:
    - Which package you're modifying (e.g., `cli/`, `docs-site/`)
    - What type of work (backend, frontend, unit-test, docs, etc.)
    - Any spec/rule/research paths referenced by the task artifacts
 
-5. **Read the spec index** for each relevant module:
+6. **Read the spec index** for each relevant module:
    ```bash
    cat .memerig/spec/<package>/<layer>/index.md
    ```
    Follow the **"Pre-Development Checklist"** section in the index.
 
-6. **Read the specific guideline files** listed in the Pre-Development Checklist that are relevant to your task. The index is NOT the goal — it points you to the actual guideline files (e.g., `error-handling.md`, `conventions.md`, `mock-strategies.md`). Read those files to understand the coding standards and patterns.
+7. **Read the specific guideline files** listed in the Pre-Development Checklist that are relevant to your task. The index is NOT the goal — it points you to the actual guideline files (e.g., `error-handling.md`, `conventions.md`, `mock-strategies.md`). Read those files to understand the coding standards and patterns.
 
-7. **Always read shared guides**:
+8. **Always read shared guides**:
    ```bash
    cat .memerig/spec/guides/index.md
    ```
 
-8. **For a non-trivial task, state the change boundary before writing code.** Non-trivial means it touches more than one file, crosses a layer, changes a public interface, or edits code you did not just write. Write down:
+9. **For a non-trivial task, state the change boundary before writing code.** Non-trivial means it touches more than one file, crosses a layer, changes a public interface, or edits code you did not just write. Write down:
    - the smallest behavior gap between what happens now and what should happen
    - where that behavior actually lives (not where it is easiest to intercept)
    - which files you expect to change, and why each one is necessary
@@ -50,6 +57,6 @@ Execute these steps:
 
    If the real scope turns out to be clearly larger than this, say so and why before continuing. Do not widen the change on your own.
 
-8. Understand the coding standards and patterns you need to follow, then proceed with your development plan.
+10. Understand the coding standards and patterns you need to follow, then proceed with your development plan.
 
 This step is **mandatory** before writing any code.

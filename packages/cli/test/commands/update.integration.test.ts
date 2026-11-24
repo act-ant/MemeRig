@@ -291,7 +291,8 @@ describe("update() integration", () => {
     const originalCore = readProjectFile(corePath);
     const originalIndex = readProjectFile(indexPath);
     const adopted = "# Team data\nNever drop customer records.\n";
-    const localIndex = originalIndex + "\n[Team data](./team-data.md): persistence changes.\n";
+    const localIndex =
+      originalIndex + "\n[Team data](./team-data.md): persistence changes.\n";
     const localCore = originalCore + "\nPreserve our team's audit trail.\n";
     writeProjectFile(adoptedPath, adopted);
     writeProjectFile(indexPath, localIndex);
@@ -313,6 +314,100 @@ describe("update() integration", () => {
     expect(readHashesV2(hashFilePath())).not.toHaveProperty(adoptedPath);
   });
 
+  it("backfills the standalone guide without adopting it for an existing template", async () => {
+    await setupProject();
+    const guidePath = ".memerig/attractor-guide.md";
+    const guide = readProjectFile(guidePath);
+    const readme = "# Project setup\nUse the team's learning brief.\n";
+    writeProjectFile(`${PATHS.SPEC}/README.md`, readme);
+    fs.rmSync(projectFile(guidePath));
+    writeHashesV2(
+      hashFilePath(),
+      removeHashEntry(readHashesV2(hashFilePath()), guidePath) as Record<
+        string,
+        string
+      >,
+    );
+
+    await update({ skipAll: true });
+
+    expect(readProjectFile(guidePath)).toBe(guide);
+    expect(readProjectFile(`${PATHS.SPEC}/README.md`)).toBe(readme);
+    expect(fs.readdirSync(projectFile(PATHS.SPEC))).toEqual(["README.md"]);
+    expect(readHashesV2(hashFilePath())[guidePath]).toBe(computeHash(guide));
+  });
+
+  it("preserves custom guidance and direction through re-init and update conflict review", async () => {
+    await setupProject();
+    const guidePath = ".memerig/attractor-guide.md";
+    const workflowPath = PATHS.WORKFLOW_GUIDE_FILE;
+    const originalGuide = readProjectFile(guidePath);
+    const originalWorkflow = readProjectFile(workflowPath);
+    const localGuide =
+      originalGuide + "\nDiscuss direction only at our design review.\n";
+    const localWorkflow =
+      originalWorkflow + "\nKeep our project-specific review cadence.\n";
+    const readme = "# Project setup\nFollow our custom design review method.\n";
+    const direction =
+      "# Direction\nConfirmed: make routine actions reversible.\n";
+    writeProjectFile(guidePath, localGuide);
+    writeProjectFile(workflowPath, localWorkflow);
+    writeProjectFile(`${PATHS.SPEC}/README.md`, readme);
+    writeProjectFile(`${PATHS.SPEC}/attractor.md`, direction);
+
+    await init({ yes: true, skipExisting: true });
+    const hashes = readHashesV2(hashFilePath());
+    expect(hashes[guidePath]).toBe(computeHash(originalGuide));
+    expect(hashes[workflowPath]).toBe(computeHash(originalWorkflow));
+    expect(hashes).not.toHaveProperty(`${PATHS.SPEC}/attractor.md`);
+
+    await update({ createNew: true });
+
+    expect(readProjectFile(guidePath)).toBe(localGuide);
+    expect(readProjectFile(workflowPath)).toBe(localWorkflow);
+    expect(readProjectFile(`${guidePath}.new`)).toBe(originalGuide);
+    expect(readProjectFile(`${workflowPath}.new`)).toBe(originalWorkflow);
+    expect(readProjectFile(`${PATHS.SPEC}/README.md`)).toBe(readme);
+    expect(readProjectFile(`${PATHS.SPEC}/attractor.md`)).toBe(direction);
+  });
+
+  it("keeps existing direction user-owned when appending and updating a remote preset", async () => {
+    await setupProject();
+    const directionPath = `${PATHS.SPEC}/attractor.md`;
+    const direction =
+      "# Direction\nConfirmed: preserve local data ownership.\n";
+    const readme =
+      "# Learning template\nUse learning goals; no attractor practice.\n";
+    writeProjectFile(directionPath, direction);
+    writeProjectFile(`${PATHS.SPEC}/README.md`, readme);
+    registryDownload.files.set(
+      "attractor.md",
+      "# Template's proposed direction\n",
+    );
+    registryDownload.files.set("index.md", "# Remote conventions v1\n");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 404 })),
+    );
+
+    await init({
+      yes: true,
+      registry: "gitlab:local/registry/spec",
+      append: true,
+    });
+
+    expect(readHashesV2(hashFilePath())).not.toHaveProperty(directionPath);
+    registryDownload.files.set("index.md", "# Remote conventions v2\n");
+    await update({ skipAll: true });
+
+    expect(readProjectFile(`${PATHS.SPEC}/index.md`)).toBe(
+      "# Remote conventions v2\n",
+    );
+    expect(readProjectFile(directionPath)).toBe(direction);
+    expect(readProjectFile(`${PATHS.SPEC}/README.md`)).toBe(readme);
+    expect(readHashesV2(hashFilePath())).not.toHaveProperty(directionPath);
+  });
+
   it("#1b current OpenCode templates are not classified as deprecated", async () => {
     const startPath = ".opencode/commands/memerig/start.md";
     await init({ yes: true, force: true, opencode: true });
@@ -330,34 +425,34 @@ describe("update() integration", () => {
     expect(fs.existsSync(projectFile(".zcode/commands/memerig/start.md"))).toBe(
       false,
     );
-    expect(
-      fs.existsSync(projectFile(".zcode/skills/start/SKILL.md")),
-    ).toBe(false);
-    expect(
-      fs.existsSync(projectFile(".zcode/skills/check/SKILL.md")),
-    ).toBe(true);
+    expect(fs.existsSync(projectFile(".zcode/skills/start/SKILL.md"))).toBe(
+      false,
+    );
+    expect(fs.existsSync(projectFile(".zcode/skills/check/SKILL.md"))).toBe(
+      true,
+    );
     expect(
       fs.existsSync(projectFile(".zcode/agents/memerig-research.md")),
     ).toBe(true);
-    expect(
-      fs.existsSync(projectFile(".agents/skills/start/SKILL.md")),
-    ).toBe(false);
+    expect(fs.existsSync(projectFile(".agents/skills/start/SKILL.md"))).toBe(
+      false,
+    );
     expect(fs.existsSync(projectFile(".agents/skills"))).toBe(false);
-    expect(
-      fs.existsSync(projectFile(".agents/skills/continue/SKILL.md")),
-    ).toBe(false);
+    expect(fs.existsSync(projectFile(".agents/skills/continue/SKILL.md"))).toBe(
+      false,
+    );
 
     await update({});
 
     const logOutput = vi.mocked(console.log).mock.calls.flat().join("\n");
     expect(logOutput).not.toContain("Legacy Codex detected");
     expect(fs.existsSync(projectFile(".codex"))).toBe(false);
-    expect(
-      fs.existsSync(projectFile(".zcode/skills/start/SKILL.md")),
-    ).toBe(false);
-    expect(
-      fs.existsSync(projectFile(".zcode/skills/check/SKILL.md")),
-    ).toBe(true);
+    expect(fs.existsSync(projectFile(".zcode/skills/start/SKILL.md"))).toBe(
+      false,
+    );
+    expect(fs.existsSync(projectFile(".zcode/skills/check/SKILL.md"))).toBe(
+      true,
+    );
     expect(
       fs.existsSync(projectFile(".zcode/agents/memerig-research.md")),
     ).toBe(true);
@@ -472,12 +567,8 @@ describe("update() integration", () => {
     }
     writeHashesV2(hashFilePath(), hashes);
 
-    expect(fs.existsSync(projectFile(".pi/skills/update-spec"))).toBe(
-      true,
-    );
-    expect(
-      fs.existsSync(projectFile(".agents/skills/update-spec")),
-    ).toBe(true);
+    expect(fs.existsSync(projectFile(".pi/skills/update-spec"))).toBe(true);
+    expect(fs.existsSync(projectFile(".agents/skills/update-spec"))).toBe(true);
 
     // Build the current-version templates map for `.agents/skills/` the way
     // both real writers (Codex, Pi) produce it — mirrors what update()'s
@@ -514,16 +605,21 @@ describe("update() integration", () => {
     expect(classified.conflict).toHaveLength(0);
     expect(classified.auto).toHaveLength(1);
 
-    await executeMigrations(classified, tmpDir, { force: true, skipAll: false }, currentTemplates);
+    await executeMigrations(
+      classified,
+      tmpDir,
+      { force: true, skipAll: false },
+      currentTemplates,
+    );
 
     // No duplicate/leftover `.pi/skills/` directory should survive.
     expect(fs.existsSync(projectFile(".pi/skills"))).toBe(false);
 
     // `.agents/skills/` must end up with the correct, current, neutral
     // content — not the stale Pi-flavored bytes from the deleted legacy dir.
-    expect(
-      readProjectFile(".agents/skills/update-spec/SKILL.md"),
-    ).toBe(neutralContent);
+    expect(readProjectFile(".agents/skills/update-spec/SKILL.md")).toBe(
+      neutralContent,
+    );
   });
 
   it("#2 dry run makes no file changes even when changes exist", async () => {
@@ -1543,10 +1639,7 @@ Managed by MemeRig. Edits outside this block are preserved; edits inside may be 
     //   - new-path exists (rename completed)
     //   - new-path.backup exists with the user's content (inline preservation)
     //   - old-path is gone
-    const newPath = path.join(
-      tmpDir,
-      ".claude/skills/before-dev/SKILL.md",
-    );
+    const newPath = path.join(tmpDir, ".claude/skills/before-dev/SKILL.md");
     expect(fs.existsSync(newPath)).toBe(true);
     expect(fs.existsSync(newPath + ".backup")).toBe(true);
     expect(fs.readFileSync(newPath + ".backup", "utf-8")).toBe(userContent);
@@ -1568,10 +1661,7 @@ Managed by MemeRig. Edits outside this block are preserved; edits inside may be 
 
     await update({ migrate: true });
 
-    const newPath = path.join(
-      tmpDir,
-      ".claude/skills/before-dev/SKILL.md",
-    );
+    const newPath = path.join(tmpDir, ".claude/skills/before-dev/SKILL.md");
     expect(fs.existsSync(newPath)).toBe(true);
     // No inline .backup — the full-project snapshot under .memerig/.backup-*
     // is the single source of recovery for this mode.

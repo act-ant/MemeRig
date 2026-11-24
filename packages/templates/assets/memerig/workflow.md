@@ -28,6 +28,8 @@ Creates `.memerig/.developer` (gitignored) + `.memerig/workspace/<your-name>/`.
 
 `.memerig/spec/` holds coding guidelines organized by package and layer.
 
+Start with the root Spec entry: `.memerig/spec/README.md` and, when present, `.memerig/spec/index.md`. They record the project-wide practices the selected template/project explicitly adopts and point to their bodies. Read the actual body of any practice relevant to the current work — a link is not loaded content. File presence is not adoption: a silent template implies nothing, and an unadopted or partially authored practice is not unfinished work.
+
 - `.memerig/spec/<package>/<layer>/index.md` — entry point with **Pre-Development Checklist** + **Quality Check**. Actual guidelines live in the `.md` files it points to.
 - `.memerig/spec/guides/index.md` — cross-package thinking guides.
 
@@ -179,6 +181,11 @@ Phase 2: Execute → implement only after task status is in_progress
 Phase 3: Finish  → verify, update spec, commit, and wrap up
 ```
 
+Before choosing the next action, read the current root Spec entries,
+`.memerig/spec/README.md` and `.memerig/spec/index.md` when present, and the actual
+bodies of practices relevant to this work. Follow the selected project's adoption
+and method; installed guides, skills, or leftover documents do not imply adoption.
+
 ### Request Triage
 
 - Simple conversation or small task: ask only whether this turn should create a MemeRig task. If the user says no, skip MemeRig for this session.
@@ -205,6 +212,7 @@ Create new children with `task.py create "<title>" --slug <name> --parent <paren
 
 [workflow-state:no_task]
 No active task. First classify the current turn and ask for task-creation consent before creating any MemeRig task.
+Project context: when design or conventions matter, read the root Spec entry (`.memerig/spec/README.md`, `index.md` when present) and only the actual bodies of explicitly adopted practices.
 Simple conversation / small task: ask only whether this turn should create a MemeRig task. If the user says no, skip MemeRig for this session.
 Complex task: ask the user if you can create a MemeRig task and enter the planning phase. If the user says no, explain, clarify scope, or suggest a smaller split.
 [/workflow-state:no_task]
@@ -229,6 +237,7 @@ Preserve existing task fields and artifacts. If the correct status cannot be det
 
 [workflow-state:planning]
 Load `brainstorm`; stay in planning.
+Spec entry: read `.memerig/spec/README.md` and `index.md` when present; follow only explicitly adopted project-wide practices and load the bodies this task needs.
 Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; ask for review before `task.py start`.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
 Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/rule/research manifests before start. Include `.memerig/rules/index.md` and each applicable rule body.
@@ -242,6 +251,7 @@ Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/rule/research
 
 [workflow-state:planning-inline]
 Load `brainstorm`; stay in planning.
+Spec entry: read `.memerig/spec/README.md` and `index.md` when present; follow only explicitly adopted project-wide practices and load the bodies this task needs.
 Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; ask for review before `task.py start`.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
 Inline mode: skip jsonl curation; Phase 2 reads artifacts/specs via `before-dev`.
@@ -265,6 +275,7 @@ Tools: `memerig-implement` / `memerig-research` are sub-agent types only (Task/A
 Flow: `memerig-implement` -> `memerig-check` -> `update-spec` -> commit (Phase 3.4) -> `/memerig:finish-work`.
 Main-session default: dispatch implement/check sub-agents. Sub-agent self-exemption: if already running as `memerig-implement`, do NOT spawn another `memerig-implement` or `memerig-check`; if already running as `memerig-check`, do NOT spawn another `memerig-check` or `memerig-implement`. Dispatch is main session only.
 Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`, then `.memerig/rules/index.md` and each applicable rule body (`core.md` always applies).
+Spec entry: read `.memerig/spec/README.md` and `index.md` when present; load only adopted bodies relevant to this task — unadopted, partial, or deferred guidance is not unfinished work.
 [/workflow-state:in_progress]
 
 <!-- Per-turn breadcrumb: shown while status='in_progress' when
@@ -276,6 +287,7 @@ Dispatch prompt starts with `Active task: <task path from task.py current>`. Rea
 Flow: `before-dev` -> edit -> `check` -> validation -> `update-spec` -> commit (Phase 3.4) -> `/memerig:finish-work`.
 Do not dispatch implement/check sub-agents in inline mode.
 Read context: `prd.md` -> `design.md if present` -> `implement.md if present`, plus relevant rules/specs/research loaded by skills.
+Spec entry: read `.memerig/spec/README.md` and `index.md` when present; load only adopted bodies relevant to this task — unadopted, partial, or deferred guidance is not unfinished work.
 [/workflow-state:in_progress-inline]
 
 ### Phase 3: Finish
@@ -325,6 +337,7 @@ When a user request matches one of these intents inside an active task, route fi
 ### Guardrails
 
 - Task creation approval is not implementation approval; implementation waits for `task.py start` after artifact review.
+- Project-wide practices apply only when the selected Spec entry explicitly adopts them. Silence, non-adoption, or deferral is not unfinished work and must not become an interview, warning, or completion gate.
 - PRD-only is valid for lightweight tasks; complex tasks need `design.md` + `implement.md`.
 - Planning must be persisted to task artifacts; checks must run before reporting completion.
 
@@ -370,6 +383,7 @@ The brainstorm skill will guide you to:
 - Prefer researching over asking the user
 - Prefer offering options over open-ended questions
 - Update `prd.md` immediately after each user answer
+- Use explicitly adopted project-wide guidance when it is relevant, without turning it into a second universal interview
 - Split large scopes into a parent task plus child tasks when the deliverables can be verified independently
 - Keep `prd.md` focused on requirements and acceptance criteria
 - For complex tasks, produce `design.md` and `implement.md` before implementation starts
@@ -425,6 +439,7 @@ Curate `implement.jsonl` and `check.jsonl` so the Phase 2 sub-agents get the rig
 **What to put in**:
 - **Rule files** — `.memerig/rules/index.md` and every adopted rule body whose applicability covers this task (`core.md` always applies). List files individually; do not list the `.memerig/rules/` directory, which would broad-load unselected declarations
 - **Spec files** — `.memerig/spec/<package>/<layer>/index.md` and any specific guideline files (`error-handling.md`, `conventions.md`, etc.) relevant to this task
+- **Adopted project-wide files** — the actual body of each practice the root Spec entry explicitly adopts and this task depends on (for example `.memerig/spec/attractor.md` when the selected template adopts that practice). Include the file itself, not just the root entry or a link; never add a document merely because it exists
 - **Research files** — `{TASK_DIR}/research/*.md` that the sub-agent will need to consult
 
 **What NOT to put in**:
@@ -580,6 +595,7 @@ Spawn the check sub-agent:
 The check agent's job:
 - Review code changes against applicable project rules (`.memerig/rules/index.md` and each applicable body; `core.md` always applies)
 - Review code changes against specs
+- Read the actual body of adopted project-wide guidance relevant to the change; do not enforce unadopted proposals
 - Review code changes against `prd.md`, `design.md` if present, and `implement.md` if present
 - Auto-fix issues it finds
 - Run lint and typecheck to verify
@@ -590,7 +606,7 @@ The check agent's job:
 
 Load the `check` skill and verify the code per its guidance:
 - Rule compliance
-- Spec compliance
+- Spec compliance, including the actual body of adopted project-wide guidance relevant to the change
 - lint / type-check / tests
 - Cross-layer consistency (when changes span layers)
 
@@ -627,6 +643,7 @@ Load the `update-spec` skill and review whether this task produced new knowledge
 - Newly discovered patterns or conventions
 - Pitfalls you hit
 - New technical decisions
+- Durable project-wide intent established with the user, when the selected Spec entry explicitly adopts such a practice (one-off exceptions do not qualify)
 
 Update the docs under `.memerig/spec/` accordingly. Even if the conclusion is "nothing to update", walk through the judgment.
 
@@ -696,6 +713,7 @@ This section is for developers who want to modify the MemeRig workflow itself. A
 
 Edit the corresponding step's walkthrough body in the Phase 1 / 2 / 3 sections above. Critical invariants:
 - No active task must triage first and ask for task-creation consent before creating a MemeRig task.
+- Shared workflow and skills follow only explicitly adopted project-wide guidance; they must not invent a practice, warn about its absence, or relax task-creation consent.
 - Planning must distinguish lightweight PRD-only tasks from complex tasks that require `prd.md`, `design.md`, and `implement.md` before start.
 - Every required execution path must keep the Phase 3.4 commit reminder reachable before `/memerig:finish-work`.
 

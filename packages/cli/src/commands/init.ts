@@ -78,7 +78,7 @@ const MIN_PYTHON_MAJOR = 3;
 const MIN_PYTHON_MINOR = 9;
 const PYTHON_VERSION_RE = /Python (\d+)\.(\d+)/;
 
-/** Picker value meaning "no preset — scaffold the default spec docs". */
+/** Picker value for the default guidance template without preset conventions. */
 const BLANK_SPEC_VALUE = "blank";
 /** Picker value meaning "ask for a custom registry source". */
 const CUSTOM_SPEC_VALUE = "__custom__";
@@ -359,12 +359,13 @@ function writeTaskSkeleton(
  * task_store.py).
  */
 function getBootstrapChecklistItems(): string[] {
-  // The spec starts empty, so the checklist describes the work in terms of
-  // layers the project actually has rather than a fixed backend/frontend split.
+  // Setup objectives belong to the selected template, including its choice of
+  // project-wide practices. Missing optional guidance is not unfinished work.
   return [
-    "Create .memerig/spec/<package>/<layer>/ for the layers this project has",
-    "Document the conventions each layer actually follows, with real file paths",
-    "Wire the spec files into a task with task.py add-context",
+    "Read the workflow and existing root Spec entry documents; follow their setup objectives",
+    "Document applicable current conventions with real file paths, reusing existing guidance",
+    "Follow explicitly adopted project-wide guidance, allowing partial progress or deferral",
+    "Wire applicable Spec bodies into a task with task.py add-context",
   ];
 }
 
@@ -382,24 +383,26 @@ function getBootstrapPrdContent(
     .map((item) => `- [ ] ${item}`)
     .join("\n");
 
-  const header = `# Bootstrap Task: Fill Project Development Guidelines
+  const header = `# Bootstrap Task: Set Up Project Guidance
 
 **You (the AI) are running this task. The developer does not read this file.**
 
 The developer just ran \`memerig init\` on this project for the first time.
-\`.memerig/\` now exists with empty spec scaffolding, and this bootstrap task
-exists under \`.memerig/tasks/\`. When they want to work on it, they should start
-this task from a session that provides MemeRig session identity.
+\`.memerig/\` now exists with the selected template's Spec entry documents, and
+this bootstrap task exists under \`.memerig/tasks/\`. When they want to work on
+it, they should start this task from a session that provides MemeRig session identity.
 
-**Your job**: help them populate \`.memerig/spec/\` with the team's real
-coding conventions. Every future AI session — this project's
-\`memerig-implement\` and \`memerig-check\` sub-agents — auto-loads spec files
-listed in per-task jsonl manifests. Empty spec = sub-agents write generic
-code. Real spec = sub-agents match the team's actual patterns.
+**Your job**: follow the selected template's setup objectives. Read
+\`.memerig/workflow.md\` and the root \`.memerig/spec/README.md\` and
+\`.memerig/spec/index.md\` when present, then the applicable documents they
+explicitly adopt. Preserve existing guidance; do not overlay default-template
+objectives onto another template. Missing optional practices need no interview
+or completion requirement. Resolve conflicting explicit instructions openly.
 
-Don't dump instructions. Open with a short greeting, figure out if the repo
-has any existing convention docs (CLAUDE.md, .cursorrules, etc.), and drive
-the rest conversationally.
+Help the developer record useful project guidance conversationally. Current
+coding conventions need evidence from real code. Other explicitly adopted
+practices follow their own method and timing, with actual bodies loaded rather
+than relying on links. Do not infer project intent from existing code alone.
 
 ---
 
@@ -416,12 +419,13 @@ ${checklistMarkdown}
 
 ### Where the spec lives
 
-\`.memerig/spec/\` starts empty apart from \`.memerig/spec/README.md\`.\nThere are no
-placeholder guideline files to fill in — create the documents this project
-actually needs:
+The default guidance template starts with \`.memerig/spec/README.md\` and no
+preset coding conventions. Other templates supply their own documents. Reuse
+those documents and create only the additional guidance the project needs:
 
 | Path | Scope |
 |------|-------|
+| \`.memerig/spec/README.md\` / \`.memerig/spec/index.md\` | Selected template's setup instructions and explicitly adopted project-wide practices; read when present |
 | \`.memerig/spec/&lt;package&gt;/&lt;layer&gt;/index.md\` | Entry point for one package + layer: a **Pre-Development Checklist**, the rules, and a **Quality Check** |
 | \`.memerig/spec/&lt;package&gt;/&lt;layer&gt;/&lt;topic&gt;.md\` | One document per real convention (naming, errors, data access, tests, …) |
 | \`.memerig/spec/guides/index.md\` | Cross-package thinking guides |
@@ -436,7 +440,16 @@ have to match what \`task.py add-context\` records in the task manifests.
 
 ## How to fill the spec
 
-### Step 1: Import from existing convention files first (preferred)
+### Step 1: Follow the selected setup instructions
+
+Read the current workflow and root Spec entries first. Follow their selected
+method, references, and cadence. A missing custom reference is a concrete setup
+problem, not permission to substitute a default interview. Existing project-wide
+guidance should be understood before proposing changes. An installed resource or
+a document left by an earlier template does not adopt a practice. Allow explicit
+deferral and unresolved questions without inventing decisions or creating tasks.
+
+### Step 2: Import current conventions from existing files
 
 Search the repo for existing convention docs. If any exist, read them and
 extract the relevant rules into the matching \`.memerig/spec/\` files —
@@ -457,21 +470,21 @@ usually much faster than documenting from scratch.
 | \`CONTRIBUTING.md\` | General project conventions |
 | \`.editorconfig\` | Editor formatting rules |
 
-### Step 2: Analyze the codebase for anything not covered by existing docs
+### Step 3: Analyze current code for conventions not covered by existing docs
 
 Scan real code to discover patterns. Before writing each spec file:
 - Find 2-3 real examples of each pattern in the codebase.
 - Reference real file paths (not hypothetical ones).
 - Document anti-patterns the team clearly avoids.
 
-### Step 3: Document reality, not ideals
+### Step 4: Keep current contracts and desired direction distinct
 
-**Critical**: write what the code *actually does*, not what it should do.
-Sub-agents match the spec, so aspirational patterns that don't exist in the
-codebase will cause sub-agents to write code that looks out of place.
-
-If the team has known tech debt, document the current state — improvement
-is a separate conversation, not a bootstrap concern.
+For code-contract Specs, write what the code *actually does*, with real evidence.
+Do not present an intended future pattern as something implementation can rely on
+today. If the selected template adopts a separate practice for desired direction,
+follow that practice and keep proposals distinct from established user intent.
+Neither kind of guidance authorizes unrelated code changes. Surface conflicts
+within the current task instead of silently rewriting code or project direction.
 
 ---
 
@@ -491,8 +504,8 @@ is a separate conversation, not a bootstrap concern.
 
 ## Completion
 
-When the developer confirms the checklist items above are done with real
-examples (not placeholders), guide them to run:
+When the developer confirms the applicable setup work is complete, including
+any deliberate deferrals, summarize what was recorded and guide them to run:
 
 \`\`\`bash
 ${pythonCmd} ./.memerig/scripts/task.py complete 00-bootstrap-guidelines
@@ -505,11 +518,10 @@ After completing setup, every new developer who joins this project will get a
 
 ## Suggested opening line
 
-"Welcome to MemeRig! Your init just set me up to help you fill the project
-spec — a one-time setup so every future AI session follows the team's
-conventions instead of writing generic code. Before we start, do you have
-any existing convention docs (CLAUDE.md, .cursorrules, CONTRIBUTING.md,
-etc.) I can pull from, or should I scan the codebase from scratch?"
+Follow the selected template's opening and next step. Otherwise, briefly explain
+that this setup records the project's own guidance, then ask the next useful
+question based on the documents and the developer's current intent. Do not force
+an interview for a practice the project has not adopted.
 `;
 
   let content = header;
@@ -665,6 +677,13 @@ File layout (mention when they ask "where does what live"):
   rotated at ~2000 lines
 
 ### 3. This project's actual conventions
+
+- Read the current workflow and root \`.memerig/spec/README.md\` and
+  \`.memerig/spec/index.md\` when present. Follow their adopted orientation
+  instructions and load the actual relevant bodies. Explain established
+  project-wide direction before proposing amendments, only where the current
+  template adopts that practice. Do not restart setup or reactivate a practice
+  merely because an old document remains on disk.
 
 - Summarize \`.memerig/spec/\` for them — what coding conventions this
   specific team enforces.
@@ -1152,6 +1171,15 @@ function printOpenProtocolNotice(): void {
   );
 }
 
+/** Point every successful setup path to the selected project's instructions. */
+function printSetupGuideNotice(): void {
+  console.log(
+    chalk.gray(
+      "Next: ask your agent to follow .memerig/workflow.md and the current .memerig/spec/ entry documents (README.md or index.md when present).",
+    ),
+  );
+}
+
 /** One entry of the `Select a spec template` list. */
 export interface SpecChoice {
   name: string;
@@ -1161,7 +1189,7 @@ export interface SpecChoice {
 /**
  * Build the spec-template picker list.
  *
- * Order: `from scratch` (default), bundled presets (offline-safe), marketplace
+ * Order: default guidance, bundled presets (offline-safe), marketplace
  * entries that are not bundled, then the custom-registry escape hatch. A
  * bundled id shadows a same-id remote entry so labels stay stable offline.
  */
@@ -1172,7 +1200,10 @@ export function buildSpecTemplateChoices(
 ): SpecChoice[] {
   const builtinIds = new Set(builtins.map((entry) => entry.id));
   const choices: SpecChoice[] = [
-    { name: "from scratch (default)", value: BLANK_SPEC_VALUE },
+    {
+      name: "default guidance (start without preset conventions)",
+      value: BLANK_SPEC_VALUE,
+    },
     ...builtins.map((entry) => ({
       name: `${entry.id} (${entry.name})`,
       value: entry.id,
@@ -1314,7 +1345,10 @@ export async function init(options: InitOptions): Promise<void> {
       developerName,
       pythonCmd,
     );
-    if (reinitDone) return;
+    if (reinitDone) {
+      printSetupGuideNotice();
+      return;
+    }
     // reinitDone === false means user chose "full re-initialize" → fall through
   }
 
@@ -1571,9 +1605,12 @@ export async function init(options: InitOptions): Promise<void> {
 
   if (monorepoPackages) {
     // Monorepo: template selection already handled above
-  } else if (options.template && selectedBuiltinSpec) {
-    // Bundled preset (`--template trellis` …): installed from disk after the
-    // workflow structure is created; no index probe, no download.
+  } else if (
+    selectedBuiltinSpec ||
+    (options.template === BLANK_SPEC_VALUE && !registry)
+  ) {
+    // Default guidance and bundled presets require no registry lookup.
+    // Their documents are installed after the workflow structure is created.
   } else if (options.template) {
     // Template specified via --template flag
     selectedTemplate = options.template;
@@ -1855,6 +1892,8 @@ export async function init(options: InitOptions): Promise<void> {
 
   let useRemoteTemplate = false;
   let registrySpecConfigToPersist: SpecRegistryConfig | null = null;
+  const existingSpecPaths =
+    selectedTemplate || registry ? collectSpecPaths(cwd) : undefined;
 
   if (selectedTemplate) {
     // Marketplace mode: download specific template by ID
@@ -1983,7 +2022,7 @@ export async function init(options: InitOptions): Promise<void> {
       skipSpecTemplates:
         useRemoteTemplate ||
         Boolean(selectedBuiltinSpec) ||
-        Boolean(monorepoPackages),
+        (Boolean(monorepoPackages) && useMarketplace),
       packages: useMarketplace ? monorepoPackages : undefined,
       remoteSpecPackages,
       workflowMdOverride,
@@ -2050,6 +2089,13 @@ export async function init(options: InitOptions): Promise<void> {
   if (useRemoteTemplate) {
     const specFilesToHash = new Map<string, string>();
     for (const relativePath of collectSpecPaths(cwd)) {
+      // Append/skip must not claim or rebaseline files the download kept.
+      if (
+        templateStrategy !== "overwrite" &&
+        existingSpecPaths?.has(relativePath)
+      ) {
+        continue;
+      }
       const content = fs.readFileSync(path.join(cwd, relativePath), "utf-8");
       specFilesToHash.set(relativePath, content);
     }
@@ -2136,6 +2182,7 @@ export async function init(options: InitOptions): Promise<void> {
       }
     }
   }
+  printSetupGuideNotice();
 }
 
 function runProjectScript(command: string, args: string[], cwd: string): void {

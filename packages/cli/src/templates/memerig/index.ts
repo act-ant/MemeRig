@@ -72,6 +72,7 @@ export const addSessionScript = readTemplate("scripts/add_session.py");
 
 // Configuration files
 export const workflowMdTemplate = readTemplate("workflow.md");
+export const attractorGuideTemplate = readTemplate("attractor-guide.md");
 export const configYamlTemplate = readTemplate("config.yaml");
 export const gitignoreTemplate = readTemplate("gitignore.txt");
 export const gitattributesTemplate = readTemplate("gitattributes.txt");

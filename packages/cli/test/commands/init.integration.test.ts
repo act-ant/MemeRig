@@ -92,45 +92,56 @@ describe("init() integration", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("initializes the AGENTS.md open protocol when no platform is selected", async () => {
-    const fetch = vi.fn().mockRejectedValue(new Error("Network disabled"));
-    vi.stubGlobal("fetch", fetch);
-    await init({});
-    const memerig = path.join(tmpDir, DIR_NAMES.WORKFLOW);
-    expect(fs.existsSync(path.join(tmpDir, PATHS.SCRIPTS, "task.py"))).toBe(true);
-    // Open protocol still gets the full workflow structure: spec scaffolds,
-    // workspace, channel runtime agents, and the journal merge rule.
-    expect(fs.existsSync(path.join(tmpDir, PATHS.SPEC))).toBe(true);
-    expect(fs.existsSync(path.join(tmpDir, PATHS.WORKSPACE))).toBe(true);
-    expect(fs.existsSync(path.join(memerig, "agents"))).toBe(true);
-    expect(fs.existsSync(path.join(tmpDir, ".gitattributes"))).toBe(true);
-    expect(fs.readdirSync(path.join(tmpDir, PATHS.TASKS))).toEqual([]);
-    expect(fs.readdirSync(path.join(tmpDir, PATHS.RULES)).sort()).toEqual([
-      "core.md",
-      "index.md",
-    ]);
-    expect(fs.readdirSync(path.join(tmpDir, PATHS.SPEC))).toEqual(["README.md"]);
-    // No platform directories, and no prompts (stdin is not a TTY here).
-    expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(false);
-    expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(false);
-    expect(fs.existsSync(path.join(tmpDir, "AGENTS.md"))).toBe(true);
-    expect(fs.readFileSync(path.join(tmpDir, "AGENTS.md"), "utf-8")).toContain(
-      ".memerig/workflow.md",
-    );
-    expect(
-      vi
-        .mocked(console.log)
-        .mock.calls.flat()
-        .some(
-          (part) =>
-            typeof part === "string" &&
-            part.includes("AGENTS.md open protocol"),
-        ),
-    ).toBe(true);
-    expect(fs.readFileSync(path.join(memerig, "config.yaml"), "utf-8")).toMatch(/^ {2}version_control: local$/m);
-    expect(fs.readFileSync(path.join(memerig, ".gitignore"), "utf-8")).toMatch(/^\/tasks\/$/m);
-    expect(fetch).not.toHaveBeenCalled();
-  });
+  it.each([undefined, "blank"])(
+    "initializes the AGENTS.md open protocol with default template %s",
+    async (template) => {
+      const fetch = vi.fn().mockRejectedValue(new Error("Network disabled"));
+      vi.stubGlobal("fetch", fetch);
+      await init({ template });
+      const memerig = path.join(tmpDir, DIR_NAMES.WORKFLOW);
+      expect(fs.existsSync(path.join(tmpDir, PATHS.SCRIPTS, "task.py"))).toBe(
+        true,
+      );
+      // Open protocol still gets the full workflow structure: spec scaffolds,
+      // workspace, channel runtime agents, and the journal merge rule.
+      expect(fs.existsSync(path.join(tmpDir, PATHS.SPEC))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, PATHS.WORKSPACE))).toBe(true);
+      expect(fs.existsSync(path.join(memerig, "agents"))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, ".gitattributes"))).toBe(true);
+      expect(fs.readdirSync(path.join(tmpDir, PATHS.TASKS))).toEqual([]);
+      expect(fs.readdirSync(path.join(tmpDir, PATHS.RULES)).sort()).toEqual([
+        "core.md",
+        "index.md",
+      ]);
+      expect(fs.readdirSync(path.join(tmpDir, PATHS.SPEC))).toEqual([
+        "README.md",
+      ]);
+      // No platform directories, and no prompts (stdin is not a TTY here).
+      expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(false);
+      expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(false);
+      expect(fs.existsSync(path.join(tmpDir, "AGENTS.md"))).toBe(true);
+      expect(
+        fs.readFileSync(path.join(tmpDir, "AGENTS.md"), "utf-8"),
+      ).toContain(".memerig/workflow.md");
+      expect(
+        vi
+          .mocked(console.log)
+          .mock.calls.flat()
+          .some(
+            (part) =>
+              typeof part === "string" &&
+              part.includes("AGENTS.md open protocol"),
+          ),
+      ).toBe(true);
+      expect(
+        fs.readFileSync(path.join(memerig, "config.yaml"), "utf-8"),
+      ).toMatch(/^ {2}version_control: local$/m);
+      expect(
+        fs.readFileSync(path.join(memerig, ".gitignore"), "utf-8"),
+      ).toMatch(/^\/tasks\/$/m);
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
 
   it("configures the interactively selected platform and bundled preset", async () => {
     vi.stubGlobal(
@@ -168,7 +179,10 @@ describe("init() integration", () => {
   });
 
   it("leaves a fresh checkout untouched when an explicit template is unknown", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ templates: [] })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(Response.json({ templates: [] })),
+    );
 
     await expect(init({ yes: true, template: "learn-harnes" })).rejects.toThrow(
       'Template "learn-harnes" not found',
@@ -177,13 +191,16 @@ describe("init() integration", () => {
   });
 
   it("leaves a fresh checkout untouched when a spec download fails after extraction starts", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 404 })),
+    );
     registryDownload.files.set("index.md", "# Partial extraction\n");
     registryDownload.failure = new Error("extraction interrupted");
 
-    await expect(init({ yes: true, registry: "bitbucket:myorg/registry/spec" })).rejects.toThrow(
-      "extraction interrupted",
-    );
+    await expect(
+      init({ yes: true, registry: "bitbucket:myorg/registry/spec" }),
+    ).rejects.toThrow("extraction interrupted");
     expect(fs.readdirSync(tmpDir)).toEqual([]);
   });
 
@@ -233,9 +250,7 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, ".pi"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".kimi-code"))).toBe(false);
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".claude", "skills", "meta", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".claude", "skills", "meta", "SKILL.md")),
     ).toBe(true);
   });
 
@@ -272,13 +287,7 @@ describe("init() integration", () => {
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(
-          tmpDir,
-          ".agents",
-          "skills",
-          "finish-work",
-          "SKILL.md",
-        ),
+        path.join(tmpDir, ".agents", "skills", "finish-work", "SKILL.md"),
       ),
     ).toBe(true);
     expect(
@@ -287,9 +296,7 @@ describe("init() integration", () => {
       ),
     ).toBe(true);
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".agents", "skills", "meta", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".agents", "skills", "meta", "SKILL.md")),
     ).toBe(true);
     expect(
       fs.existsSync(
@@ -305,9 +312,7 @@ describe("init() integration", () => {
       ),
     ).toBe(true);
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".codex", "skills", "meta", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".codex", "skills", "meta", "SKILL.md")),
     ).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".codex", "config.toml"))).toBe(
       true,
@@ -341,9 +346,7 @@ describe("init() integration", () => {
     expect(trackedPaths).toContain(
       ".agents/skills/meta/references/local-architecture/overview.md",
     );
-    expect(trackedPaths).toContain(
-      ".agents/skills/spec-bootstrap/SKILL.md",
-    );
+    expect(trackedPaths).toContain(".agents/skills/spec-bootstrap/SKILL.md");
     expect(trackedPaths).toContain(
       ".agents/skills/spec-bootstrap/references/spec-writing.md",
     );
@@ -355,9 +358,7 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, ".kiro", "skills"))).toBe(true);
     // Kiro is agent-capable → start skill not emitted.
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".kiro", "skills", "start", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".kiro", "skills", "start", "SKILL.md")),
     ).toBe(false);
     expect(
       fs.existsSync(
@@ -370,9 +371,7 @@ describe("init() integration", () => {
       ),
     ).toBe(true);
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".kiro", "skills", "check", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".kiro", "skills", "check", "SKILL.md")),
     ).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(false);
@@ -647,9 +646,7 @@ describe("init() integration", () => {
       ),
     ).toBe(true);
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".agents", "skills", "meta", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".agents", "skills", "meta", "SKILL.md")),
     ).toBe(true);
 
     // Kimi-private skills: commands-as-skills + agent prompts
@@ -660,24 +657,12 @@ describe("init() integration", () => {
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(
-          tmpDir,
-          ".kimi-code",
-          "skills",
-          "continue",
-          "SKILL.md",
-        ),
+        path.join(tmpDir, ".kimi-code", "skills", "continue", "SKILL.md"),
       ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(
-          tmpDir,
-          ".kimi-code",
-          "skills",
-          "finish-work",
-          "SKILL.md",
-        ),
+        path.join(tmpDir, ".kimi-code", "skills", "finish-work", "SKILL.md"),
       ),
     ).toBe(true);
     expect(
@@ -806,9 +791,7 @@ describe("init() integration", () => {
       ),
     ).toBe(false);
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".zcode", "skills", "start", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".zcode", "skills", "start", "SKILL.md")),
     ).toBe(false);
     expect(
       fs.existsSync(
@@ -817,19 +800,11 @@ describe("init() integration", () => {
     ).toBe(false);
     expect(
       fs.existsSync(
-        path.join(
-          tmpDir,
-          ".zcode",
-          "skills",
-          "finish-work",
-          "SKILL.md",
-        ),
+        path.join(tmpDir, ".zcode", "skills", "finish-work", "SKILL.md"),
       ),
     ).toBe(false);
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".zcode", "skills", "check", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".zcode", "skills", "check", "SKILL.md")),
     ).toBe(true);
     expect(
       fs.existsSync(
@@ -963,7 +938,9 @@ describe("init() integration", () => {
     vi.stubEnv("MEMERIG_DEVELOPER", undefined);
     await init({ yes: true, user: "testdev" });
     // The test uses the real Python subprocess, whose identity may otherwise come from the host.
-    expect(fs.readFileSync(path.join(tmpDir, PATHS.DEVELOPER_FILE), "utf-8")).toContain("name=testdev");
+    expect(
+      fs.readFileSync(path.join(tmpDir, PATHS.DEVELOPER_FILE), "utf-8"),
+    ).toContain("name=testdev");
     expect(fs.readdirSync(path.join(tmpDir, PATHS.TASKS))).toEqual([]);
   });
 
@@ -1044,19 +1021,38 @@ describe("init() integration", () => {
     expect(Object.keys(hashes).length).toBeGreaterThan(0);
   });
 
-  it.each(["learn-harness", "trellis", "game-dev"])("installs %s from local preset bytes", async (template) => {
-    const fetch = vi.fn().mockRejectedValue(new Error("Network disabled"));
-    vi.stubGlobal("fetch", fetch);
-    await init({ template });
-    const installed = fs.readFileSync(path.join(tmpDir, PATHS.SPEC, "index.md"), "utf-8");
-    const expected = fs.readFileSync(new URL(`../../../../marketplace/specs/${template}/index.md`, import.meta.url), "utf-8");
-    expect(installed).toBe(expected);
-    expect(fetch).not.toHaveBeenCalled();
-    fs.writeFileSync(path.join(tmpDir, PATHS.SPEC, "index.md"), "Project rules\n");
-    await init({ template, overwrite: true });
-    expect(fs.readFileSync(path.join(tmpDir, PATHS.SPEC, "index.md"), "utf-8")).toBe("Project rules\n");
-    expect(fs.readFileSync(path.join(tmpDir, PATHS.SPEC, "index.md.new"), "utf-8")).toBe(expected);
-  });
+  it.each(["learn-harness", "trellis", "game-dev"])(
+    "installs %s from local preset bytes",
+    async (template) => {
+      const fetch = vi.fn().mockRejectedValue(new Error("Network disabled"));
+      vi.stubGlobal("fetch", fetch);
+      await init({ template });
+      const installed = fs.readFileSync(
+        path.join(tmpDir, PATHS.SPEC, "index.md"),
+        "utf-8",
+      );
+      const expected = fs.readFileSync(
+        new URL(
+          `../../../../marketplace/specs/${template}/index.md`,
+          import.meta.url,
+        ),
+        "utf-8",
+      );
+      expect(installed).toBe(expected);
+      expect(fetch).not.toHaveBeenCalled();
+      fs.writeFileSync(
+        path.join(tmpDir, PATHS.SPEC, "index.md"),
+        "Project rules\n",
+      );
+      await init({ template, overwrite: true });
+      expect(
+        fs.readFileSync(path.join(tmpDir, PATHS.SPEC, "index.md"), "utf-8"),
+      ).toBe("Project rules\n");
+      expect(
+        fs.readFileSync(path.join(tmpDir, PATHS.SPEC, "index.md.new"), "utf-8"),
+      ).toBe(expected);
+    },
+  );
 
   // ===========================================================================
   // Monorepo integration tests
@@ -1086,10 +1082,12 @@ describe("init() integration", () => {
     }
   }
 
-  it("keeps a workspace spec blank unless a preset is selected", async () => {
+  it("gives a blank workspace the default guidance entry without preset conventions", async () => {
     setupPnpmWorkspace(tmpDir, [{ rel: "packages/core", name: "core" }]);
     await init({ yes: true, monorepo: true });
-    expect(fs.existsSync(path.join(tmpDir, PATHS.SPEC))).toBe(false);
+    expect(fs.readdirSync(path.join(tmpDir, PATHS.SPEC))).toEqual([
+      "README.md",
+    ]);
   });
 
   it("#14 monorepo: writes packages section to config.yaml", async () => {
@@ -1118,7 +1116,12 @@ describe("init() integration", () => {
       { rel: "packages/ui", name: "ui" },
     ]);
 
-    await init({ yes: true, user: "dev", withOnboarding: true, monorepo: true });
+    await init({
+      yes: true,
+      user: "dev",
+      withOnboarding: true,
+      monorepo: true,
+    });
 
     const taskDir = path.join(tmpDir, PATHS.TASKS, "00-bootstrap-guidelines");
     expect(fs.existsSync(taskDir)).toBe(true);
@@ -1199,10 +1202,12 @@ describe("init() integration", () => {
   it("#20 -y --registry aborts on probe failure instead of direct download fallback", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
 
-    await expect(init({
-      yes: true,
-      registry: "bitbucket:myorg/registry/spec",
-    })).rejects.toThrow("Could not reach registry index");
+    await expect(
+      init({
+        yes: true,
+        registry: "bitbucket:myorg/registry/spec",
+      }),
+    ).rejects.toThrow("Could not reach registry index");
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
   });
 
@@ -1526,17 +1531,13 @@ describe("init() integration", () => {
 
     await init({ yes: true, codex: true, user: "alice" });
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".claude", "skills", "meta", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".claude", "skills", "meta", "SKILL.md")),
     ).toBe(false);
 
     await init({ yes: true, claude: true });
 
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".claude", "skills", "meta", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".claude", "skills", "meta", "SKILL.md")),
     ).toBe(true);
     expect(fs.readFileSync(nativeSettingsPath, "utf-8")).toBe(
       '{"permissions":{"allow":[]}}\n',

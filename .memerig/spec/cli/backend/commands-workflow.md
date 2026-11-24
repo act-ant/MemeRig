@@ -126,10 +126,19 @@ Runtime parser contract:
 
 Native source-of-truth contract:
 
-- `packages/cli/src/templates/memerig/workflow.md` is the source of truth for
+- `packages/templates/assets/memerig/workflow.md` is the source of truth for
   native workflow.
 - If `marketplace/workflows/native/workflow.md` exists, tests must enforce byte
   identity with the bundled native template.
+
+Optional project practices belong to the selected workflow and root Spec entry
+documents. Native/common entry points must read applicable adopted bodies, not
+assume that a bundled guide or an existing document enables a practice. The
+default Spec template adopts repository-attractor guidance; another preset may
+omit it entirely. Keep actual-body routing in both compact breadcrumbs and
+expanded instructions. Do not impose a universal attractor interview on TDD,
+channel-driven, or third-party workflows. See
+[`project-setup.md` § 9](./project-setup.md#9-optional-repository-attractor-guidance).
 
 ### 4. Validation & Error Matrix
 

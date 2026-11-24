@@ -2,13 +2,13 @@
 
 "Bundled skills" are multi-file built-in skills shipped inside the MemeRig CLI npm package. Unlike marketplace skills (which a user installs separately into their own `.claude/skills/` or other platform skill root), bundled skills are written automatically into every supported platform's skill root by `memerig init` and kept in sync by `memerig update`. They are part of MemeRig itself, not third-party content.
 
-A bundled skill is a directory under `packages/cli/src/templates/common/bundled-skills/<skill>/` that already contains its own `SKILL.md` (with YAML frontmatter) plus optional `references/`, assets, or other supporting files. MemeRig copies the whole directory tree as-is into each platform's skill root, so references stay lazy-loadable instead of being flattened into one oversized `SKILL.md`.
+A bundled skill is a directory under `packages/templates/assets/common/bundled-skills/<skill>/` that already contains its own `SKILL.md` (with YAML frontmatter) plus optional `references/`, assets, or other supporting files. MemeRig copies the whole directory tree as-is into each platform's skill root, so references stay lazy-loadable instead of being flattened into one oversized `SKILL.md`.
 
 ## What Counts As Bundled (vs. Adjacent Concepts)
 
 | Source path | Type | How it ships |
 | --- | --- | --- |
-| `templates/common/bundled-skills/<name>/` | Bundled skill (multi-file) | Whole directory copied to every platform skill root |
+| `packages/templates/assets/common/bundled-skills/<name>/` | Bundled skill (multi-file) | Whole directory copied to every platform skill root |
 | `templates/common/skills/<name>.md` | Single-file workflow skill | Wrapped with frontmatter, written as `<root>/<name>/SKILL.md` |
 | `templates/common/commands/<name>.md` | Slash command / prompt | Written to each platform's command directory (`.claude/commands/memerig/`, `.cursor/commands/memerig-*.md`, `.gemini/commands/memerig/*.toml`, etc.) |
 | `templates/<platform>/skills/` | Platform-specific skill | Written only into that platform's directory (e.g. `.codex/skills/`) |
@@ -16,9 +16,9 @@ A bundled skill is a directory under `packages/cli/src/templates/common/bundled-
 
 The MemeRig CLI never touches anything that is not produced by one of its own template loaders. Anything a user drops into a platform skill root by hand is left alone.
 
-## Current Bundled Skills (v0.6.0)
+## Current Bundled Skills
 
-The set is discovered at runtime by listing directories under `templates/common/bundled-skills/`:
+The set is discovered at runtime by listing directories under `packages/templates/assets/common/bundled-skills/`:
 
 | Skill | Purpose |
 | --- | --- |
@@ -26,12 +26,18 @@ The set is discovered at runtime by listing directories under `templates/common/
 | `session-insight` | Wraps the `memerig mem` CLI so an AI knows when and how to reach into past Claude Code / Codex / Pi Agent conversation logs. |
 | `spec-bootstrap` | Platform-neutral workflow for creating or refreshing `.memerig/spec/` from the real codebase (with optional GitNexus / ABCoder integration). |
 | `channel` | Capability skill teaching an AI when to reach for `memerig channel` for multi-agent collaboration, forum/thread persistent boards, and dispatcher-wait patterns. |
+| `attractor` | Optional entry point for adopted repository-attractor construction. It resolves the selected project method and never activates the capability by installation alone. |
 
 The list is discovered at runtime, so adding a new directory under `bundled-skills/` is the only step required to register a new skill (see "Adding a New Bundled Skill" below).
 
+The `attractor` skill is installed like the others but is opt-in at the project
+level. Non-adopting or silent templates must not receive attractor questions,
+mandatory files, missing-direction warnings, or completion gates because the
+skill is present.
+
 ## Where Bundled Skills Land Per Platform
 
-A platform's whole file set — commands, workflow skills, agents, hooks, bundled skills — is described exactly once, by `collect<Platform>Templates()` in `packages/cli/src/configurators/<platform>.ts`. For bundled skills that description is two calls: `resolveBundledSkills(ctx)` reads every directory under `templates/common/bundled-skills/`, resolves placeholders, and returns a flat list of `{relativePath, content}` entries; `collectSkillTemplates(<skillsRoot>, <workflowSkills>, <bundledSkills>)` folds them into the platform's `Map<filePath, content>` under `<skillsRoot>/<skill>/<relativePath>`.
+A platform's whole file set — commands, workflow skills, agents, hooks, bundled skills — is described exactly once, by `collect<Platform>Templates()` in `packages/cli/src/configurators/<platform>.ts`. For bundled skills that description is two calls: `resolveBundledSkills(ctx)` reads every directory under `packages/templates/assets/common/bundled-skills/`, resolves placeholders, and returns a flat list of `{relativePath, content}` entries; `collectSkillTemplates(<skillsRoot>, <workflowSkills>, <bundledSkills>)` folds them into the platform's `Map<filePath, content>` under `<skillsRoot>/<skill>/<relativePath>`.
 
 All 21 platforms receive the full bundled-skill set:
 
@@ -91,7 +97,7 @@ The shape and dispatch wiring are already generic, so adding a skill requires on
 1. **Create the directory tree.**
 
    ```
-   packages/cli/src/templates/common/bundled-skills/<my-skill>/
+   packages/templates/assets/common/bundled-skills/<my-skill>/
      SKILL.md                     # YAML frontmatter + body
      references/                  # optional
        <topic>.md
@@ -153,7 +159,7 @@ A third option — globally disabling all bundled skills — is not supported. T
 
 ## Operating Rules
 
-- Treat `templates/common/bundled-skills/` as the single source of truth for what bundled skills exist. Do not hand-maintain platform-by-platform skill lists.
+- Treat `packages/templates/assets/common/bundled-skills/` as the single source of truth for what bundled skills exist. Do not hand-maintain platform-by-platform skill lists.
 - Do not add platform-specific logic inside a bundled `SKILL.md`. If a behavior is platform-specific, put it in `templates/<platform>/skills/` instead.
 - Do not couple bundled skills to a specific CLI binary (e.g. `memerig mem`) without surfacing the dependency in the skill's description and references — users on older releases may not have the command.
 - Do not store project-private content in a bundled skill. Bundled skills are public, shipped to every user; project rules belong in `.memerig/spec/` or a local skill.

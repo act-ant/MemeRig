@@ -42,6 +42,12 @@ memerig init --claude --codex --omp -u your-name
 
 `memerig init` 会创建 `.memerig/`，并为你选择的每个 Agent 生成对应的平台文件。运行 `memerig platforms` 可以列出所有支持的宿主。
 
+**默认引导模板**（`--template blank`，未选择预设时也使用它）不虚构编码约定，并采用**仓库吸引子**构建引导：帮助你表达希望架构、代码和界面长期趋向的设计品质。初始化后，让 Agent 遵循当前工作流与 Spec 根入口文档。默认入口链接到 `.memerig/attractor-guide.md`，即使没有平台技能、开发者身份或入门任务，也能使用这份完整方法。可用 `--with-onboarding` 选择创建引导任务。
+
+构建从一个有用的问题或具体取舍开始，将有意义的进展记录到 `.memerig/spec/attractor.md`，区分已确认意图、提案和开放问题。你可以暂缓，也可以在后续相关设计讨论中逐步完善。当前代码契约与期望方向保持分离；它们都不授权无关的重写。
+
+其他模板可以复用默认方法、自定义方法，或完全不采用吸引子。采用与否、何时引导，由其工作流和 Spec 入口决定。安装指南或可选的 `attractor` 技能、保留旧吸引子文件，都不会自动启用该实践。普通初始化与更新通过现有文件冲突机制保留用户撰写的方向。
+
 ## 工作原理
 
 MemeRig 把每个任务分成四个阶段：
@@ -53,10 +59,11 @@ MemeRig 把每个任务分成四个阶段：
 
 | 路径 | 内容 |
 | --- | --- |
-| `.memerig/spec/` | 编码规范，按包和层划分 |
+| `.memerig/spec/` | 当前编码契约，以及项目明确采用的指导文档 |
 | `.memerig/tasks/` | 任务 PRD、设计、调研和上下文清单 |
 | `.memerig/workspace/` | 每位开发者的会话日志 |
 | `.memerig/workflow.md` | 阶段定义和每轮的工作流状态提示 |
+| `.memerig/attractor-guide.md` | 可用的默认构建方法，仅在采用或明确请求时使用 |
 | `.agents/skills/` | 遵循 agentskills.io 目录约定、跨宿主共享的技能 |
 
 ## 开发 MemeRig

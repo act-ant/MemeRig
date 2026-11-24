@@ -57,3 +57,8 @@ Keep short notes while analyzing. The notes should include:
 - Rules the spec should teach.
 - Anti-patterns found in old code, comments, tests, or migration paths.
 - Spec files that should be created, deleted, renamed, or merged.
+
+If the selected template adopts desired-direction construction, keep code
+findings as evidence for candidate questions, not proof of the user's desired
+future. Any direction work belongs in the designated document under the adopted
+method; this analysis produces the current code contracts.

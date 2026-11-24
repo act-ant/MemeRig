@@ -41,6 +41,31 @@ A common monorepo structure:
 
 `index.md` is the entry point for each layer. It should list the Pre-Development Checklist and Quality Check. Specific guidelines live in other Markdown files in the same directory.
 
+## Special Spec: Repository Attractor (Optional)
+
+The default Spec guidance template adopts the repository-attractor method.
+Other templates may adopt it, use their own method, or omit the concept
+entirely.
+
+When adopted:
+
+- `.memerig/attractor-guide.md` is the installed default construction method.
+  Its presence does not activate anything.
+- `.memerig/spec/attractor.md` is the project-owned desired-direction document.
+  Create it only when there is meaningful confirmed direction or concrete
+  exploration, never as an empty scaffold.
+- The root file is project-wide direction, separate from package/layer code
+  contracts. It is not a config flag, task list, or parser input.
+- Reuse the task JSONL manifests to load the actual file when a task needs it.
+  A link in a README or index is not loaded content.
+- A template that is silent or declines the capability gets no attractor
+  questions, project documents, warnings, tasks, or completion gates. An
+  existing attractor left from an earlier adoption is preserved but does not
+  reactivate it.
+
+Selected preset templates keep their own README and adoption choice. Do not
+layer the default Spec README's adoption onto a preset.
+
 ## Package Configuration
 
 `.memerig/config.yaml` can declare packages:
@@ -84,6 +109,11 @@ Specs should contain executable engineering conventions for the project, not gen
 - Patterns that are forbidden.
 - Cases that require tests.
 - Project-specific pitfalls and how to avoid them.
+
+Code specs describe what the implementation relies on now. If the project
+adopts the attractor method, put desired future properties in
+`.memerig/spec/attractor.md`, not here; current behavior and desired direction
+must remain distinguishable.
 
 When the AI learns a new rule during implementation or debugging, it should update `.memerig/spec/` rather than only summarizing it in chat.
 

@@ -27,7 +27,7 @@ Read the current task artifacts in order:
 python3 ./.memerig/scripts/get_context.py --mode packages
 ```
 
-Read `.memerig/rules/index.md` and the body of every rule whose applicability covers this work (`core.md` always applies). A linked rule is not loaded content. Then, for each changed package/layer, read the spec index and follow its **Quality Check** section:
+Read `.memerig/rules/index.md` and the body of every rule whose applicability covers this work (`core.md` always applies). A linked rule is not loaded content. Read the root Spec entry — `.memerig/spec/README.md` and, when present, `.memerig/spec/index.md` — and the actual body of each explicitly adopted project-wide practice relevant to the changed areas. A link is not loaded content; do not enforce an unadopted proposal or treat a missing optional document as a defect. Then, for each changed package/layer, read the spec index and follow its **Quality Check** section:
 
 ```bash
 cat .memerig/spec/<package>/<layer>/index.md

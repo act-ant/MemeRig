@@ -47,6 +47,7 @@ Use a concise title from the user's request. Both the title and `--description` 
    - code, tests, fixtures, and configs
    - README files, docs, existing specs, and domain notes
    - related MemeRig tasks, research files, and session history when present
+   - the selected template's root Spec entry (`.memerig/spec/README.md`, and `.memerig/spec/index.md` when present) plus any explicitly adopted project-wide body relevant to the request
 3. Separate what you found into:
    - confirmed facts
    - product intent still needed from the user
@@ -60,6 +61,10 @@ Use a concise title from the user's request. Both the title and `--description` 
 9. Only a subsequent user message that explicitly approves the latest planning summary authorizes `task.py start` and implementation. If the artifacts change materially after approval, repeat the final review.
 
 Do not invent a project-specific product/spec hierarchy. If the repository already has product, domain, or spec docs, use them. If it does not, proceed with the evidence that exists.
+
+## Adopted Project-Wide Guidance
+
+If the selected Spec entry explicitly adopts a project-wide practice relevant to this request, read its actual body and let it inform at most one focused question when a user-owned decision genuinely remains. Do not run a separate general interview, do not assume the practice is adopted, and do not turn a partial or deliberately deferred document into a planning blocker. Ordinary task goals and acceptance criteria are not automatically project-wide direction; when such guidance informs a requirement, cite its path instead of relabeling the task.
 
 ## Question Rules
 

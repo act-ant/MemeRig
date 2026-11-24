@@ -12,6 +12,8 @@ Resume work on the current task — pick up at the right phase/step in `.memerig
 
 Confirms: current task, git state, recent commits.
 
+Also read `.memerig/spec/README.md` (and `.memerig/spec/index.md` when present), then the actual body of each explicitly adopted project-wide practice relevant to the current task. A link is not loaded content; an unadopted or partially authored practice is not a missing step.
+
 ## Step 2: Load the Phase Index
 
 ```bash

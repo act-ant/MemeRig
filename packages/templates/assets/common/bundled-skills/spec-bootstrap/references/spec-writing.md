@@ -4,7 +4,7 @@ MemeRig specs are coding guidance for future agents. They should explain how to 
 
 ## Write From Evidence
 
-Each important rule should be backed by one of these:
+Each important code-spec rule should be backed by one of these:
 
 - A source file that demonstrates the preferred pattern.
 - A test file that shows expected behavior.
@@ -12,6 +12,12 @@ Each important rule should be backed by one of these:
 - A repeated pattern across multiple files.
 
 Use short snippets only when they make the rule clearer. Prefer linking to the file path and naming the symbol or behavior.
+
+If the current template adopts desired-direction construction, that is a
+separate document with a different evidence standard: user-confirmed intent is
+valid, and code is evidence for candidate questions rather than proof of the
+desired future. Do not put aspirational direction into code specs, and do not
+present an AI interpretation as confirmed project direction.
 
 ## File Structure
 

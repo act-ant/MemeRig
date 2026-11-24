@@ -7,11 +7,28 @@ check each task, so what is written here is what gets followed.
 It starts empty on purpose: there is nothing to fill in or delete. Add the
 documents this project actually needs, as the conventions become real.
 
+## Desired direction
+
+This default template explicitly adopts the repository-attractor method in
+[../attractor-guide.md](../attractor-guide.md). Use that guide when the project
+has a long-term design direction worth eliciting or recording. The guide is
+self-contained; no platform skill is required. The project-owned result
+belongs at `attractor.md` in this directory; create it only when there is
+meaningful confirmed direction or concrete exploration, never as an empty
+scaffold.
+
+An attractor describes the design the project should move toward. It is not a
+copy of current code, not a replacement for these code contracts, and not a
+required file for ordinary work. If the project later stops adopting this
+method, preserve any user-authored attractor but do not treat its presence as
+activation.
+
 ## Suggested layout
 
 ```
 .memerig/spec/
   index.md                      # optional: map of the spec, read first
+  attractor.md                  # optional: project-wide desired direction
   <package>/<layer>/index.md     # entry point for one package + layer
   <package>/<layer>/<topic>.md    # one document per convention
   guides/index.md                # cross-package thinking guides
@@ -36,9 +53,14 @@ reference.
    `.editorconfig`, …).
 2. Analyze the codebase for anything those files miss: find two or three real
    examples of each pattern and reference real paths.
-3. Document what the code **does**, not what it should do. Sub-agents match the
-   spec, so aspirational rules produce code that looks out of place. Tech debt
-   is documented as-is; fixing it is a separate conversation.
+3. Document what the code **does now**. These files are current code contracts,
+   not aspirational rules. Sub-agents match the spec, so aspirational rules
+   produce code that looks out of place. Tech debt is documented as-is; fixing
+   it is a separate conversation.
+4. Put desired future properties in `attractor.md` following the guide, not in
+   code-spec rules. Keep confirmed direction, proposals, and open questions
+   distinct. Do not manufacture conventions or an attractor that the user has
+   not endorsed.
 
 ## Wiring a spec file into tasks
 

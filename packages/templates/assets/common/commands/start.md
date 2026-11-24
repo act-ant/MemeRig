@@ -22,16 +22,20 @@ Compact Phase Index, request triage rules, planning artifact contract, and the s
 
 Full guide in `.memerig/workflow.md` (read on demand).
 
-## Step 3: Guideline and rule indexes
+## Step 3: Guideline, spec-entry, and rule indexes
 Discover packages + spec layers, then read each relevant index file.
 
 ```bash
 {{PYTHON_CMD}} ./.memerig/scripts/get_context.py --mode packages
+cat .memerig/spec/README.md                    # selected Spec template entry
+cat .memerig/spec/index.md                     # project Spec map, when present
 cat .memerig/spec/guides/index.md
 cat .memerig/spec/<package>/<layer>/index.md   # for each relevant layer
 cat .memerig/rules/index.md
 cat .memerig/rules/<rule>.md                   # every applicable rule body; core.md always applies
 ```
+
+The root Spec entry documents record the project-wide practices this template/project explicitly adopts and point to their bodies. Read the actual body of each adopted practice relevant to the current work — a link is not loaded content. Do not infer adoption from a file's name or presence, and do not treat an unadopted or partially authored practice as unfinished work.
 
 Spec index files list the specific guideline docs to read when you actually start coding. Rules are constraints, not routes: open each body whose applicability covers the work. Do not assume a Markdown link was loaded, and do not load unadopted optional rules. User-level rules in `~/.memerig/rules/*.md` are personal rather than project adoptions: read every `load: always` body, and `load: index` rules when their applicability covers the work.
 

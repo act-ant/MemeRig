@@ -40,6 +40,7 @@ Summarize the concrete findings from repository analysis.
 - Use real source examples with file paths.
 - Remove template-only sections that do not apply.
 - Do not modify product source code unless the task explicitly asks for it.
+- Follow the selected template's setup objectives; do not relabel ordinary goals, acceptance criteria, or spec work as an attractor.
 
 ## Acceptance Criteria
 - [ ] Specs contain concrete examples and anti-patterns from the repository.
@@ -47,6 +48,12 @@ Summarize the concrete findings from repository analysis.
 - [ ] Index files match the final spec files.
 - [ ] Claims are backed by source files, tests, or project docs.
 ```
+
+If the selected template adopts desired-direction construction, keep that work
+as a distinct objective under its designated method. A spec-bootstrap task is
+about documenting current conventions unless the template's objective
+explicitly includes direction work. Do not add an attractor section to every
+task just because one is adopted.
 
 ## Optional Helper Agents
 

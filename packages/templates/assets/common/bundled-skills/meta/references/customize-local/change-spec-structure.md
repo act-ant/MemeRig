@@ -15,6 +15,7 @@ When the user wants to change the engineering conventions AI follows, add new sp
 | --- | --- |
 | Add backend/frontend/docs/test spec layer | `.memerig/spec/<layer>/` or `.memerig/spec/<package>/<layer>/` |
 | Add shared thinking guides | `.memerig/spec/guides/` |
+| Record adopted desired future direction | The template's designated attractor document (for example `.memerig/spec/attractor.md`) using its adopted method |
 | Adjust monorepo packages | `packages` in `.memerig/config.yaml` |
 | Change default package | `default_package` in `.memerig/config.yaml` |
 | Control spec scanning scope | `spec_scope` in `.memerig/config.yaml` |
@@ -80,4 +81,5 @@ Use this output to confirm AI can see the correct packages and spec layers.
 - Specs are user project conventions and can be changed according to project needs.
 - Do not put temporary task information into specs; put temporary information in the task.
 - Do not put long-term conventions only in agents or commands; preserve them in specs.
+- An attractor is desired future direction, not a current code contract. Only construct or maintain one when the selected template/project adopts that method or the user explicitly asks; file presence is not adoption.
 - After changing spec structure, check whether existing task JSONL files still point to files that exist.

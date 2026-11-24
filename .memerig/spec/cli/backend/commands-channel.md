@@ -421,6 +421,12 @@ type ChannelEventKind = "create" | "join" | "leave" | "message" | "thread" | "co
   `turn_started.inputSeq`. Pid files feed `probeWorkerRuntime` /
   `reconcileWorkerLiveness` only; `reconcileWorkerLiveness` performs no durable
   writes unless `appendTerminalEvents: true`.
+- Supervisor terminal handling keeps its active turn until the matching
+  `turn_finished` append resolves. Clearing `TurnTracker` first allows the inbox
+  watcher to persist the next `turn_started` ahead of that completion. After the
+  append, finish only if the captured turn is still current; an interrupt may
+  have replaced it. The queued-message scenario in `test/commands/channel.test.ts`
+  covers the durable order `done` → `turn_finished` → next `turn_started`.
 - Inbox policy applies to `kind:"message"` only. `explicitOnly` (default)
   consumes only messages whose `to` targets the worker; `broadcastAndExplicit`
   also consumes broadcasts. Old `spawned` events without `inboxPolicy` project

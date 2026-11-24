@@ -10,6 +10,7 @@ This page only describes files that are visible and editable inside the user pro
 .memerig/
 ├── workflow.md
 ├── config.yaml
+├── attractor-guide.md
 ├── .developer
 ├── .version
 ├── .template-hashes.json
@@ -24,7 +25,8 @@ This page only describes files that are visible and editable inside the user pro
 | --- | --- | --- |
 | `.memerig/workflow.md` | Yes | Local workflow documentation and AI routing rules. |
 | `.memerig/config.yaml` | Yes | Project configuration, hooks, packages, journal line limits, and related settings. |
-| `.memerig/spec/` | Yes | Project specs, intended to be updated regularly by users and AI. |
+| `.memerig/attractor-guide.md` | Carefully | Managed construction method for the optional repository attractor. Installed on init as an available resource; its presence does not adopt the method. |
+| `.memerig/spec/` | Yes | Project specs, intended to be updated regularly by users and AI. May contain an optional user-authored `attractor.md` when the project adopts that method. |
 | `.memerig/tasks/` | Yes | Task material and research artifacts, maintained by the task workflow. |
 | `.memerig/workspace/` | Yes | Session records, usually written by `add_session.py`. |
 | `.memerig/scripts/` | Carefully | Local runtime. It can be customized, but only after understanding the call chain. |
@@ -65,6 +67,7 @@ Editable by default:
 
 - `.memerig/workflow.md`
 - `.memerig/config.yaml`
+- `.memerig/attractor-guide.md` (managed default method; local edits follow the normal modified-file review)
 - `.memerig/spec/**`
 - `.memerig/scripts/**`
 - Platform hooks, settings, agents, skills, commands, prompts, and workflows

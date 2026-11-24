@@ -48,6 +48,7 @@ import {
 } from "../../src/configurators/shared.js";
 
 const BUNDLED_SKILL_NAMES = [
+  "attractor",
   "channel",
   "meta",
   "session-insight",
@@ -107,13 +108,14 @@ const CONFIGURE_ONLY_PATHS = new Set([".claude/hooks/statusline.py"]);
  * `Map<path, content>` cannot express an empty directory, so each one is
  * named here against the platform that needs it.
  */
-const CONFIGURE_ONLY_EMPTY_DIRS: Partial<Record<(typeof PLATFORM_IDS)[number], string[]>> =
-  {
-    // MemeRig ships no Codex-specific skills (they all land in
-    // `.agents/skills/`, which Codex reads too). The directory is still
-    // created so users have the conventional place for their own.
-    codex: [".codex/skills"],
-  };
+const CONFIGURE_ONLY_EMPTY_DIRS: Partial<
+  Record<(typeof PLATFORM_IDS)[number], string[]>
+> = {
+  // MemeRig ships no Codex-specific skills (they all land in
+  // `.agents/skills/`, which Codex reads too). The directory is still
+  // created so users have the conventional place for their own.
+  codex: [".codex/skills"],
+};
 
 /** Every file under `root`, as POSIX paths relative to `root`. */
 function walkFiles(root: string, rel = ""): string[] {
@@ -195,7 +197,10 @@ describe("getConfiguredPlatforms", () => {
     });
     expect(getConfiguredPlatforms(tmpDir).has("devin")).toBe(false);
 
-    fs.writeFileSync(path.join(workflowsDir, "memerig-continue.md"), "# MemeRig");
+    fs.writeFileSync(
+      path.join(workflowsDir, "memerig-continue.md"),
+      "# MemeRig",
+    );
     const result = getConfiguredPlatforms(tmpDir);
     expect(result.has("devin")).toBe(true);
   });
@@ -428,9 +433,9 @@ describe("configurePlatform", () => {
       expect(fs.readFileSync(skillPath, "utf-8")).toBe(skill.content);
     }
     expect(fs.existsSync(path.join(skillsRoot, BUNDLED_REFERENCE))).toBe(true);
-    expect(
-      fs.existsSync(path.join(skillsRoot, "start", "SKILL.md")),
-    ).toBe(true);
+    expect(fs.existsSync(path.join(skillsRoot, "start", "SKILL.md"))).toBe(
+      true,
+    );
   });
 
   it("configurePlatform('codex') writes custom agents and config", async () => {
@@ -792,9 +797,7 @@ describe("configurePlatform", () => {
     expect(fs.existsSync(path.join(tmpDir, ".agents", "skills"))).toBe(false);
 
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".grok", "skills", "check", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".grok", "skills", "check", "SKILL.md")),
     ).toBe(true);
     expect(
       fs.existsSync(
@@ -837,15 +840,11 @@ describe("configurePlatform", () => {
     await configurePlatform("snow", tmpDir);
 
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".snow", "skills", "check", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".snow", "skills", "check", "SKILL.md")),
     ).toBe(true);
     // hasHooks=true → start is filtered out (session inject replaces it)
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".snow", "skills", "start", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".snow", "skills", "start", "SKILL.md")),
     ).toBe(false);
     expect(
       fs.existsSync(
@@ -920,7 +919,9 @@ describe("configurePlatform", () => {
       fs.mkdirSync(path.join(emptyDir, ".snow"), { recursive: true });
       fs.writeFileSync(path.join(emptyDir, ".snow", "settings.json"), "{}");
       expect(getConfiguredPlatforms(emptyDir).has("snow")).toBe(false);
-      fs.mkdirSync(path.join(emptyDir, ".snow", "commands"), { recursive: true });
+      fs.mkdirSync(path.join(emptyDir, ".snow", "commands"), {
+        recursive: true,
+      });
       expect(getConfiguredPlatforms(emptyDir).has("snow")).toBe(false);
       fs.mkdirSync(path.join(emptyDir, ".snow", "agents"), { recursive: true });
       expect(getConfiguredPlatforms(emptyDir).has("snow")).toBe(false);
@@ -1039,9 +1040,7 @@ describe("configurePlatform", () => {
 
     // hasHooks=false → start stays as a user-invocable dsh skill
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".dsh", "skills", "start", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".dsh", "skills", "start", "SKILL.md")),
     ).toBe(true);
     expect(
       fs.existsSync(
@@ -1117,9 +1116,7 @@ describe("configurePlatform", () => {
     ).toBe(false);
 
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".zcode", "skills", "start", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".zcode", "skills", "start", "SKILL.md")),
     ).toBe(false);
     expect(
       fs.existsSync(
@@ -1128,19 +1125,11 @@ describe("configurePlatform", () => {
     ).toBe(false);
     expect(
       fs.existsSync(
-        path.join(
-          tmpDir,
-          ".zcode",
-          "skills",
-          "finish-work",
-          "SKILL.md",
-        ),
+        path.join(tmpDir, ".zcode", "skills", "finish-work", "SKILL.md"),
       ),
     ).toBe(false);
     expect(
-      fs.existsSync(
-        path.join(tmpDir, ".zcode", "skills", "check", "SKILL.md"),
-      ),
+      fs.existsSync(path.join(tmpDir, ".zcode", "skills", "check", "SKILL.md")),
     ).toBe(true);
     expect(
       fs.readFileSync(
@@ -1194,17 +1183,11 @@ describe("configurePlatform", () => {
       ),
     ).toBe(false);
     expect(templates?.has(".agents/skills/start/SKILL.md")).toBe(false);
-    expect(templates?.has(".agents/skills/continue/SKILL.md")).toBe(
-      false,
-    );
+    expect(templates?.has(".agents/skills/continue/SKILL.md")).toBe(false);
     expect(templates?.has(".agents/skills/check/SKILL.md")).toBe(false);
     expect(templates?.has(".zcode/skills/start/SKILL.md")).toBe(false);
-    expect(templates?.has(".zcode/skills/continue/SKILL.md")).toBe(
-      false,
-    );
-    expect(templates?.has(".zcode/skills/finish-work/SKILL.md")).toBe(
-      false,
-    );
+    expect(templates?.has(".zcode/skills/continue/SKILL.md")).toBe(false);
+    expect(templates?.has(".zcode/skills/finish-work/SKILL.md")).toBe(false);
     expect(templates?.has(".zcode/skills/check/SKILL.md")).toBe(true);
     expect(templates?.has(".zcode/skills/meta/SKILL.md")).toBe(true);
     expect(templates?.has(".zcode/agents/memerig-implement.md")).toBe(true);
@@ -1612,9 +1595,7 @@ describe("configurePlatform", () => {
     expect(templates?.get(".pi/prompts/memerig-start.md")).toBeDefined();
     expect(templates?.get(".pi/prompts/memerig-finish-work.md")).toBeDefined();
     expect(templates?.get(".pi/prompts/memerig-continue.md")).toBeDefined();
-    expect(
-      templates?.get(".agents/skills/check/SKILL.md"),
-    ).toBeDefined();
+    expect(templates?.get(".agents/skills/check/SKILL.md")).toBeDefined();
     expect(
       templates?.get(
         ".agents/skills/meta/references/local-architecture/overview.md",

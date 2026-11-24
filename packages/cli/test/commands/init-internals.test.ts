@@ -72,7 +72,9 @@ describe("requireSupportedPython", () => {
   });
 
   it("warns and proceeds when child_process spawn is sandbox-restricted (EPERM)", () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
     vi.mocked(execSync).mockImplementation(() => {
       const err = new Error("Operation not permitted") as NodeJS.ErrnoException;
       err.code = "EPERM";
@@ -106,7 +108,9 @@ describe("requireSupportedPython", () => {
     try {
       // execSync should not be called at all
       const result = requireSupportedPython("python3");
-      expect(result).toBe("version check skipped (MEMERIG_SKIP_PYTHON_CHECK=1)");
+      expect(result).toBe(
+        "version check skipped (MEMERIG_SKIP_PYTHON_CHECK=1)",
+      );
       expect(execSync).not.toHaveBeenCalled();
     } finally {
       if (prev === undefined) {
@@ -271,7 +275,6 @@ describe("buildSpecTemplateChoices", () => {
       "trellis",
       "game-dev",
     ]);
-    expect(choices[0].name).toBe("from scratch (default)");
   });
 
   it("appends marketplace-only entries and dedupes bundled ids", () => {

@@ -327,7 +327,9 @@ describe("matchesOriginalTemplate", () => {
   });
 
   it("returns false when file does not exist", () => {
-    expect(matchesOriginalTemplate(tmpDir, "missing.txt", "content")).toBe(false);
+    expect(matchesOriginalTemplate(tmpDir, "missing.txt", "content")).toBe(
+      false,
+    );
   });
 
   it("returns true when file matches original content exactly", () => {
@@ -402,10 +404,9 @@ describe("initializeHashes", () => {
     expect(count).toBe(0);
   });
 
-  it("hashes files in .memerig/ and tracked platform paths", () => {
-    // .memerig/ is always walked recursively. Platform paths (.claude/, etc.)
-    // are hashed only when explicitly listed in `trackedPaths` — the source-
-    // of-truth set captured by `startRecordingWrites` during init.
+  it("hashes only recorded writes when receipts are supplied", () => {
+    // A skipped local script must not become an owned pristine template just
+    // because a different platform file was installed during the same run.
     fs.mkdirSync(path.join(tmpDir, ".memerig", "scripts"), { recursive: true });
     fs.writeFileSync(
       path.join(tmpDir, ".memerig", "scripts", "task.py"),
@@ -418,14 +419,14 @@ describe("initializeHashes", () => {
       "# Start",
     );
 
-    const count = initializeHashes(tmpDir, {
+    initializeHashes(tmpDir, {
       trackedPaths: new Set([".claude/commands/start.md"]),
     });
-    expect(count).toBeGreaterThanOrEqual(2);
 
     const hashes = loadHashes(tmpDir);
-    expect(hashes).toHaveProperty(".memerig/scripts/task.py");
-    expect(hashes).toHaveProperty(".claude/commands/start.md");
+    expect(hashes).toEqual({
+      ".claude/commands/start.md": computeHash("# Start"),
+    });
   });
 
   it("does NOT hash platform-dir files that are not in trackedPaths", () => {
@@ -458,8 +459,13 @@ describe("initializeHashes", () => {
   });
 
   it("excludes workspace and tasks directories", () => {
-    fs.mkdirSync(path.join(tmpDir, ".memerig", "workspace"), { recursive: true });
-    fs.writeFileSync(path.join(tmpDir, ".memerig", "workspace", "data.md"), "user data");
+    fs.mkdirSync(path.join(tmpDir, ".memerig", "workspace"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(tmpDir, ".memerig", "workspace", "data.md"),
+      "user data",
+    );
     fs.mkdirSync(path.join(tmpDir, ".memerig", "tasks"), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, ".memerig", "tasks", "task.json"), "{}");
 
@@ -473,12 +479,27 @@ describe("initializeHashes", () => {
   });
 
   it("excludes spec/ directory files from hashing", () => {
-    fs.mkdirSync(path.join(tmpDir, ".memerig", "spec", "guides"), { recursive: true });
-    fs.mkdirSync(path.join(tmpDir, ".memerig", "spec", "frontend"), { recursive: true });
-    fs.mkdirSync(path.join(tmpDir, ".memerig", "spec", "backend"), { recursive: true });
-    fs.writeFileSync(path.join(tmpDir, ".memerig", "spec", "guides", "index.md"), "# Guides");
-    fs.writeFileSync(path.join(tmpDir, ".memerig", "spec", "frontend", "index.md"), "# Frontend");
-    fs.writeFileSync(path.join(tmpDir, ".memerig", "spec", "backend", "index.md"), "# Backend");
+    fs.mkdirSync(path.join(tmpDir, ".memerig", "spec", "guides"), {
+      recursive: true,
+    });
+    fs.mkdirSync(path.join(tmpDir, ".memerig", "spec", "frontend"), {
+      recursive: true,
+    });
+    fs.mkdirSync(path.join(tmpDir, ".memerig", "spec", "backend"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(tmpDir, ".memerig", "spec", "guides", "index.md"),
+      "# Guides",
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, ".memerig", "spec", "frontend", "index.md"),
+      "# Frontend",
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, ".memerig", "spec", "backend", "index.md"),
+      "# Backend",
+    );
 
     const count = initializeHashes(tmpDir);
     const hashes = loadHashes(tmpDir);
@@ -533,9 +554,7 @@ describe("initializeHashes", () => {
     });
     const hashes = loadHashes(tmpDir);
 
-    expect(hashes).toHaveProperty(
-      ".pi/skills/update-spec/SKILL.md",
-    );
+    expect(hashes).toHaveProperty(".pi/skills/update-spec/SKILL.md");
     expect(count).toBe(1);
   });
 });
